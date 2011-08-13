@@ -18,5 +18,5 @@ if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/", EchoWebSocket),
     ])
-    application.listen(8888)
+    application.listen(8888, address="192.168.0.10")
     tornado.ioloop.IOLoop.instance().start()

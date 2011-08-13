@@ -49,10 +49,10 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         s.pings = []
 
         if s.closing:
-            if not self._client_terminated:
+            if not self.client_terminated:
                 self.close()
             else:
-                self._server_terminated = True
+                self.server_terminated = True
                 self.io.close()
                 self.closed(s.closing.code, s.closing.reason)
                 return
@@ -62,13 +62,13 @@ class TornadoWebSocketClient(WebSocketBaseClient):
 
         self.io.read_bytes(next_size, self.__fetch_more)
      
-    def _write_to_connection(self, bytes):
+    def write_to_connection(self, bytes):
         self.io.write(bytes)
 
-    def _read_from_connection(self, amount):
+    def read_from_connection(self, amount):
         self.io.read_bytes(amount, self.__fetch_more)
         
-    def _close_connection(self):
+    def close_connection(self):
         self.io.close()
 
 if __name__ == '__main__':
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         def closed(self, code, reason):
             ioloop.IOLoop.instance().stop()
                 
-    ws = MyClient('http://localhost:8888/', protocols=['http-only', 'chat'])
+    ws = MyClient('http://192.168.0.10:8888/', protocols=['http-only', 'chat'])
     ws.connect()
         
     ioloop.IOLoop.instance().start()

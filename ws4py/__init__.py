@@ -29,3 +29,7 @@
 
 __author__ = "Sylvain Hellegouarch"
 __version__ = "0.1.0"
+__all__ = ['WS_KEY']
+
+WS_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
