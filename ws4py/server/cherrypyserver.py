@@ -1,4 +1,78 @@
 # -*- coding: utf-8 -*-
+__doc__ = """
+WebSocket within CherryPy is a tricky bit since CherryPy is
+a threaded server which would choke quickly if each thread
+of the server were kept attached to a long living connection
+that WebSocket expects.
+
+In order to work around this constraint, we take some advantage
+of some internals of CherryPy as well as the introspection
+Python provides.
+
+Basically, whene the WebSocket upgrade is performed, we take over
+the socket and let CherryPy take back the thread that was
+associated with the upgrade request.
+
+These operations require a bit of work at various levels of
+the CherryPy framework but this module takes care of them
+and from your application's perspective, this is abstracted.
+
+Here are the various utilities provided by this module:
+
+ * WebSocketTool: The tool is in charge to perform the
+                  HTTP upgrade and detach the socket from
+                  CherryPy. It runs at various hook points of the
+                  request's processing. Enable that tool at
+                  any path you wish to handle as a WebSocket
+                  handler.
+                  
+ * WebSocketPlugin: The plugin tracks the web socket handler
+                    instanciated. It also cleans out websocket handler
+                    which connection have been closed down.
+                    
+ * WebSocketHandler: Handles the actual websocket communication
+                     once the upgrade has been completed. The tool
+                     creates an instance of this class automatically
+                     and passes it to the plugin for tracking.
+
+
+Simple usage example:
+
+    import cherrypy
+    from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool, WebSocketHandler
+    
+    cherrypy.config.update({'server.socket_port': 9000})
+    WebSocketPlugin(cherrypy.engine).subscribe()
+    cherrypy.tools.websocket = WebSocketTool()
+
+    class EchoSocketHandler(WebSocketHandler):
+        def received_message(self, m):
+            self.send(str(m), m.is_binary)
+        
+    
+    class Root(object):
+        @cherrypy.expose
+        def index(self):
+            return 'some HTML with a websocket javascript connection'
+
+        @cherrypy.expose
+        def ws(self):
+            pass
+        
+    cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True,
+                                                     'tools.websocket.handler_cls': EchoSocketHandler}})
+
+
+Note that you can set the handler class on per-path basis,
+meaning you could also dynamically change the class based
+on other envrionmental settings (is the user authenticated for ex).
+
+The current implementation of the handler is based on a thread that will
+constantly read bytes from the socket and feed the stream instance with them
+until an error or a close condition arise. This might be a bit
+suboptimal and one could implement the handler in a different fashion
+using a poll based socket handling (select, poll, tornado, gevent, etc.)
+"""
 import base64
 from hashlib import sha1
 import inspect
