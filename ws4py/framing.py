@@ -17,6 +17,17 @@ __all__ = ['Frame']
 
 class Frame(object):
     def __init__(self, opcode=None, body='', masking_key=None, fin=0, rsv1=0, rsv2=0, rsv3=0):
+        """
+        Implements the framing protocol as defined by draft-10 of the specification
+        supporting protocol version 8.
+
+        >>> f = Frame(OPCODE_TEXT, 'hello world', os.urandom(4), fin=1)
+        >>> bytes = f.build()
+        >>> f = Frame()
+        >>> f.parser.send(bytes[1])
+        >>> f.parser.send(bytes[2])
+        >>> f.parser.send(bytes[2:])
+        """
         self.opcode = opcode
         self.body = body
         self.masking_key = masking_key
@@ -30,6 +41,11 @@ class Frame(object):
         self.parser.next()
 
     def build(self):
+        """
+        Builds a frame from the instance's attributes.
+
+        @return: The frame header and payload as bytes.
+        """
         header = ''
 
         if self.fin > 0x1:
@@ -87,9 +103,14 @@ class Frame(object):
         return str(bytes)
 
     def _parser(self):
+        """
+        Generator to parse bytes into a frame. Yields until
+        enough bytes have been read or an error is met.
+        """
         buf = ''
         bytes = ''
-        
+
+        # yield until we get the first header's byte
         while not bytes or len(bytes) < 1:
             bytes = (yield 1)
 
@@ -100,15 +121,29 @@ class Frame(object):
         self.rsv3 = (first_byte >> 4) & 1
         self.opcode = first_byte & 0xf
 
+        # frame-fin = %x0 ; more frames of this message follow
+        #           / %x1 ; final frame of this message
         if self.fin not in [0, 1]:
             raise ProtocolException()
 
+        # frame-rsv1 = %x0 ; 1 bit, MUST be 0 unless negotiated otherwise
+        # frame-rsv2 = %x0 ; 1 bit, MUST be 0 unless negotiated otherwise
+        # frame-rsv3 = %x0 ; 1 bit, MUST be 0 unless negotiated otherwise
+        if self.rsv1 or self.rsv2 or self.rsv3:
+            raise ProtocolException()
+
+        # control frames cannot be fragmented
+        if self.opcode > 0x7 and self.fin == 0:
+            raise ProtocolException()
+
+        # do we already have enough bytes to continue?
         if bytes and len(bytes) > 1:
             buf = bytes[1:]
             bytes = buf
         else:
             bytes = ''
 
+        # Yield until we get the second header's byte
         while not bytes or len(bytes) < 1:
             bytes = (yield 1)
  
@@ -116,8 +151,9 @@ class Frame(object):
         mask = (second_byte >> 7) & 1
         self.payload_length = second_byte & 0x7f
 
-        if self.opcode == OPCODE_CLOSE:
-            raise StopIteration()
+        # All control frames MUST have a payload length of 125 bytes or less
+        if self.opcode > 0x7 and self.payload_length > 125:
+            raise FrameTooLargeException()
 
         if bytes and len(bytes) > 1:
             buf = bytes[1:]
@@ -172,7 +208,9 @@ class Frame(object):
                 bytes = (yield nxt_buf_size)
                 bytes = buf + (bytes or '')
                 while not bytes or len(bytes) < 4:
-                    bytes = bytes + (yield 4 - len(bytes))
+                    b = (yield 4 - len(bytes))
+                    if isinstance(b, basestring):
+                        bytes = bytes + b
                 if len(bytes) > 4:
                     buf = bytes[4:]
             else:
@@ -196,6 +234,13 @@ class Frame(object):
         yield
         
     def mask(self, data):
+        """
+        Performs the masking or unmasking operation on data
+        using the simple masking algorithme:
+
+        j                   = i MOD 4
+        transformed-octet-i = original-octet-i XOR masking-key-octet-j
+        """
         masked = bytearray(data)
         key = map(ord, self.masking_key)
         for i in range(len(data)):

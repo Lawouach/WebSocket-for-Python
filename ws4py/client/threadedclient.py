@@ -5,7 +5,6 @@ import socket
 import threading
 
 from ws4py.client import WebSocketBaseClient
-from ws4py.handler.threadedhandler import WebSocketHandler
 from ws4py.exc import HandshakeError
 
 __all__ = ['WebSocketClient']

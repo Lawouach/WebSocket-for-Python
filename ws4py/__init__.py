@@ -10,7 +10,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the name of Sylvain Hellegouarch nor the names of his
+#     * Neither the name of ws4py nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -28,7 +28,7 @@
 #
 
 __author__ = "Sylvain Hellegouarch"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ['WS_KEY']
 
 WS_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

@@ -2,7 +2,7 @@
 
 __all__ = ['WebSocketException', 'FrameTooLargeException', 'ProtocolException',
            'FUnsupportedFrameTypeException', 'TextFrameEncodingException',
-           'StreamClosed', 'HandshakeError']
+           'StreamClosed', 'HandshakeError', 'InvalidBytesError']
 
 class WebSocketException(Exception): pass
 
@@ -13,6 +13,8 @@ class FrameTooLargeException(WebSocketException): pass
 class UnsupportedFrameTypeException(WebSocketException): pass
 
 class TextFrameEncodingException(WebSocketException): pass
+
+class InvalidBytesError(WebSocketException): pass
 
 class StreamClosed(Exception): pass
 

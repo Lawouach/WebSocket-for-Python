@@ -5,6 +5,8 @@ import inspect
 import socket
 import time
 import threading
+import traceback
+from sys import exc_info
 
 import cherrypy
 from cherrypy import Tool
@@ -24,7 +26,7 @@ class WebSocketHandler(object):
         self.extensions = extensions
 
         self.sock = sock
-        self.sock.setblocking(True)
+        self.sock.settimeout(30.0)
         
         self.client_terminated = False
         self.server_terminated = False
@@ -35,17 +37,17 @@ class WebSocketHandler(object):
     def opened(self):
         self._th.start()
 
-    def close(self, reason=''):
+    def close(self, code=1000, reason=''):
         if not self.server_terminated:
             self.server_terminated = True
-            self.sock.sendall(self.stream.close(reason=reason))
+            print "burp", code
+            self.sock.sendall(self.stream.close(code=code, reason=reason))
             
     def closed(self, code, reason):
         pass
 
     def received_message(self, m):
-        print "#", m
-        self.send("You said %s" % str(m))
+        self.send(str(m), m.is_binary)
     
     @property
     def terminated(self):
@@ -58,8 +60,16 @@ class WebSocketHandler(object):
         return self.sock.recv(amount)
         
     def close_connection(self):
-        self.sock.close()
-        
+        if self.sock:
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+                self.sock.close()
+            except:
+                pass
+
+    def ponged(self, pong):
+        pass
+
     def send(self, payload, binary=False):
         if isinstance(payload, basestring):
             if not binary:
@@ -83,33 +93,57 @@ class WebSocketHandler(object):
                 self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
 
     def _receive(self):
-        next_size = 256
-        while not self.terminated:
-            try:
+        next_size = 2
+        try:
+            while not self.terminated:
                 bytes = self.sock.recv(next_size)
-            except socket.timeout:
-                continue
+                if not bytes:
+                    raise IOError()
+                
+                with self._lock:
+                    s = self.stream
+                    next_size = s.parser.send(bytes)
 
-            with self._lock:
-                s = self.stream
-                next_size = s.parser.send(bytes)
+                    if s.closing:
+                        print s.closing
+                        if not self.server_terminated:
+                            next_size = 2
+                            self.close()
+                        else:
+                            self.client_terminated = True
+                            self.close_connection()
+                            self.closed(s.closing.code, s.closing.reason)
 
-                for ping in s.pings:
-                    self.sock.sendall(s.pong(ping.data))
-                s.pings = []
-
-                if s.closing:
-                    if not self.server_terminated:
-                        next_size = 256
-                        self.close()
-                    else:
-                        self.client_terminated = True
+                    elif s.errors:
+                        errors = s.errors[:]
+                        for error in s.errors:
+                            print error.code, error.reason
+                            self.close(error.code, error.reason)
+                            s.errors.remove(error)
                         self.close_connection()
-                        self.closed(s.closing.code, s.closing.reason)
+                            
+                    elif s.has_messages:
+                        self.received_message(s.messages.pop())
 
-                if s.has_messages:
-                    self.received_message(s.messages.pop())
-                        
+                    for ping in s.pings:
+                        self.sock.sendall(s.pong(str(ping.data)))
+                    s.pings = []
+
+                    for pong in s.pongs:
+                        self.ponged(pong)
+                    s.pongs = []
+                    
+
+        except IOError:
+            self.client_terminated = True
+            self.server_terminated = True
+        except:
+            print "".join(traceback.format_exception(*exc_info()))
+            self.client_terminated = True
+            self.server_terminated = True
+            raise
+        finally:
+            self.close_connection()
 
 class WebSocketTool(Tool):
     def __init__(self):
@@ -291,9 +325,11 @@ class WebSocketPlugin(plugins.SimplePlugin):
     def start(self):
         cherrypy.log("Starting WebSocket processing")
         self.bus.subscribe('handle-websocket', self.handle)
+        self.bus.subscribe('main', self.cleanup)
         
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
+        self.bus.unsubscribe('main', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
 
         for handler in self.handlers:
@@ -302,14 +338,60 @@ class WebSocketPlugin(plugins.SimplePlugin):
     def handle(self, ws_handler):
         self.handlers.append(ws_handler)
 
+    def cleanup(self):
+        handlers = self.handlers[:]
+        for handler in handlers:
+            if handler.terminated:
+                handler.close_connection()
+                handler._th.join()
+                self.handlers.remove(handler)
+                
+
 if __name__ == '__main__':
+    import random
+    
+    cherrypy.config.update({'server.socket_host': '127.0.0.1',
+                            'server.socket_port': 9000})
+    WebSocketPlugin(cherrypy.engine).subscribe()
+    cherrypy.tools.websocket = WebSocketTool()
+    
     class Root(object):
+        @cherrypy.expose
+        @cherrypy.tools.websocket(on=False)
+        def ws(self):
+            return """<html>
+        <head>
+          <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'> </script>
+          <script type='application/javascript'>
+            $(document).ready(function() {
+              var ws = new WebSocket('ws://192.168.0.10:8888/');
+              ws.onmessage = function (evt) {
+                 $('#chat').val($('#chat').val() + evt.data + '\\n');                  
+              };
+              ws.onopen = function() {
+                 ws.send("Hello there");
+              };
+              $('#chatform').submit(function() {
+                 ws.send('%(username)s: ' + $('#message').val());
+                 $('#message').val("");
+                 return false;
+              });
+            });
+          </script>
+        </head>
+        <body>
+        <form action='/echo' id='chatform' method='get'>
+          <textarea id='chat' cols='35' rows='10'></textarea>
+          <br />
+          <label for='message'>%(username)s: </label><input type='text' id='message' />
+          <input type='submit' value='Send' />
+          </form>
+        </body>
+        </html>
+        """ % {'username': "User%d" % random.randint(0, 100)}
+
         @cherrypy.expose
         def index(self):
             pass
-
-    cherrypy.config.update({'server.socket_host': '192.168.0.10',
-                            'server.socket_port': 8888})
-    WebSocketPlugin(cherrypy.engine).subscribe()
-    cherrypy.tools.websocket = WebSocketTool()
+        
     cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True}})
