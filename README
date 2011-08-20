@@ -45,3 +45,8 @@ Then from a different terminal:
 
 This will run the complete suite. As of this writing, the CherryPy server passes all the functional tests but
 fails on some performance tests by being too slow.
+
+Credits
+-------
+
+Many thanks to the pywebsocket and Tornado projects which have provided a good base to write ws4py.
