@@ -30,7 +30,7 @@ class Message(object):
         """
         Returns a frame bytes with the fin bit set and a random mask.
         """
-        return Frame(body=self.data, opcode=self.opcode,
+        return Frame(body=self.data or '', opcode=self.opcode,
                      masking_key=os.urandom(4), fin=1).build()
 
     def fragment(self, first=False, last=False):
@@ -43,7 +43,7 @@ class Message(object):
         """
         fin = 1 if last is True else 0
         opcode = self.opcode if first is True else OPCODE_CONTINUATION
-        return Frame(body=self.data, opcode=opcode,
+        return Frame(body=self.data or '', opcode=opcode,
                      masking_key=os.urandom(4), fin=fin).build()
 
     @property

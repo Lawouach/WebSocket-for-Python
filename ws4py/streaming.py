@@ -165,7 +165,7 @@ class Stream(object):
                     frame.parser.send(bytes)
                 except StopIteration:
                     bytes = frame.body or ''
-                    if frame.masking_key:
+                    if frame.masking_key and bytes:
                         bytes = frame.unmask(bytes)
 
                     if frame.opcode == OPCODE_TEXT:
@@ -209,7 +209,12 @@ class Stream(object):
                     
                     else:
                         self.errors.append(CloseControlMessage(code=1003))
-                        
+
+                    # When the frame's payload is empty, we must yield
+                    # once more so that the caller is properly aligned
+                    if not bytes:
+                        yield 0
+
                     break
 
                 except ProtocolException:

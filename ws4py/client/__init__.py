@@ -95,17 +95,17 @@ class WebSocketBaseClient(object):
     def received_message(self, m):
         pass
 
-    def closed(self, code, reason):
+    def closed(self, code, reason=None):
         pass
 
     @property
     def terminated(self):
         return self.client_terminated is True and self.server_terminated is True
     
-    def close(self, reason=''):
+    def close(self, reason='', code=1000):
         if not self.client_terminated:
             self.client_terminated = True
-            self.write_to_connection(self.stream.close(reason=reason))
+            self.write_to_connection(self.stream.close(code=code, reason=reason))
 
     def connect(self):
         raise NotImplemented()

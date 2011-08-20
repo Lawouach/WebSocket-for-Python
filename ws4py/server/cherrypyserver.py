@@ -78,7 +78,7 @@ from hashlib import sha1
 import inspect
 import socket
 import time
-import threading
+import threading 
 import traceback
 from sys import exc_info
 
@@ -114,10 +114,9 @@ class WebSocketHandler(object):
     def close(self, code=1000, reason=''):
         if not self.server_terminated:
             self.server_terminated = True
-            print "burp", code
-            self.sock.sendall(self.stream.close(code=code, reason=reason))
+            self.write_to_connection(self.stream.close(code=code, reason=reason))
             
-    def closed(self, code, reason):
+    def closed(self, code, reason=None):
         pass
 
     def received_message(self, m):
@@ -171,53 +170,48 @@ class WebSocketHandler(object):
         try:
             while not self.terminated:
                 bytes = self.sock.recv(next_size)
-                if not bytes:
-                    raise IOError()
+		if not bytes and next_size > 0:
+		    break
                 
                 with self._lock:
                     s = self.stream
                     next_size = s.parser.send(bytes)
 
-                    if s.closing:
-                        print s.closing
+                    if s.closing is not None:
                         if not self.server_terminated:
                             next_size = 2
-                            self.close()
+                            self.close(s.closing.code, s.closing.reason)
                         else:
                             self.client_terminated = True
                             self.close_connection()
-                            self.closed(s.closing.code, s.closing.reason)
 
                     elif s.errors:
                         errors = s.errors[:]
                         for error in s.errors:
-                            print error.code, error.reason
                             self.close(error.code, error.reason)
                             s.errors.remove(error)
-                        self.close_connection()
+			break
                             
                     elif s.has_messages:
                         self.received_message(s.messages.pop())
 
                     for ping in s.pings:
-                        self.sock.sendall(s.pong(str(ping.data)))
+                        self.write_to_connection(s.pong(str(ping.data)))
                     s.pings = []
 
                     for pong in s.pongs:
                         self.ponged(pong)
                     s.pongs = []
                     
-
-        except IOError:
-            self.client_terminated = True
-            self.server_terminated = True
         except:
             print "".join(traceback.format_exception(*exc_info()))
-            self.client_terminated = True
-            self.server_terminated = True
-            raise
         finally:
+	    self.client_terminated = self.server_terminated = True
             self.close_connection()
+	    if self.stream.closing:
+		self.closed(self.stream.closing.code, self.stream.closing.reason)
+	    else:
+		self.closed(1006)
 
 class WebSocketTool(Tool):
     def __init__(self):

@@ -231,7 +231,6 @@ class Frame(object):
             bytes = buf[:self.payload_length]
 
         self.body = bytes
-        yield
         
     def mask(self, data):
         """
