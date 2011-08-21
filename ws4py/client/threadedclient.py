@@ -77,6 +77,7 @@ class WebSocketClient(WebSocketBaseClient):
     def _receive(self):
         next_size = 2
         try:
+            self.sock.setblocking(1)
             while self.running:
                 bytes = self.read_from_connection(next_size)
                 

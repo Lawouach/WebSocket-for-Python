@@ -180,6 +180,7 @@ class WebSocketHandler(object):
         """
         next_size = 2
         try:
+            self.sock.setblocking(1)
             while not self.terminated:
                 bytes = self.read_from_connection(next_size)
 		if not bytes and next_size > 0:
