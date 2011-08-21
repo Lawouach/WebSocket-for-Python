@@ -37,54 +37,54 @@ class WSStreamTest(unittest.TestCase):
         msg = 'hello there'
         f = Frame(opcode=OPCODE_TEXT, body=msg, fin=1).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         for byte in f:
             s.parser.send(byte)
-        self.assertEqual(len(s.messages), 1)
+        self.assertEqual(s.has_message, True)
     
     def test_text_message_received(self):
         msg = 'hello there'
         f = Frame(opcode=OPCODE_TEXT, body=msg, fin=1).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         s.parser.send(f)
-        self.assertEqual(s.messages[0].completed, True)
+        self.assertEqual(s.message.completed, True)
 
     def test_text_message_with_continuation_received(self):
         msg = 'hello there'
         f = Frame(opcode=OPCODE_TEXT, body=msg, fin=0).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         s.parser.send(f)
-        self.assertEqual(s.messages[0].completed, False)
+        self.assertEqual(s.message.completed, False)
 
         for i in range(3):
             f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=0).build()
             s.parser.send(f)
-            self.assertEqual(len(s.messages), 1)
-            self.assertEqual(s.messages[0].completed, False)
-            self.assertEqual(s.messages[0].opcode, OPCODE_TEXT)
+            self.assertEqual(s.has_message, False)
+            self.assertEqual(s.message.completed, False)
+            self.assertEqual(s.message.opcode, OPCODE_TEXT)
         
         f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=1).build()
         s.parser.send(f)
-        self.assertEqual(len(s.messages), 1)
-        self.assertEqual(s.messages[0].completed, True)
-        self.assertEqual(s.messages[0].opcode, OPCODE_TEXT)
+        self.assertEqual(s.has_message, True)
+        self.assertEqual(s.message.completed, True)
+        self.assertEqual(s.message.opcode, OPCODE_TEXT)
         
     def test_text_message_with_continuation_and_ping_in_between(self):
         msg = 'hello there'
         f = Frame(opcode=OPCODE_TEXT, body=msg, fin=0).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         s.parser.send(f)
-        self.assertEqual(s.messages[0].completed, False)
+        self.assertEqual(s.message.completed, False)
 
         for i in range(3):
             f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=0).build()
             s.parser.send(f)
-            self.assertEqual(len(s.messages), 1)
-            self.assertEqual(s.messages[0].completed, False)
-            self.assertEqual(s.messages[0].opcode, OPCODE_TEXT)
+            self.assertEqual(s.has_message, False)
+            self.assertEqual(s.message.completed, False)
+            self.assertEqual(s.message.opcode, OPCODE_TEXT)
         
             f = Frame(opcode=OPCODE_PING, body='ping me', fin=1).build()
             self.assertEqual(len(s.pings), i)
@@ -93,38 +93,38 @@ class WSStreamTest(unittest.TestCase):
         
         f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=1).build()
         s.parser.send(f)
-        self.assertEqual(len(s.messages), 1)
-        self.assertEqual(s.messages[0].opcode, OPCODE_TEXT)
-        self.assertEqual(s.messages[0].completed, True)
+        self.assertEqual(s.has_message, True)
+        self.assertEqual(s.message.opcode, OPCODE_TEXT)
+        self.assertEqual(s.message.completed, True)
         
     def test_binary_message_received(self):
         msg = os.urandom(16)
         f = Frame(opcode=OPCODE_BINARY, body=msg, fin=1).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         s.parser.send(f)
-        self.assertEqual(s.messages[0].completed, True)
+        self.assertEqual(s.message.completed, True)
 
     def test_binary_message_with_continuation_received(self):
         msg = os.urandom(16)
         f = Frame(opcode=OPCODE_BINARY, body=msg, fin=0).build()
         s = Stream()
-        self.assertEqual(len(s.messages), 0)
+        self.assertEqual(s.has_message, False)
         s.parser.send(f)
-        self.assertEqual(s.messages[0].completed, False)
+        self.assertEqual(s.message.completed, False)
 
         for i in range(3):
             f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=0).build()
             s.parser.send(f)
-            self.assertEqual(len(s.messages), 1)
-            self.assertEqual(s.messages[0].completed, False)
-            self.assertEqual(s.messages[0].opcode, OPCODE_BINARY)
+            self.assertEqual(s.has_message, False)
+            self.assertEqual(s.message.completed, False)
+            self.assertEqual(s.message.opcode, OPCODE_BINARY)
         
         f = Frame(opcode=OPCODE_CONTINUATION, body=msg, fin=1).build()
         s.parser.send(f)
-        self.assertEqual(len(s.messages), 1)
-        self.assertEqual(s.messages[0].completed, True)
-        self.assertEqual(s.messages[0].opcode, OPCODE_BINARY)
+        self.assertEqual(s.has_message, True)
+        self.assertEqual(s.message.completed, True)
+        self.assertEqual(s.message.opcode, OPCODE_BINARY)
         
 if __name__ == '__main__':
     suite = unittest.TestSuite()
