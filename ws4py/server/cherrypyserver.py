@@ -74,6 +74,7 @@ from cherrypy.process import plugins
 from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 
 from ws4py import WS_KEY
+from ws4py.exc import HandshakeError
 from ws4py.server.handler.threadedhandler import WebSocketHandler
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
@@ -267,12 +268,14 @@ class WebSocketPlugin(plugins.SimplePlugin):
     def start(self):
         cherrypy.log("Starting WebSocket processing")
         self.bus.subscribe('handle-websocket', self.handle)
+        self.bus.subscribe('websocket-broadcast', self.broadcast)
         self.bus.subscribe('main', self.cleanup)
         
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
         self.bus.unsubscribe('main', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
+        self.bus.unsubscribe('websocket-broadcast', self.broadcast)
 	self.cleanup()
 
     def handle(self, ws_handler, peer_addr):
@@ -299,8 +302,16 @@ class WebSocketPlugin(plugins.SimplePlugin):
                 handler.close_connection()
                 handler._th.join()
                 self.handlers.remove(peer)
-                
 
+    def broadcast(self, message, binary=False):
+        try:
+            handlers = self.handlers[:]
+            for peer in handlers:
+                handler, addr = peer
+                handler.send(message, binary)
+        except:
+            cherrypy.log(traceback=True)
+            
 if __name__ == '__main__':
     import random
     from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
