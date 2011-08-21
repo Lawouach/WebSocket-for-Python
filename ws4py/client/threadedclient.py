@@ -31,12 +31,11 @@ class WebSocketClient(WebSocketBaseClient):
         return self.sock.recv(amount)
         
     def close_connection(self):
-        if self.sock:
-            try:
-                self.sock.shutdown(socket.SHUT_RDWR)
-                self.sock.close()
-            except:
-                pass
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+        except:
+            pass
         
     def connect(self):
         parts = urlsplit(self.url)
@@ -101,9 +100,11 @@ class WebSocketClient(WebSocketBaseClient):
                             s.errors.remove(error)
 			break
                             
-                    elif s.has_messages:
-                        self.received_message(s.messages.pop())
-
+                    elif s.has_message:
+                        self.received_message(s.message)
+                        s.message.data = None
+                        s.message = None
+                        
                     for ping in s.pings:
                         self.write_to_connection(s.pong(str(ping.data)))
                     s.pings = []

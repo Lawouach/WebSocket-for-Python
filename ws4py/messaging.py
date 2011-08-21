@@ -18,12 +18,18 @@ class Message(object):
         @param encoding: how to encode the message bytes
         """
         self.opcode = opcode
-        if isinstance(data, unicode):
-            data = data.encode(encoding)
-        # bytarrays are way faster than strings
-        self.data = bytearray(data)
-            
         self._completed = False
+        
+        if isinstance(data, basestring):
+            if isinstance(data, unicode):
+                data = data.encode(encoding)
+            # bytarrays are way faster than strings
+            self.data = bytearray(data)
+        elif isinstance(data, bytearray):
+            self.data = data
+        else:
+            raise TypeError("'%s' is not a supported message data type" % type(data))
+            
         self.encoding = encoding
         
     def single(self):

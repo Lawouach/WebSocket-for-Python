@@ -28,7 +28,7 @@ class Stream(object):
         <TextMessage ... >
         
         """
-        self.messages = []
+        self.message = None
         """
         Parsed test or binary messages. Whenever the parser
         reads more bytes from a fragment message, those bytes
@@ -91,14 +91,13 @@ class Stream(object):
         return BinaryMessage(bytes)
 
     @property
-    def has_messages(self):
+    def has_message(self):
         """
         Checks if the stream has received any message
         which, if fragmented, is completed.
         """
-        if self.messages:
-            if self.messages[-1].completed:
-                return True
+        if self.message is not None:
+            return self.message.completed
 
         return False
 
@@ -169,14 +168,14 @@ class Stream(object):
                         bytes = frame.unmask(bytes)
 
                     if frame.opcode == OPCODE_TEXT:
-                        if len(self.messages) > 0 and self.messages[-1] and not self.messages[-1].completed:
+                        if self.message and not self.message.completed:
                             # We got a text frame before we completed the previous one
                             raise ProtocolException()
                             
                         try:
                             m = TextMessage(bytes.decode("utf-8", "replace"))
                             m.completed = (frame.fin == 1)
-                            self.messages.append(m)
+                            self.message = m
                         except UnicodeDecodeError:
                             self.errors.append(CloseControlMessage(code=1007))
                             break
@@ -184,10 +183,13 @@ class Stream(object):
                     elif frame.opcode == OPCODE_BINARY:
                         m = BinaryMessage(bytes)
                         m.completed = (frame.fin == 1)
-                        self.messages.append(m)
+                        self.message = m
 
                     elif frame.opcode == OPCODE_CONTINUATION:
-                        m = self.messages[-1]
+                        m = self.message
+                        if m is None:
+                            raise ProtocolException()
+                        
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
                             try:

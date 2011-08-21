@@ -29,27 +29,17 @@ Here are the various utilities provided by this module:
  * WebSocketPlugin: The plugin tracks the web socket handler
                     instanciated. It also cleans out websocket handler
                     which connection have been closed down.
-                    
- * WebSocketHandler: Handles the actual websocket communication
-                     once the upgrade has been completed. The tool
-                     creates an instance of this class automatically
-                     and passes it to the plugin for tracking.
-
-
+             
 Simple usage example:
 
     import cherrypy
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool, WebSocketHandler
+    from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
     
     cherrypy.config.update({'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 
-    class EchoSocketHandler(WebSocketHandler):
-        def received_message(self, m):
-            self.send(str(m), m.is_binary)
-        
-    
     class Root(object):
         @cherrypy.expose
         def index(self):
@@ -60,7 +50,7 @@ Simple usage example:
             pass
         
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True,
-                                                     'tools.websocket.handler_cls': EchoSocketHandler}})
+                                                     'tools.websocket.handler_cls': EchoWebSocketHandler}})
 
 
 Note that you can set the handler class on per-path basis,
@@ -77,10 +67,6 @@ import base64
 from hashlib import sha1
 import inspect
 import socket
-import time
-import threading 
-import traceback
-from sys import exc_info
 
 import cherrypy
 from cherrypy import Tool
@@ -88,130 +74,9 @@ from cherrypy.process import plugins
 from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 
 from ws4py import WS_KEY
-from ws4py.streaming import Stream
+from ws4py.server.handler.threadedhandler import WebSocketHandler
 
-__all__ = ['WebSocketTool', 'WebSocketPlugin', 'WebSocketHandler']
-
-class WebSocketHandler(object):
-    def __init__(self, sock, protocols, extensions):
-        self.stream = Stream()
-        
-        self.protocols = protocols
-        self.extensions = extensions
-
-        self.sock = sock
-        self.sock.settimeout(30.0)
-        
-        self.client_terminated = False
-        self.server_terminated = False
-
-        self._lock = threading.Lock()
-        self._th = threading.Thread(target=self._receive)
-
-    def opened(self):
-        self._th.start()
-
-    def close(self, code=1000, reason=''):
-        if not self.server_terminated:
-            self.server_terminated = True
-            self.write_to_connection(self.stream.close(code=code, reason=reason))
-            
-    def closed(self, code, reason=None):
-        pass
-
-    def received_message(self, m):
-        self.send(str(m), m.is_binary)
-    
-    @property
-    def terminated(self):
-        return self.client_terminated is True and self.server_terminated is True
-    
-    def write_to_connection(self, bytes):
-        return self.sock.sendall(bytes)
-
-    def read_from_connection(self, amount):
-        return self.sock.recv(amount)
-        
-    def close_connection(self):
-        if self.sock:
-            try:
-                self.sock.shutdown(socket.SHUT_RDWR)
-                self.sock.close()
-            except:
-                pass
-
-    def ponged(self, pong):
-        pass
-
-    def send(self, payload, binary=False):
-        if isinstance(payload, basestring):
-            if not binary:
-                self.write_to_connection(self.stream.text_message(payload).single())
-            else:
-                self.write_to_connection(self.stream.binary_message(payload).single())
-                
-        elif type(payload) == types.GeneratorType:
-            bytes = payload.next()
-            first = True
-            for chunk in payload:
-                if not binary:
-                    self.write_to_connection(self.stream.text_message(bytes).fragment(first=first))
-                else:
-                    self.write_to_connection(self.stream.binary_message(payload).fragment(first=first))
-                bytes = chunk
-                first = False
-            if not binary:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
-            else:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
-
-    def _receive(self):
-        next_size = 2
-        try:
-            while not self.terminated:
-                bytes = self.sock.recv(next_size)
-		if not bytes and next_size > 0:
-		    break
-                
-                with self._lock:
-                    s = self.stream
-                    next_size = s.parser.send(bytes)
-
-                    if s.closing is not None:
-                        if not self.server_terminated:
-                            next_size = 2
-                            self.close(s.closing.code, s.closing.reason)
-                        else:
-                            self.client_terminated = True
-                            self.close_connection()
-
-                    elif s.errors:
-                        errors = s.errors[:]
-                        for error in s.errors:
-                            self.close(error.code, error.reason)
-                            s.errors.remove(error)
-			break
-                            
-                    elif s.has_messages:
-                        self.received_message(s.messages.pop())
-
-                    for ping in s.pings:
-                        self.write_to_connection(s.pong(str(ping.data)))
-                    s.pings = []
-
-                    for pong in s.pongs:
-                        self.ponged(pong)
-                    s.pongs = []
-                    
-        except:
-            print "".join(traceback.format_exception(*exc_info()))
-        finally:
-	    self.client_terminated = self.server_terminated = True
-            self.close_connection()
-	    if self.stream.closing:
-		self.closed(self.stream.closing.code, self.stream.closing.reason)
-	    else:
-		self.closed(1006)
+__all__ = ['WebSocketTool', 'WebSocketPlugin']
 
 class WebSocketTool(Tool):
     def __init__(self):
@@ -249,7 +114,7 @@ class WebSocketTool(Tool):
         
         ws_protocols = None
         ws_location = None
-        ws_version = 8
+        ws_version = version
         ws_key = None
         ws_extensions = []
         
@@ -325,22 +190,24 @@ class WebSocketTool(Tool):
         if ws_extensions:
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
-        cherrypy.log("Managing WebSocket connection from %s:%d" % (request.remote.ip,
-                                                                   request.remote.port))
-        sock = request.rfile.rfile._sock
-        # By creating a new object, we avoid keeping
-        # track of the whole CherryPy's stack once the
-        # upgrade is finished and the socket is
-        # handed over
-        ws_conn = socket.fromfd(sock.fileno(), sock.family,
-                                sock.type, sock.proto)
+	addr = (request.remote.ip, request.remote.port)
+        ws_conn = request.rfile.rfile._sock
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions)
-        cherrypy.engine.publish('handle-websocket', request.ws_handler)
+	# Start tracking the handler 
+        cherrypy.engine.publish('handle-websocket', request.ws_handler, addr)
         
     def complete(self):
+        """
+	Sets some internal flags of CherryPy so that it
+	doesn't close the socket down.
+	"""
         self._set_internal_flags()
 
     def cleanup_headers(self):
+        """
+	Some clients aren't that smart when it comes to
+	headers lookup.
+	"""
         response = cherrypy.response
         headers = response.header_list[:]
         for (k, v) in headers:
@@ -349,9 +216,16 @@ class WebSocketTool(Tool):
                 response.header_list.append((k.replace('Sec-Websocket', 'Sec-WebSocket'), v))
 
     def start_handler(self):
+        """
+	Runs at the end of the request processing by calling
+	the opened method of the handler. 
+	"""
         request = cherrypy.request
         request.ws_handler.opened()
         request.ws_handler = None
+	# By doing this we detach the socket from
+	# the CherryPy stack avoiding memory leaks
+	request.rfile.rfile._sock = None
         
     def _set_internal_flags(self):
         """
@@ -399,24 +273,37 @@ class WebSocketPlugin(plugins.SimplePlugin):
         cherrypy.log("Terminating WebSocket processing")
         self.bus.unsubscribe('main', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
+	self.cleanup()
 
-        for handler in self.handlers:
-            handler.close()
+    def handle(self, ws_handler, peer_addr):
+        """
+	Tracks the provided handler.
 
-    def handle(self, ws_handler):
-        self.handlers.append(ws_handler)
+	@param ws_handler: websocket handler instance
+	@param peer_addr: remote peer address for tracing purpose
+	"""
+        cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
+        self.handlers.append((ws_handler, peer_addr))
 
     def cleanup(self):
+        """
+	Performs a bit of cleanup on tracked handlers
+	by closing connection of terminated streams then
+	removing them from the tracked list.
+	"""
         handlers = self.handlers[:]
-        for handler in handlers:
+        for peer in handlers:
+	    handler, addr = peer
             if handler.terminated:
+		cherrypy.log("Removing WebSocket connection from peer: %s:%d" % (addr[0], addr[1]))
                 handler.close_connection()
                 handler._th.join()
-                self.handlers.remove(handler)
+                self.handlers.remove(peer)
                 
 
 if __name__ == '__main__':
     import random
+    from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
     
     cherrypy.config.update({'server.socket_host': '127.0.0.1',
                             'server.socket_port': 9000})
@@ -460,6 +347,7 @@ if __name__ == '__main__':
 
         @cherrypy.expose
         def index(self):
-            pass
+            cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
         
-    cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True}})
+    cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True,
+						   'tools.websocket.handler_cls': EchoWebSocketHandler}})

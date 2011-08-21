@@ -42,24 +42,42 @@ class TornadoWebSocketClient(WebSocketBaseClient):
 
     def __fetch_more(self, bytes):
         s = self.stream
-        next_size = s.parser.send(bytes)
-        
-        for ping in s.pings:
-            self.io.write(s.pong(ping.data))
-        s.pings = []
-
-        if s.closing:
+        try:
+            next_size = s.parser.send(bytes)
+        except:
+            self.close_connection()
+            self.closed(1006)
+            return
+                
+        if s.closing is not None:
             if not self.client_terminated:
+                next_size = 2
                 self.close()
             else:
                 self.server_terminated = True
-                self.io.close()
+                self.close_connection()
                 self.closed(s.closing.code, s.closing.reason)
                 return
+            
+        elif s.errors:
+            errors = s.errors[:]
+            for error in s.errors:
+                self.close(error.code, error.reason)
+                s.errors.remove(error)
+                
+        elif s.has_message:
+            self.received_message(s.message)
+            s.message.data = None
+            s.message = None
 
-        if s.has_messages:
-            self.received_message(s.messages.pop())
+        for ping in s.pings:
+            self.write_to_connection(s.pong(str(ping.data)))
+        s.pings = []
 
+        for pong in s.pongs:
+            self.ponged(pong)
+        s.pongs = []
+    
         self.io.read_bytes(next_size, self.__fetch_more)
      
     def write_to_connection(self, bytes):
@@ -87,13 +105,13 @@ if __name__ == '__main__':
 
         def received_message(self, m):
             print m, len(str(m))
-            if len(str(m)) == 184:
+            if len(str(m)) == 175:
                 self.close()
 
         def closed(self, code, reason):
             ioloop.IOLoop.instance().stop()
                 
-    ws = MyClient('http://192.168.0.10:8888/', protocols=['http-only', 'chat'])
+    ws = MyClient('http://localhost:9000/', protocols=['http-only', 'chat'])
     ws.connect()
         
     ioloop.IOLoop.instance().start()
