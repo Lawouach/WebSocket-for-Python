@@ -152,6 +152,7 @@ class WebSocket(object):
         if not self.server_terminated:
             self.server_terminated = True
             self.write_to_connection(self.stream.close(code=code, reason=reason))
+        self.close_connection()
 
     @property
     def terminated(self):
@@ -221,7 +222,7 @@ class WebSocket(object):
             else:
                 self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
 
-    def receive(self):
+    def receive(self, message_obj=False):
         """
         Performs the operation of reading from the underlying
         connection in order to feed the stream of bytes.
@@ -273,9 +274,13 @@ class WebSocket(object):
                     raise IOError()
                         
                 elif s.has_message:
-                    message = str(s.message)
-                    s.message.data = None
-                    s.message = None
+                    if message_obj:
+                        message = s.message
+                        s.message = None
+                    else:
+                        message = str(s.message)
+                        s.message.data = None
+                        s.message = None
                     return message
         
         #except:
@@ -286,8 +291,12 @@ class WebSocket(object):
 
 if __name__ == '__main__':
     def echo_handler(websocket, environ):
-        while True:
-            websocket.send(websocket.receive())
+        try:
+            while True:
+                msg = websocket.receive(message_obj=True)
+                websocket.send(msg.data, msg.is_binary)
+        except IOError:
+            websocket.close()
     
-    server = WebSocketServer(('127.0.0.1', 8088), echo_handler)
+    server = WebSocketServer(('127.0.0.1', 9000), echo_handler)
     server.serve_forever()
