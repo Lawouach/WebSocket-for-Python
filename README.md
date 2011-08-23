@@ -72,3 +72,5 @@ Credits
 
 Many thanks to the pywebsocket and Tornado projects which have provided a good base to write ws4py.
 Thanks also to Jeff Lindsay (progrium) for the gevent server support.
+
+The background in the droid example is courtesy of http://killxthexscenexstock.deviantart.com/art/Vintage-Wall-Paper-Texture-70982719
