@@ -257,14 +257,10 @@ class WebSocket(object):
             if not bytes and next_size > 0:
                 raise IOError()
             
+            message = None
             with self._lock:
                 s = self.stream
                 next_size = s.parser.send(bytes)
-                
-                for ping in s.pings:
-                    self.write_to_connection(s.pong(str(ping.data)))
-                s.pings = []
-                s.pongs = []
                 
                 if s.closing is not None:
                     if not self.server_terminated:
@@ -289,6 +285,13 @@ class WebSocket(object):
                         message = str(s.message)
                         s.message.data = None
                         s.message = None
+                
+                for ping in s.pings:
+                    self.write_to_connection(s.pong(str(ping.data)))
+                s.pings = []
+                s.pongs = []
+                
+                if message is not None:
                     return message
         
         #except:
