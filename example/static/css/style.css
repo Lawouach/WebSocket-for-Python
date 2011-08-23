@@ -1,0 +1,19 @@
+ body {
+        background-image: url(/images/linedpaper.jpg);
+        margin: 0;
+        padding: 0;
+        text-align: left;
+}
+
+#content {
+        background: #fff;
+        margin: auto;
+        overflow: hidden;
+        margin-top: 20px;
+        width: 900px;
+        height: 620px;
+        box-shadow: 8px 8px 12px #020100;
+}
+
+#canvas { 
+}

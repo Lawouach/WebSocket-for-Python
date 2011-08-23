@@ -19,6 +19,9 @@ class Root(object):
       <script type='application/javascript'>
         $(document).ready(function() {
           var ws = new WebSocket('ws://localhost:9000/ws');
+          $(window).unload(function() {
+             ws.close();
+          });
           ws.onmessage = function (evt) {
              $('#chat').val($('#chat').val() + evt.data + '\\n');                  
           };
