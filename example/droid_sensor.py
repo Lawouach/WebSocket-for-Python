@@ -21,7 +21,7 @@ In order to set this up:
 Run the example:
 
  1. Start the echo_cherrypy_server module:
-    $ python example/echo_cherrypy_server.py
+    $ python example/droid_sensor_cherrypy_server.py
  2. From a local browser, go to:
     http://localhost:9000/
  3. Edit the droid_sensor module to set the appropriate
