@@ -13,58 +13,72 @@ from ws4py.streaming import Stream
 WS_VERSION = 8
 
 class _UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
-    def handle_one_response(self):
-        connection_header = self.environ.get('HTTP_CONNECTION', '').lower()
-        if connection_header == 'upgrade' and self.server.upgrade_handler:
-            upgrade_header = self.environ.get('HTTP_UPGRADE', '').lower()
-            handler = self.server.upgrade_handler(upgrade_header, self.environ)
-            if handler:
-                handler(self.socket, self.environ)
-                self.rfile.close() # make sure WSGIHandler stops processing requests
-                return
-        gevent.pywsgi.WSGIHandler.handle_one_response(self)
-        
-class _UpgradableWSGIServer(gevent.pywsgi.WSGIServer):
-    handler_class = _UpgradableWSGIHandler
-    
-    def __init__(self, *args, **kwargs):
-        self.upgrade_handler = kwargs.pop('upgrade_handler', None)
-        gevent.pywsgi.WSGIServer.__init__(self, *args, **kwargs)
+    def run_application(self):
+        upgrade_header = self.environ.get('HTTP_UPGRADE', '').lower()
+        if upgrade_header:
+            self.environ['upgrade.protocol'] = upgrade_header
+            self.environ['upgrade.socket'] = self.socket
+            def start_response_for_upgrade(status, headers, exc_info=None):
+                write = self.start_response(status, headers, exc_info)
+                if self.code == 101:
+                    # flushes headers now
+                    towrite = ['%s %s\r\n' % (self.request_version, self.status)]
+                    for header in headers:
+                        towrite.append('%s: %s\r\n' % header)
+                    towrite.append('\r\n')
+                    self.wfile.writelines(towrite)
+                    self.response_length += sum(len(x) for x in towrite)
+                return write
+            try:
+                self.result = self.application(self.environ, start_response_for_upgrade)
+                if self.code != 101:
+                    self.process_result()
+            finally:
+                if self.code == 101:
+                    self.rfile.close() # makes sure we stop processing requests
+        else:
+            gevent.pywsgi.WSGIHandler.run_application(self)
         
 
-class WebSocketServer(_UpgradableWSGIServer):
+class WebSocketServer(gevent.pywsgi.WSGIServer):
+    handler_class = _UpgradableWSGIHandler
+    
     def __init__(self, *args, **kwargs):
         gevent.pywsgi.WSGIServer.__init__(self, *args, **kwargs)
         self.protocols = kwargs.pop('websocket_protocols', [])
         self.extensions = kwargs.pop('websocket_extensions', [])
         self.websocket_handler = self.application
-        self.application = lambda a,b: None
+        self.application = self.handle_upgrade
     
-    def upgrade_handler(self, protocol, environ):
-        if protocol == 'websocket':
-            return self.websocket_upgrade
-    
-    def websocket_upgrade(self, socket, environ):
+    def handle_upgrade(self, environ, start_response):
+        socket = environ.get('upgrade.socket')
         ws_protocols = None
         ws_location = None
         ws_key = None
         ws_extensions = []
         
-        if environ.get('REQUEST_METHOD') != 'GET':
-            raise HandshakeError('Method is not GET')
-        
-        key = environ.get('HTTP_SEC_WEBSOCKET_KEY')
-        if key:
-            ws_key = base64.b64decode(key)
-            if len(ws_key) != 16:
-                raise HandshakeError("WebSocket key's length is invalid")
-        
-        version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
-        if version:
-            if version != str(WS_VERSION):
-                raise HandshakeError('Unsupported WebSocket version')
-        else:
-            raise HandshakeError('WebSocket version required')
+        try:
+            if environ.get('upgrade.protocol') != 'websocket':
+                raise HandshakeError("Upgrade protocol is not websocket")
+            
+            if environ.get('REQUEST_METHOD') != 'GET':
+                raise HandshakeError('Method is not GET')
+            
+            key = environ.get('HTTP_SEC_WEBSOCKET_KEY')
+            if key:
+                ws_key = base64.b64decode(key)
+                if len(ws_key) != 16:
+                    raise HandshakeError("WebSocket key's length is invalid")
+            
+            version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
+            if version:
+                if version != str(WS_VERSION):
+                    raise HandshakeError('Unsupported WebSocket version')
+            else:
+                raise HandshakeError('WebSocket version required')
+        except HandshakeError, e:
+            start_response("400 Bad Handshake", [])
+            return [str(e)]
         
         protocols = self.protocols or []
         subprotocols = environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL')
@@ -110,14 +124,8 @@ class WebSocketServer(_UpgradableWSGIServer):
         if ws_extensions:
             headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
         
-        towrite = ['HTTP/1.1 101 Switching Protocols\r\n']
-        for header in headers:
-            towrite.append("%s: %s\r\n" % header)
-        towrite.append("\r\n")
-        socket.sendall(''.join(towrite))
-        
-        websocket = WebSocket(socket, ws_protocols, ws_extensions, environ)
-        self.websocket_handler(websocket, environ)
+        start_response("101 Switching Protocols", headers)
+        self.websocket_handler(WebSocket(socket, ws_protocols, ws_extensions, environ), environ)
         
 
 class WebSocket(object):
