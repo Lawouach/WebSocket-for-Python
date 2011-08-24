@@ -48,6 +48,17 @@ fails on some performance tests by being too slow.
 
 Some reports can be found for the CherryPy server http://www.defuze.org/oss/ws4py/testreports/servers/cherrypy/
 
+Examples
+--------
+
+ws4py comes with a few examples:
+
+ * The echo_cherrypy_server provides a simple Echo server. It requires CherryPy 3.2.1. Once started, you can point your browser (it has been tested with Chrome 15.0.854.0).
+   Open a couple of tabs pointing at http://localhost:9000 and chat accross those tables.
+ * The droid_sensor_cherrypy_server broadcasts sensor metrics to clients. Point your browser to http://localhost:9000
+   Then run the droid_sensor module from your Android device using SL4A.
+   A screenshot of what this renders to: http://www.defuze.org/oss/ws4py/screenshots/droidsensors.png
+
 Credits
 -------
 
