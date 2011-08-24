@@ -54,7 +54,7 @@ Then from a different terminal:
 This will run the complete suite. As of this writing, the CherryPy server passes all the functional tests but
 fails on some performance tests by being too slow.
 
-Some reports can be found for the CherryPy server http://www.defuze.org/oss/ws4py/testreports/servers/cherrypy/
+Test reports can be found at: http://www.defuze.org/oss/ws4py/testreports/servers/
 
 Examples
 --------
