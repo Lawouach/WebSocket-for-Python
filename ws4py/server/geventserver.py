@@ -12,7 +12,42 @@ from ws4py.streaming import Stream
 
 WS_VERSION = 8
 
-class _UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
+class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
+    """Upgradable version of gevent.pywsgi.WSGIHandler class
+    
+    This is a drop-in replacement for gevent.pywsgi.WSGIHandler that supports
+    protocol upgrades via WSGI environment. This means you can create upgraders
+    as WSGI apps or WSGI middleware.
+    
+    If an HTTP request comes in that includes the Upgrade header, it will add
+    to the environment two items:
+    
+    `upgrade.protocol` 
+      The protocol to upgrade to. Checking for this lets you know the request
+      wants to be upgraded and the WSGI server supports this interface. 
+    
+    `upgrade.socket`
+      The raw Python socket object for the connection. From this you can do any
+      upgrade negotiation and hand it off to the proper protocol handler.
+    
+    The upgrade must be signalled by starting a response using the 101 status
+    code. This will inform the server to flush the headers and response status
+    immediately, not to expect the normal WSGI app return value, and not to 
+    look for more HTTP requests on this connection. 
+    
+    To use this handler with gevent.pywsgi.WSGIServer, you can pass it to the
+    constructor:
+    
+    server = WSGIServer(('127.0.0.1', 80), app, 
+                            handler_class=UpgradableWSGIHandler)
+    
+    Alternatively, you can specify it as a class variable for a WSGIServer 
+    subclass:
+    
+    class UpgradableWSGIServer(gevent.pywsgi.WSGIServer):
+        handler_class = UpgradableWSGIHandler
+    
+    """
     def run_application(self):
         upgrade_header = self.environ.get('HTTP_UPGRADE', '').lower()
         if upgrade_header:
@@ -39,24 +74,19 @@ class _UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
         
-
-class WebSocketServer(gevent.pywsgi.WSGIServer):
-    handler_class = _UpgradableWSGIHandler
+class WebSocketUpgradeMiddleware(object):
+    """WSGI middleware for handling WebSocket upgrades"""
     
-    def __init__(self, *args, **kwargs):
-        gevent.pywsgi.WSGIServer.__init__(self, *args, **kwargs)
-        self.protocols = kwargs.pop('websocket_protocols', [])
-        self.extensions = kwargs.pop('websocket_extensions', [])
-        self.websocket_handler = self.application
-        self.application = self.handle_upgrade
+    def __init__(self, handle, fallback_app=None, protocols=None, extensions=None,
+                    websocket_class=WebSocket):
+        self.handle = handle
+        self.fallback_app = fallback_app
+        self.protocols = protocols
+        self.extensions = extensions
+        self.websocket_class = websocket_class
     
-    def handle_upgrade(self, environ, start_response):
-        socket = environ.get('upgrade.socket')
-        ws_protocols = None
-        ws_location = None
-        ws_key = None
-        ws_extensions = []
-        
+    def __call__(self, environ, start_response):        
+        # Initial handshake validation
         try:
             if environ.get('upgrade.protocol') != 'websocket':
                 raise HandshakeError("Upgrade protocol is not websocket")
@@ -77,9 +107,13 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
             else:
                 raise HandshakeError('WebSocket version required')
         except HandshakeError, e:
-            start_response("400 Bad Handshake", [])
-            return [str(e)]
+            if self.fallback_app:
+                return self.fallback_app(environ, start_response)
+            else:
+                start_response("400 Bad Handshake", [])
+                return [str(e)]
         
+        # Collect supported subprotocols
         protocols = self.protocols or []
         subprotocols = environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL')
         if subprotocols:
@@ -89,30 +123,17 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
                 if s in protocols:
                     ws_protocols.append(s)
 
+        # Collect supported extensions
         exts = self.extensions or []
         extensions = environ.get('HTTP_SEC_WEBSOCKET_EXTENSIONS')
         if extensions:
+            ws_extensions = []
             for ext in extensions.split(','):
                 ext = ext.strip()
                 if ext in exts:
                     ws_extensions.append(ext)
         
-        location = []
-        include_port = False
-        if environ.get('wsgi.url_scheme') == "https":
-            location.append("wss://")
-            include_port = environ.get('SERVER_PORT') != '443'
-        else:
-            location.append("ws://")
-            include_port = environ.get('SERVER_PORT') != '80'
-        location.append(environ.get('SERVER_NAME'))
-        if include_port:
-            location.append(":%s" % environ.get('SERVER_PORT'))
-        location.append(environ.get('PATH_INFO'))
-        if environ.get('QUERY_STRING') != "":
-            location.append("?%s" % environ.get('QUERY_STRING'))
-        ws_location = ''.join(location)
-        
+        # Build and start the HTTP response
         headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
@@ -125,10 +146,32 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
             headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
         
         start_response("101 Switching Protocols", headers)
-        self.websocket_handler(WebSocket(socket, ws_protocols, ws_extensions, environ), environ)
+        
+        # Build a websocket object and pass it to the handler
+        self.handle(
+            self.websocket_class(
+                environ.get('upgrade.socket'), 
+                ws_protocols, 
+                ws_extensions, 
+                environ), 
+            environ)
+
+
+class WebSocketServer(gevent.pywsgi.WSGIServer):
+    handler_class = UpgradableWSGIHandler
+    
+    def __init__(self, *args, **kwargs):
+        gevent.pywsgi.WSGIServer.__init__(self, *args, **kwargs)
+        protocols = kwargs.pop('websocket_protocols', [])
+        extensions = kwargs.pop('websocket_extensions', [])
+        self.application = WebSocketUpgradeMiddleware(self.application, 
+                            protocols=protocols,
+                            extensions=extensions)    
         
 
 class WebSocket(object):
+    lock_mechanism = gevent.coros.Semaphore
+    
     def __init__(self, sock, protocols, extensions, environ):
         self.stream = Stream()
         
@@ -142,7 +185,7 @@ class WebSocket(object):
         self.client_terminated = False
         self.server_terminated = False
         
-        self._lock = gevent.coros.Semaphore()
+        self._lock = self.lock_mechanism()
 
     def close(self, code=1000, reason=''):
         """
