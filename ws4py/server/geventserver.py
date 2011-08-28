@@ -63,8 +63,6 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
                     self.rfile.close() # makes sure we stop processing requests
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
-        
-
 
 class WebSocketServer(gevent.pywsgi.WSGIServer):
     handler_class = UpgradableWSGIHandler
@@ -76,13 +74,12 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
         self.application = WebSocketUpgradeMiddleware(self.application, 
                             protocols=protocols,
                             extensions=extensions)    
-        
 
 if __name__ == '__main__':
     def echo_handler(websocket, environ):
         try:
             while True:
-                msg = websocket.receive(message_obj=True)
+                msg = websocket.receive(msg_obj=True)
                 websocket.send(msg.data, msg.is_binary)
         except IOError:
             websocket.close()

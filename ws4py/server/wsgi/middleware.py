@@ -15,6 +15,12 @@ from ws4py.streaming import Stream
 WS_VERSION = 8
 
 class WebSocket(object):
+    """WebSocket API for handlers
+    
+    This provides a socket-like interface similar to the browser
+    WebSocket API for managing a WebSocket connection. 
+    """
+    
     def __init__(self, sock, protocols, extensions, environ):
         self.stream = Stream()
         
@@ -116,7 +122,7 @@ class WebSocket(object):
             else:
                 self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
 
-    def receive(self, message_obj=False):
+    def receive(self, msg_obj=False):
         """
         Performs the operation of reading from the underlying
         connection in order to feed the stream of bytes.
@@ -164,7 +170,7 @@ class WebSocket(object):
                         raise IOError()
                             
                     elif s.has_message:
-                        if message_obj:
+                        if msg_obj:
                             message = s.message
                             s.message = None
                         else:
