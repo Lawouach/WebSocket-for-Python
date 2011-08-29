@@ -185,9 +185,10 @@ class WebSocket(object):
                     
                     if message is not None:
                         return message
-        finally:
+        except IOError, e:
             self.client_terminated = self.server_terminated = True
             self.close_connection()
+            return None
 
 class WebSocketUpgradeMiddleware(object):
     """WSGI middleware for handling WebSocket upgrades"""
@@ -214,11 +215,14 @@ class WebSocketUpgradeMiddleware(object):
                 ws_key = base64.b64decode(key)
                 if len(ws_key) != 16:
                     raise HandshakeError("WebSocket key's length is invalid")
+            else:
+                raise HandshakeError("Not a valid HyBi WebSocket request")
             
             version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
             if version:
                 if version != str(WS_VERSION):
                     raise HandshakeError('Unsupported WebSocket version')
+                environ['websocket.version'] = str(WS_VERSION)
             else:
                 raise HandshakeError('WebSocket version required')
         except HandshakeError, e:
@@ -252,7 +256,7 @@ class WebSocketUpgradeMiddleware(object):
         headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
-            ('Sec-WebSocket-Version', str(WS_VERSION)),
+            ('Sec-WebSocket-Version', environ['websocket.version']),
             ('Sec-WebSocket-Accept', base64.b64encode(sha1(key + WS_KEY).digest())),
         ]
         if ws_protocols:
@@ -260,7 +264,7 @@ class WebSocketUpgradeMiddleware(object):
         if ws_extensions:
             headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
         
-        start_response("101 Switching Protocols", headers)
+        start_response("101 Web Socket Hybi Handshake", headers)
         
         # Build a websocket object and pass it to the handler
         self.handle(
