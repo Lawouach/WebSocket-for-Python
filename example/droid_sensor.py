@@ -21,7 +21,7 @@ In order to set this up:
 Run the example:
 
  1. Start the echo_cherrypy_server module:
-    $ python example/echo_cherrypy_server.py
+    $ python example/droid_sensor_cherrypy_server.py
  2. From a local browser, go to:
     http://localhost:9000/
  3. Edit the droid_sensor module to set the appropriate
@@ -46,7 +46,7 @@ class AirPongSensor(object):
         self.droid = android.Android()
         #self.droid.startSensingThreshold(1, 0, 7)
         #self.droid.startSensingThreshold(2, 1, 2)
-        self.droid.startSensingTimed(1, 500)
+        self.droid.startSensingTimed(1, 100)
 
         self.running = False
 
@@ -73,7 +73,7 @@ class AirPongSensor(object):
                     last = accel
                     self.client.send("%s %s %s %s %s %s" % (c(azimuth), c(pitch), c(roll), x, y, z))
 
-                time.sleep(1)
+                time.sleep(0.15)
         finally:
             self.terminate()
             
@@ -92,7 +92,7 @@ class AirPongSensor(object):
         
 class AirPongWebSocketClient(WebSocketClient):
         def received_message(self, m):
-            print m, len(str(m))
+            pass
 
 if __name__ == '__main__':
     aps = AirPongSensor(host='http://192.168.0.10:9000/ws')
