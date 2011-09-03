@@ -304,13 +304,21 @@ class WebSocketPlugin(plugins.SimplePlugin):
                 self.handlers.remove(peer)
 
     def broadcast(self, message, binary=False):
-        try:
+        """
+        Broadcasts a message to all connected clients known to
+        the server.
+
+        @param message: a message suitable to pass to the send() method
+          of the connected handler.
+        @param binary: whether or not the message is a binary one
+        """
             handlers = self.handlers[:]
             for peer in handlers:
-                handler, addr = peer
-                handler.send(message, binary)
-        except:
-            cherrypy.log(traceback=True)
+                try:
+                    handler, addr = peer
+                    handler.send(message, binary)
+                except:
+                    cherrypy.log(traceback=True)
             
 if __name__ == '__main__':
     import random
