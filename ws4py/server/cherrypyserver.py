@@ -312,13 +312,13 @@ class WebSocketPlugin(plugins.SimplePlugin):
           of the connected handler.
         @param binary: whether or not the message is a binary one
         """
-            handlers = self.handlers[:]
-            for peer in handlers:
-                try:
-                    handler, addr = peer
-                    handler.send(message, binary)
-                except:
-                    cherrypy.log(traceback=True)
+        handlers = self.handlers[:]
+        for peer in handlers:
+            try:
+                handler, addr = peer
+                handler.send(message, binary)
+            except:
+                cherrypy.log(traceback=True)
             
 if __name__ == '__main__':
     import random
