@@ -32,14 +32,15 @@ class Message(object):
             
         self.encoding = encoding
         
-    def single(self):
+    def single(self, mask=False):
         """
         Returns a frame bytes with the fin bit set and a random mask.
         """
+        mask = os.urandom(4) if mask else None
         return Frame(body=self.data or '', opcode=self.opcode,
-                     masking_key=os.urandom(4), fin=1).build()
+                     masking_key=mask, fin=1).build()
 
-    def fragment(self, first=False, last=False):
+    def fragment(self, first=False, last=False, mask=False):
         """
         Returns a frame bytes as part of a fragmented message.
 
@@ -49,8 +50,9 @@ class Message(object):
         """
         fin = 1 if last is True else 0
         opcode = self.opcode if first is True else OPCODE_CONTINUATION
+        mask = os.urandom(4) if mask else None
         return Frame(body=self.data or '', opcode=opcode,
-                     masking_key=os.urandom(4), fin=fin).build()
+                     masking_key=mask, fin=fin).build()
 
     @property
     def completed(self):

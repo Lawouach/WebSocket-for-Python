@@ -122,21 +122,21 @@ class WebSocketBaseClient(object):
     def send(self, payload, binary=False):
         if isinstance(payload, basestring):
             if not binary:
-                self.write_to_connection(self.stream.text_message(payload).single())
+                self.write_to_connection(self.stream.text_message(payload).single(mask=True))
             else:
-                self.write_to_connection(self.stream.binary_message(payload).single())
+                self.write_to_connection(self.stream.binary_message(payload).single(mask=True))
                 
         elif type(payload) == types.GeneratorType:
             bytes = payload.next()
             first = True
             for chunk in payload:
                 if not binary:
-                    self.write_to_connection(self.stream.text_message(bytes).fragment(first=first))
+                    self.write_to_connection(self.stream.text_message(bytes).fragment(first=first, mask=True))
                 else:
-                    self.write_to_connection(self.stream.binary_message(payload).fragment(first=first))
+                    self.write_to_connection(self.stream.binary_message(payload).fragment(first=first, mask=True))
                 bytes = chunk
                 first = False
             if not binary:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
+                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True, mask=True))
             else:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
+                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True, mask=True))
