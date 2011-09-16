@@ -204,7 +204,7 @@ class WebSocketUpgradeMiddleware(object):
     def __call__(self, environ, start_response):        
         # Initial handshake validation
         try:
-            if environ.get('upgrade.protocol') != 'websocket':
+            if 'websocket' not in environ.get('upgrade.protocol'):
                 raise HandshakeError("Upgrade protocol is not websocket")
             
             if environ.get('REQUEST_METHOD') != 'GET':

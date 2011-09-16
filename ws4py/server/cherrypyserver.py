@@ -127,7 +127,7 @@ class WebSocketTool(Tool):
             actual_value = request.headers.get(key)
             if not actual_value:
                 raise HandshakeError('Header %s is not defined' % key)
-            if expected_value and actual_value != expected_value:
+            if expected_value and expected_value not in actual_value:
                 raise HandshakeError('Illegal value for header %s: %s' %
                                      (key, actual_value))
             
