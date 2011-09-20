@@ -4,6 +4,7 @@ from hashlib import sha1
 import os
 import types
 from urlparse import urlsplit
+import json
 
 from ws4py import WS_KEY
 from ws4py.streaming import Stream
@@ -125,7 +126,10 @@ class WebSocketBaseClient(object):
                 self.write_to_connection(self.stream.text_message(payload).single(mask=True))
             else:
                 self.write_to_connection(self.stream.binary_message(payload).single(mask=True))
-                
+        
+        elif isinstance(payload, dict):
+            self.write_to_connection(self.stream.text_message(json.dumps(payload)).single(mask=True))
+        
         elif type(payload) == types.GeneratorType:
             bytes = payload.next()
             first = True
