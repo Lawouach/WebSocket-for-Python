@@ -119,9 +119,9 @@ class WebSocketClient(WebSocketBaseClient):
         finally:
             self.close_connection()
 	    if self.stream.closing:
-		self.closed(self.stream.closing.code, self.stream.closing.reason)
+            self.closed(self.stream.closing.code, self.stream.closing.reason)
 	    else:
-		self.closed(1006)
+            self.closed(1006)
 
 if __name__ == '__main__':
     import time
