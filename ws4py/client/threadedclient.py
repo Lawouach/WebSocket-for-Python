@@ -99,7 +99,7 @@ class WebSocketClient(WebSocketBaseClient):
                         for error in s.errors:
                             self.close(error.code, error.reason)
                             s.errors.remove(error)
-			break
+                        break
                             
                     elif s.has_message:
                         self.received_message(s.message)
@@ -118,9 +118,9 @@ class WebSocketClient(WebSocketBaseClient):
             print "".join(traceback.format_exception(*exc_info()))
         finally:
             self.close_connection()
-	    if self.stream.closing:
+        if self.stream.closing:
             self.closed(self.stream.closing.code, self.stream.closing.reason)
-	    else:
+        else:
             self.closed(1006)
 
 if __name__ == '__main__':

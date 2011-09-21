@@ -36,14 +36,13 @@ class WebSocketClient(ThreadedClient):
             return self.sock.sendall(bytes)    
     
     def closed(self, code, reason=None):
-        #self._messages.put(StreamClosed(code, reason))
-        pass
+        self._messages.put(StreamClosed(code, reason))
     
     def receive(self, msg_obj=False):
         msg = self._messages.get()
         
         if isinstance(msg, StreamClosed):
-            raise msg
+            return None
             
         if msg_obj:
             return msg
@@ -63,23 +62,23 @@ if __name__ == '__main__':
     print ws.receive()
     
     def incoming():
-        try:
-            while True:
-                m = ws.receive()
+        while True:
+            m = ws.receive()
+            if m is not None:
                 print m, len(str(m))
-                #if len(str(m)) == 175:
-                #    ws.close()
-                #    break
-        except StreamClosed, e:
-            print e
-            pass
+                if len(str(m)) == 35:
+                    ws.close()
+                    break
+            else:
+                break
+        print "Connection closed!"
     
     def outgoing():
         for i in range(0, 40, 5):
-            print "sending", "*" * i
             ws.send("*" * i)
         
-        ws.send("Goodbye")
+        # We won't get this back
+        ws.send("Foobar")
     
     greenlets = [
         gevent.spawn(incoming),
