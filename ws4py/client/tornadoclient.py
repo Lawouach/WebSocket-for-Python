@@ -22,13 +22,19 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         self.io.connect((host, int(port)), self.__send_handshake)
 
     def __send_handshake(self):
+        self.io.set_close_callback(self.__connection_closed)
         self.io.write(escape.utf8(self.handshake_request),
                       self.__handshake_sent)
-        
+    
+    def __connection_closed(self, *args, **kwargs):
+        self.server_terminated = True
+        self.closed(1006, 'Connection closed during handshake')
+    
     def __handshake_sent(self):
         self.io.read_until("\r\n\r\n", self.__handshake_completed)
 
     def __handshake_completed(self, data):
+        self.io.set_close_callback(None)
         try:
             response_line, _, headers = data.partition('\r\n')
             self.process_response_line(response_line)
