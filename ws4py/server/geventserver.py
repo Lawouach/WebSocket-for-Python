@@ -80,8 +80,11 @@ if __name__ == '__main__':
         try:
             while True:
                 msg = websocket.receive(msg_obj=True)
-                websocket.send(msg.data, msg.is_binary)
-        except IOError:
+                if msg is not None:
+                    websocket.send(msg.data, msg.is_binary)
+                else:
+                    break
+        finally:
             websocket.close()
     
     server = WebSocketServer(('127.0.0.1', 9000), echo_handler)

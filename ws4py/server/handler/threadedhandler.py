@@ -183,8 +183,8 @@ class WebSocketHandler(object):
             self.sock.setblocking(1)
             while not self.terminated:
                 bytes = self.read_from_connection(next_size)
-		if not bytes and next_size > 0:
-		    break
+                if not bytes and next_size > 0:
+                    break
                 
                 with self._lock:
                     s = self.stream
@@ -203,7 +203,7 @@ class WebSocketHandler(object):
                         for error in s.errors:
                             self.close(error.code, error.reason)
                             s.errors.remove(error)
-			break
+                        break
                             
                     elif s.has_message:
                         self.received_message(s.message)
@@ -221,12 +221,12 @@ class WebSocketHandler(object):
         except:
             print "".join(traceback.format_exception(*exc_info()))
         finally:
-	    self.client_terminated = self.server_terminated = True
+            self.client_terminated = self.server_terminated = True
             self.close_connection()
-	    if self.stream.closing:
-		self.closed(self.stream.closing.code, self.stream.closing.reason)
-	    else:
-		self.closed(1006)
+        if self.stream.closing:
+            self.closed(self.stream.closing.code, self.stream.closing.reason)
+        else:
+            self.closed(1006)
 
 
 class EchoWebSocketHandler(WebSocketHandler):
