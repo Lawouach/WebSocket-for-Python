@@ -147,7 +147,7 @@ class WebSocket(object):
             while not self.terminated:
                 bytes = self.read_from_connection(next_size)
                 if not bytes and next_size > 0:
-                    raise IOError()
+                    raise IOError() # should the error be further specified?
                 
                 message = None
                 with self._lock:
@@ -160,14 +160,14 @@ class WebSocket(object):
                             self.close(s.closing.code, s.closing.reason)
                         else:
                             self.client_terminated = True
-                        raise IOError()
+                        raise IOError() # this one, too?
             
                     elif s.errors:
                         errors = s.errors[:]
                         for error in s.errors:
                             self.close(error.code, error.reason)
                             s.errors.remove(error)
-                        raise IOError()
+                        raise IOError() # this, too?
                             
                     elif s.has_message:
                         if msg_obj:
@@ -178,10 +178,15 @@ class WebSocket(object):
                             s.message.data = None
                             s.message = None
                     
+                    else:
+                        # Can this be reached? If yes: what to do here?
+                        pass
+                    
                     for ping in s.pings:
                         self.write_to_connection(s.pong(str(ping.data)))
                     s.pings = []
-                    s.pongs = []
+                    s.pongs = [] # when is this list actually populated, so that
+                                 # we have to clean it here?
                     
                     if message is not None:
                         return message
