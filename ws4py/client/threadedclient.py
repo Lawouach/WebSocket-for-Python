@@ -79,8 +79,11 @@ class WebSocketClient(WebSocketBaseClient):
         try:
             self.sock.setblocking(1)
             while self.running:
-                bytes = self.read_from_connection(next_size)
-                
+                if self.__buffer:
+                    bytes, self.__buffer = self.__buffer[:next_size], self.__buffer[next_size:]
+                else:
+                    bytes = self.read_from_connection(next_size)
+
                 with self._lock:
                     s = self.stream
                     next_size = s.parser.send(bytes)
