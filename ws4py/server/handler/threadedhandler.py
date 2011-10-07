@@ -35,7 +35,6 @@ class WebSocketHandler(object):
         self.client_terminated = False
         self.server_terminated = False
 
-        self._lock = threading.Lock()
         self._th = threading.Thread(target=self._receive)
 
     def opened(self):
@@ -185,38 +184,37 @@ class WebSocketHandler(object):
                 bytes = self.read_from_connection(next_size)
                 if not bytes and next_size > 0:
                     break
-                
-                with self._lock:
-                    s = self.stream
-                    next_size = s.parser.send(bytes)
-                    
-                    if s.closing is not None:
-                        if not self.server_terminated:
-                            next_size = 2
-                            self.close(s.closing.code, s.closing.reason)
-                        else:
-                            self.client_terminated = True
-                            break
 
-                    elif s.errors:
-                        errors = s.errors[:]
-                        for error in s.errors:
-                            self.close(error.code, error.reason)
-                            s.errors.remove(error)
+                s = self.stream
+                next_size = s.parser.send(bytes)
+
+                if s.closing is not None:
+                    if not self.server_terminated:
+                        next_size = 2
+                        self.close(s.closing.code, s.closing.reason)
+                    else:
+                        self.client_terminated = True
                         break
-                            
-                    elif s.has_message:
-                        self.received_message(s.message)
-                        s.message.data = None
-                        s.message = None
 
-                    for ping in s.pings:
-                        self.write_to_connection(s.pong(str(ping.data)))
-                    s.pings = []
+                elif s.errors:
+                    errors = s.errors[:]
+                    for error in errors:
+                        self.close(error.code, error.reason)
+                        s.errors.remove(error)
+                    break
 
-                    for pong in s.pongs:
-                        self.ponged(pong)
-                    s.pongs = []
+                elif s.has_message:
+                    self.received_message(s.message)
+                    s.message.data = None
+                    s.message = None
+
+                for ping in s.pings:
+                    self.write_to_connection(s.pong(str(ping.data)))
+                s.pings = []
+
+                for pong in s.pongs:
+                    self.ponged(pong)
+                s.pongs = []
                     
         except:
             print "".join(traceback.format_exception(*exc_info()))
