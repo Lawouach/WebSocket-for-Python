@@ -170,10 +170,11 @@ class Stream(object):
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
                             # We got a text frame before we completed the previous one
-                            raise ProtocolException()
+                            self.errors.append(CloseControlMessage(code=1002))
+                            break
                             
                         try:
-                            m = TextMessage(bytes.decode("utf-8", "replace"))
+                            m = TextMessage(bytes.decode("utf-8"))
                             m.completed = (frame.fin == 1)
                             self.message = m
                         except UnicodeDecodeError:
@@ -188,12 +189,13 @@ class Stream(object):
                     elif frame.opcode == OPCODE_CONTINUATION:
                         m = self.message
                         if m is None:
-                            raise ProtocolException()
+                            self.errors.append(CloseControlMessage(code=1002))
+                            break
                         
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
                             try:
-                                m.extend(bytes.decode("utf-8", "replace"))
+                                m.extend(bytes.decode("utf-8"))
                             except UnicodeDecodeError:
                                 self.errors.append(CloseControlMessage(code=1007))
                                 break
