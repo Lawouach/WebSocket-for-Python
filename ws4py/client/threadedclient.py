@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import ssl
 from urlparse import urlsplit
 import socket
 import threading
@@ -43,6 +44,9 @@ class WebSocketClient(WebSocketBaseClient):
         if ':' in host:
             host, port = parts.netloc.split(':')
         self.sock.connect((host, int(port)))
+        
+        if parts.scheme == "wss":
+            self.sock = ssl.wrap_socket(self.sock)
         
         self.write_to_connection(self.handshake_request)
 
