@@ -96,7 +96,7 @@ class WebSocketTool(Tool):
         hooks.attach('on_end_request', self.start_handler,
                      priority=70)
 
-    def upgrade(self, protocols=None, extensions=None, version=8, handler_cls=WebSocketHandler):
+    def upgrade(self, protocols=None, extensions=None, version=13, handler_cls=WebSocketHandler):
         """
         Performs the upgrade of the connection to the WebSocket
         protocol.
@@ -140,7 +140,7 @@ class WebSocketTool(Tool):
         version = request.headers.get('Sec-WebSocket-Version')
         if version:
             if version != str(ws_version):
-                raise HandshakeError('Unsupported WebSocket version')
+                raise HandshakeError('Unsupported WebSocket version: %s' % version)
         else:
             raise HandshakeError('WebSocket version required')
         
@@ -210,6 +210,9 @@ class WebSocketTool(Tool):
 	headers lookup.
 	"""
         response = cherrypy.response
+        if not response.header_list:
+            return
+        
         headers = response.header_list[:]
         for (k, v) in headers:
             if k.startswith('Sec-Web'):
@@ -222,6 +225,9 @@ class WebSocketTool(Tool):
 	the opened method of the handler. 
 	"""
         request = cherrypy.request
+        if not hasattr(request, 'ws_handler'):
+            return
+        
         request.ws_handler.opened()
         request.ws_handler = None
 	# By doing this we detach the socket from
