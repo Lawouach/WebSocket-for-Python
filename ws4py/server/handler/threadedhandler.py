@@ -215,17 +215,19 @@ class WebSocketHandler(object):
                 for pong in s.pongs:
                     self.ponged(pong)
                 s.pongs = []
-                    
         except:
             print "".join(traceback.format_exception(*exc_info()))
         finally:
             self.client_terminated = self.server_terminated = True
-            self.close_connection()
-        if self.stream.closing:
-            self.closed(self.stream.closing.code, self.stream.closing.reason)
-        else:
-            self.closed(1006)
 
+        try:
+            if not self.server_terminated:
+                if self.stream.closing:
+                    self.closed(self.stream.closing.code, self.stream.closing.reason)
+                else:
+                    self.closed(1006)
+        finally:
+            self.close_connection()
 
 class EchoWebSocketHandler(WebSocketHandler):
     """

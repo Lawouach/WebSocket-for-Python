@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import struct
 
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
@@ -115,7 +116,13 @@ class BinaryMessage(Message):
 
 class CloseControlMessage(Message):
     def __init__(self, code=1000, reason=''):
-        Message.__init__(self, OPCODE_CLOSE, reason)
+        data = ""
+        if code:
+            data += struct.pack("!H", code)
+        if reason:
+            data += reason.encode('utf-8')
+            
+        Message.__init__(self, OPCODE_CLOSE, data)
         self.code = code
         self.reason = reason
 

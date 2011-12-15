@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import struct
+
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
      PingControlMessage, PongControlMessage
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
@@ -203,7 +205,14 @@ class Stream(object):
                             m.extend(bytes)
 
                     elif frame.opcode == OPCODE_CLOSE:
-                        self.closing = CloseControlMessage(reason=bytes.decode("utf-8", "replace"))
+                        code = 1000
+                        reason = ""
+                        bytes = str(bytes)
+                        if len(bytes) > 1:
+                            code = struct.unpack("!H", bytes[0:2])[0]
+                            if len(bytes) > 2:
+                                reason = bytes[2:].decode("utf-8", "replace")
+                        self.closing = CloseControlMessage(code=code, reason=reason)
                         
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))
