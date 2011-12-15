@@ -1,7 +1,7 @@
 WebSocket for Python (ws4py)
 ============================
 
-library providing support for draft-10 of the WebSocket protocol defined in http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-10.
+Python library providing support for the WebSocket protocol defined in RFC 6455 (http://tools.ietf.org/html/rfc6455).
 
 
 Getting Started
@@ -72,5 +72,6 @@ Credits
 
 Many thanks to the pywebsocket and Tornado projects which have provided a good base to write ws4py.
 Thanks also to Jeff Lindsay (progrium) for the gevent server support.
+A well deserved thank you to Tobias Oberstein for his websocket test suite: https://github.com/oberstet/Autobahn
 
 The background in the droid example is courtesy of http://killxthexscenexstock.deviantart.com/art/Vintage-Wall-Paper-Texture-70982719
