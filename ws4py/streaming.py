@@ -207,12 +207,31 @@ class Stream(object):
                     elif frame.opcode == OPCODE_CLOSE:
                         code = 1000
                         reason = ""
-                        bytes = str(bytes)
-                        if len(bytes) > 1:
-                            code = struct.unpack("!H", bytes[0:2])[0]
-                            if len(bytes) > 2:
-                                reason = bytes[2:].decode("utf-8", "replace")
-                        self.closing = CloseControlMessage(code=code, reason=reason)
+                        if len(bytes) == 0:
+                            self.errors.append(CloseControlMessage(code=1000))
+                        elif 1 < len(bytes) < 126:
+                            code = struct.unpack("!H", str(bytes[0:2]))[0]
+                            try:
+                                code = int(code)
+                            except TypeError:
+                                code = 1002
+                                reason = 'Invalid Closing Frame Code Type'
+                            else:
+                                # Those codes are reserved or plainly forbidden
+                                if code < 1000 or code in [1004, 1005, 1006, 1012, 1013, 1014, 1015,
+                                                           1016, 1100, 2000, 2999, 5000, 65536]:
+                                    code = 1002
+                                    reason = 'Invalid Closing Frame Code'
+                                else:    
+                                    if len(bytes) > 2:
+                                        try:
+                                            reason = frame.body[2:].decode("utf-8")
+                                        except UnicodeDecodeError:
+                                            code = 1007
+                                            reason = ''                                
+                            self.closing = CloseControlMessage(code=code, reason=reason)
+                        else:
+                            self.errors.append(CloseControlMessage(code=1002))
                         
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))
@@ -233,7 +252,7 @@ class Stream(object):
                 except ProtocolException:
                     self.errors.append(CloseControlMessage(code=1002))
                 except FrameTooLargeException:
-                    self.errors.append(CloseControlMessage(code=1004))
+                    self.errors.append(CloseControlMessage(code=1002))
                 except StreamClosed:
                     running = False
                     break
