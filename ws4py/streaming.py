@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import struct
 
+from ws4py.utf8validator import Utf8Validator
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
      PingControlMessage, PongControlMessage
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
@@ -154,6 +155,8 @@ class Stream(object):
         Overall this makes the stream parser totally agonstic to
         the data provider.
         """
+        utf8validator = Utf8Validator()
+        
         running = True
         while running:
             frame = Frame()
@@ -174,14 +177,15 @@ class Stream(object):
                             # We got a text frame before we completed the previous one
                             self.errors.append(CloseControlMessage(code=1002))
                             break
-                            
-                        try:
-                            m = TextMessage(bytes.decode("utf-8"))
+
+                        is_valid, _, _, _ = utf8validator.validate(bytes)
+                        
+                        if is_valid or (not is_valid and frame.fin == 0):
+                            m = TextMessage(bytes)
                             m.completed = (frame.fin == 1)
                             self.message = m
-                        except UnicodeDecodeError:
+                        elif not is_valid and frame.fin == 1:
                             self.errors.append(CloseControlMessage(code=1007))
-                            break
 
                     elif frame.opcode == OPCODE_BINARY:
                         m = BinaryMessage(bytes)
@@ -196,11 +200,14 @@ class Stream(object):
                         
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
-                            try:
-                                m.extend(bytes.decode("utf-8"))
-                            except UnicodeDecodeError:
+                            is_valid, _, _, _ = utf8validator.validate(bytes)
+                            if is_valid:
+                                m.extend(bytes)
+                            else:
                                 self.errors.append(CloseControlMessage(code=1007))
-                                break
+                            #except UnicodeDecodeError:
+                            #    self.errors.append(CloseControlMessage(code=1007))
+                            #    break
                         else:
                             m.extend(bytes)
 
@@ -256,5 +263,8 @@ class Stream(object):
                 except StreamClosed:
                     running = False
                     break
-                
+
             frame.parser.close()
+
+        utf8validator.reset()
+        utf8validator = None
