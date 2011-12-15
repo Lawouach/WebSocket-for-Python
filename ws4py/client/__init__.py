@@ -137,10 +137,10 @@ class WebSocketBaseClient(object):
                 if not binary:
                     self.write_to_connection(self.stream.text_message(bytes).fragment(first=first, mask=True))
                 else:
-                    self.write_to_connection(self.stream.binary_message(payload).fragment(first=first, mask=True))
+                    self.write_to_connection(self.stream.binary_message(bytes).fragment(first=first, mask=True))
                 bytes = chunk
                 first = False
             if not binary:
                 self.write_to_connection(self.stream.text_message(bytes).fragment(last=True, mask=True))
             else:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True, mask=True))
+                self.write_to_connection(self.stream.binary_message(bytes).fragment(last=True, mask=True))
