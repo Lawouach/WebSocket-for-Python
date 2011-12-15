@@ -13,7 +13,7 @@ from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.server.handler.threadedhandler import WebSocketHandler as ThreadedHandler
 
-WS_VERSION = 8
+WS_VERSION = 13
 
 class WebSocketHandler(ThreadedHandler):
     """WebSocket API for handlers
