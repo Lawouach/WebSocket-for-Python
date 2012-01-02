@@ -27,7 +27,7 @@ class Root(object):
 
           websocket = 'ws://%(host)s:%(port)s/ws';
           if (window.WebSocket) {
-            ws = WebSocket(websocket);
+            ws = new WebSocket(websocket);
           }
           else if (window.MozWebSocket) {
             ws = MozWebSocket(websocket);
