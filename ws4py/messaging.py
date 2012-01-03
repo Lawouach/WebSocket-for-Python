@@ -52,8 +52,9 @@ class Message(object):
         fin = 1 if last is True else 0
         opcode = self.opcode if first is True else OPCODE_CONTINUATION
         mask = os.urandom(4) if mask else None
-        return Frame(body=self.data or '', opcode=opcode,
-                     masking_key=mask, fin=fin).build()
+        return Frame(body=self.data or '',
+                     opcode=opcode, masking_key=mask,
+                     fin=fin).build()
 
     @property
     def completed(self):
@@ -125,6 +126,12 @@ class CloseControlMessage(Message):
         Message.__init__(self, OPCODE_CLOSE, data)
         self.code = code
         self.reason = reason
+
+    def __str__(self):
+        return self.reason
+
+    def __unicode__(self):
+        return self.reason.decode('utf-8')
 
 class PingControlMessage(Message):
     def __init__(self, data=None):

@@ -9,6 +9,7 @@ from sys import exc_info
 import types
 
 from ws4py.streaming import Stream
+from ws4py.messaging import Message
 
 __all__ = ['WebSocketHandler', 'EchoWebSocketHandler']
 
@@ -61,7 +62,7 @@ class WebSocketHandler(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self.write_to_connection(self.stream.close(code=code, reason=reason))
+            self.write_to_connection(self.stream.close(code=code, reason=reason).single())
             
     def closed(self, code, reason=None):
         """
@@ -71,7 +72,7 @@ class WebSocketHandler(object):
         @param code: status code
         @param reason: human readable message of the closing exchange
         """
-        pass
+        self.write_to_connection
 
     @property
     def terminated(self):
@@ -136,26 +137,23 @@ class WebSocketHandler(object):
         @param payload: string, bytes, bytearray or a generator
         @param binary: if set, handles the payload as a binary message
         """
+        message_sender = self.stream.binary_message if binary else self.stream.text_message
+        
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
-            if not binary:
-                self.write_to_connection(self.stream.text_message(payload).single())
-            else:
-                self.write_to_connection(self.stream.binary_message(payload).single())
+            self.write_to_connection(message_sender(payload).single())
+
+        elif isinstance(payload, Message):
+            self.write_to_connection(payload.single())
                 
         elif type(payload) == types.GeneratorType:
             bytes = payload.next()
             first = True
             for chunk in payload:
-                if not binary:
-                    self.write_to_connection(self.stream.text_message(bytes).fragment(first=first))
-                else:
-                    self.write_to_connection(self.stream.binary_message(payload).fragment(first=first))
+                self.write_to_connection(message_sender(bytes).fragment(first=first))
                 bytes = chunk
                 first = False
-            if not binary:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
-            else:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True))
+
+            self.write_to_connection(message_sender(bytes).fragment(last=True))
 
     def _receive(self):
         """
@@ -221,11 +219,8 @@ class WebSocketHandler(object):
             self.client_terminated = self.server_terminated = True
 
         try:
-            if not self.server_terminated:
-                if self.stream.closing:
-                    self.closed(self.stream.closing.code, self.stream.closing.reason)
-                else:
-                    self.closed(1006)
+            if not self.stream.closing:
+                self.closed(1006)
         finally:
             self.close_connection()
 
@@ -235,5 +230,5 @@ class EchoWebSocketHandler(WebSocketHandler):
     it receives.
     """
     def received_message(self, m):
-        self.send(m.data, m.is_binary)
+        self.send(m, m.is_binary)
     

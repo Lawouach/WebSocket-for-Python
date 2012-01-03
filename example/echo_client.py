@@ -8,14 +8,18 @@ class EchoClient(WebSocketClient):
                 yield "#" * i
                 
         self.send(data_provider())
-            
+
         for i in range(0, 200, 25):
+            print i
             self.send("*" * i)
 
+    def closed(self, code, reason):
+        print "Closed down", code, reason
+
     def received_message(self, m):
-        print m, len(str(m))
+        print "=> %d %s" % (len(m), str(m))
         if len(str(m)) == 175:
-            self.close()
+            self.close(reason='Bye bye')
 
 if __name__ == '__main__':
     try:

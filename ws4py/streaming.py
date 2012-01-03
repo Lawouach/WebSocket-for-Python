@@ -113,7 +113,7 @@ class Stream(object):
         @param reason: status message
         @return: bytes representing a close control single framed message
         """
-        return CloseControlMessage(code=code, reason=reason).single()
+        return CloseControlMessage(code=code, reason=reason)
 
     def ping(self, data=''):
         """
@@ -156,7 +156,6 @@ class Stream(object):
         the data provider.
         """
         utf8validator = Utf8Validator()
-        
         running = True
         while running:
             frame = Frame()
@@ -169,8 +168,10 @@ class Stream(object):
                     frame.parser.send(bytes)
                 except StopIteration:
                     bytes = frame.body or ''
-                    if frame.masking_key and bytes:
+                    if frame.masking_key:
                         bytes = frame.unmask(bytes)
+                    else:
+                        bytes = bytearray(frame.body)
 
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
@@ -232,7 +233,8 @@ class Stream(object):
                                 else:    
                                     if len(bytes) > 2:
                                         try:
-                                            reason = frame.body[2:].decode("utf-8")
+                                            msg = bytes[2:] if frame.masking_key else frame.body[2:]
+                                            reason = msg.decode("utf-8")
                                         except UnicodeDecodeError:
                                             code = 1007
                                             reason = ''                                
@@ -265,6 +267,6 @@ class Stream(object):
                     break
 
             frame.parser.close()
-
-        utf8validator.reset()
+            utf8validator.reset()
+            
         utf8validator = None

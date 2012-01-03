@@ -10,7 +10,7 @@ from ws4py.server.handler.threadedhandler import WebSocketHandler, EchoWebSocket
 
 class ChatWebSocketHandler(WebSocketHandler):
     def received_message(self, m):
-        cherrypy.engine.publish('websocket-broadcast', str(m))
+        cherrypy.engine.publish('websocket-broadcast', m)
 
 class Root(object):
     def __init__(self, host, port):

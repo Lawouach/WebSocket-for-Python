@@ -87,5 +87,5 @@ if __name__ == '__main__':
         finally:
             websocket.close()
     
-    server = WebSocketServer(('127.0.0.1', 9000), echo_handler)
+    server = WebSocketServer(('127.0.0.1', 9001), echo_handler)
     server.serve_forever()

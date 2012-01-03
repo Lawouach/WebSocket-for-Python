@@ -13,7 +13,7 @@ from ws4py.exc import HandshakeError
 __all__ = ['WebSocketClient']
 
 class WebSocketClient(WebSocketBaseClient):
-    def __init__(self, url, sock=None, protocols=None, version='8'):
+    def __init__(self, url, sock=None, protocols=None, version='13'):
         WebSocketBaseClient.__init__(self, url, protocols=protocols, version=version)
         if not sock:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -91,11 +91,10 @@ class WebSocketClient(WebSocketBaseClient):
                 with self._lock:
                     s = self.stream
                     next_size = s.parser.send(bytes)
-
+                    
                     if s.closing is not None:
                         if not self.client_terminated:
                             next_size = 2
-                            self.close()
                         else:
                             self.server_terminated = True
                             self.running = False
@@ -124,12 +123,13 @@ class WebSocketClient(WebSocketBaseClient):
         except:
             print "".join(traceback.format_exception(*exc_info()))
         finally:
-            self.close_connection()
+            pass
+
         if self.stream.closing:
             self.closed(self.stream.closing.code, self.stream.closing.reason)
         else:
             self.closed(1006)
-
+            
 if __name__ == '__main__':
     import time
     

@@ -13,7 +13,7 @@ from ws4py.exc import HandshakeError
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(object):
-    def __init__(self, url, protocols=None, version='8'):
+    def __init__(self, url, protocols=None, version='13'):
         self.stream = Stream()
         self.url = url
         self.protocols = protocols
@@ -106,7 +106,7 @@ class WebSocketBaseClient(object):
     def close(self, reason='', code=1000):
         if not self.client_terminated:
             self.client_terminated = True
-            self.write_to_connection(self.stream.close(code=code, reason=reason))
+            self.write_to_connection(self.stream.close(code=code, reason=reason).single(mask=True))
 
     def connect(self):
         raise NotImplemented()
@@ -121,26 +121,26 @@ class WebSocketBaseClient(object):
         raise NotImplemented()
                
     def send(self, payload, binary=False):
+        message_sender = self.stream.binary_message if binary else self.stream.text_message
+        
         if isinstance(payload, basestring):
-            if not binary:
-                self.write_to_connection(self.stream.text_message(payload).single(mask=True))
-            else:
-                self.write_to_connection(self.stream.binary_message(payload).single(mask=True))
+            self.write_to_connection(message_sender(payload).single(mask=True))
         
         elif isinstance(payload, dict):
-            self.write_to_connection(self.stream.text_message(json.dumps(payload)).single(mask=True))
+            self.write_to_connection(message_sender(json.dumps(payload)).single(mask=True))
         
         elif type(payload) == types.GeneratorType:
-            bytes = payload.next()
             first = True
-            for chunk in payload:
-                if not binary:
-                    self.write_to_connection(self.stream.text_message(bytes).fragment(first=first, mask=True))
-                else:
-                    self.write_to_connection(self.stream.binary_message(bytes).fragment(first=first, mask=True))
-                bytes = chunk
+            last = False
+            bytes = payload.next()
+            
+            while not last:
+                try:
+                    peeked_bytes = payload.next()
+                except StopIteration:
+                    last = True
+                    
+                self.write_to_connection(message_sender(bytes).fragment(first=first, last=last, mask=True))
                 first = False
-            if not binary:
-                self.write_to_connection(self.stream.text_message(bytes).fragment(last=True, mask=True))
-            else:
-                self.write_to_connection(self.stream.binary_message(bytes).fragment(last=True, mask=True))
+                bytes = peeked_bytes
+
