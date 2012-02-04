@@ -344,7 +344,7 @@ if __name__ == '__main__':
           <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'> </script>
           <script type='application/javascript'>
             $(document).ready(function() {
-              var ws = new WebSocket('ws://192.168.0.10:8888/');
+              var ws = new WebSocket('ws://192.168.0.10:9000/');
               ws.onmessage = function (evt) {
                  $('#chat').val($('#chat').val() + evt.data + '\\n');                  
               };
@@ -375,4 +375,4 @@ if __name__ == '__main__':
             cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
         
     cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True,
-						   'tools.websocket.handler_cls': EchoWebSocketHandler}})
+                                                   'tools.websocket.handler_cls': EchoWebSocketHandler}})
