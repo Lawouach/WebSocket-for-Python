@@ -1,4 +1,7 @@
 import gevent.pywsgi
+from gevent import version_info
+IS_GEVENT_V10 = version_info[0] == 1
+del version_info
 
 from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
 
@@ -47,12 +50,27 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
                 write = self.start_response(status, headers, exc_info)
                 if self.code == 101:
                     # flushes headers now
-                    towrite = ['%s %s\r\n' % (self.request_version, self.status)]
-                    for header in headers:
-                        towrite.append('%s: %s\r\n' % header)
-                    towrite.append('\r\n')
-                    self.wfile.writelines(towrite)
-                    self.response_length += sum(len(x) for x in towrite)
+                    if IS_GEVENT_V10:
+                        self.headers_sent = True
+
+                        sline = '%s %s\r\n' % (self.request_version, self.status)
+                        write(sline)
+                        self.response_length += len(sline)
+                        
+                        for header in headers:
+                            hline = '%s: %s\r\n' % header
+                            write(hline)
+                            self.response_length += len(hline)
+                            
+                        write('\r\n')
+                        self.response_length += 2
+                    else:
+                        towrite = ['%s %s\r\n' % (self.request_version, self.status)]
+                        for header in headers:
+                            towrite.append('%s: %s\r\n' % header)
+                        towrite.append('\r\n')
+                        self.wfile.writelines(towrite)
+                        self.response_length += sum(len(x) for x in towrite)
                 return write
             try:
                 self.result = self.application(self.environ, start_response_for_upgrade)
@@ -72,8 +90,8 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
         protocols = kwargs.pop('websocket_protocols', [])
         extensions = kwargs.pop('websocket_extensions', [])
         self.application = WebSocketUpgradeMiddleware(self.application, 
-                            protocols=protocols,
-                            extensions=extensions)    
+                                                      protocols=protocols,
+                                                      extensions=extensions)    
 
 if __name__ == '__main__':
     def echo_handler(websocket, environ):
