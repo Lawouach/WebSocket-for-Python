@@ -120,14 +120,14 @@ class WebSocketTool(Tool):
         ws_extensions = []
         
         if request.method != 'GET':
-            raise HandshakeError('Method is not GET')
+            raise HandshakeError('HTTP method must be a GET')
 
         for key, expected_value in [('Upgrade', 'websocket'),
-                                     ('Connection', 'Upgrade')]:
-            actual_value = request.headers.get(key)
+                                     ('Connection', 'upgrade')]:
+            actual_value = request.headers.get(key).lower()
             if not actual_value:
                 raise HandshakeError('Header %s is not defined' % key)
-            if expected_value and expected_value not in actual_value:
+            if expected_value not in actual_value:
                 raise HandshakeError('Illegal value for header %s: %s' %
                                      (key, actual_value))
             
@@ -305,9 +305,14 @@ class WebSocketPlugin(plugins.SimplePlugin):
 	    handler, addr = peer
             if handler.terminated:
 		cherrypy.log("Removing WebSocket connection from peer: %s:%d" % (addr[0], addr[1]))
-                handler.close_connection()
-                handler._th.join()
-                self.handlers.remove(peer)
+                try:
+                    handler.close_connection()
+                except:
+                    cherrypy.log(traceback=True)
+                finally:
+                    if handler._th.is_alive():
+                        handler._th.join()
+                    self.handlers.remove(peer)
 
     def broadcast(self, message, binary=False):
         """
