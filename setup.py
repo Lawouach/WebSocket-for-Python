@@ -15,7 +15,7 @@ setup(name = "ws4py",
                   "ws4py.server.handler", "ws4py.server.wsgi"],
       platforms = ["any"],
       license = 'BSD',
-      long_description = "WebSocket library for the Python",
+      long_description = "WebSocket library for Python",
       classifiers=[
           'Development Status :: 4 - Beta',
           'Framework :: CherryPy',
