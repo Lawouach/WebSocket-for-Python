@@ -215,9 +215,9 @@ class Stream(object):
                     elif frame.opcode == OPCODE_CLOSE:
                         code = 1000
                         reason = ""
-                        if len(bytes) == 0:
+                        if frame.payload_length == 0:
                             self.closing = CloseControlMessage(code=1000)
-                        elif 1 < len(bytes) < 126:
+                        elif 1 < frame.payload_length < 126:
                             code = struct.unpack("!H", str(bytes[0:2]))[0]
                             try:
                                 code = int(code)
@@ -239,8 +239,6 @@ class Stream(object):
                                             code = 1007
                                             reason = ''                                
                             self.closing = CloseControlMessage(code=code, reason=reason)
-                        else:
-                            self.errors.append(CloseControlMessage(code=1002))
                         
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))

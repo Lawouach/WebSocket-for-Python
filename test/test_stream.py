@@ -9,12 +9,22 @@ from ws4py.streaming import Stream
 from ws4py.messaging import CloseControlMessage
 
 class WSStreamTest(unittest.TestCase):
-    def test_close_message_received(self):
+    def test_empty_close_message(self):
         f = Frame(opcode=OPCODE_CLOSE, body='', fin=1).build()
         s = Stream()
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
+    
+    def test_too_large_close_message(self):
+        f = Frame(opcode=OPCODE_CLOSE, body='*' * 330, fin=1).build()
+        s = Stream()
+        self.assertEqual(s.closing, None)
+        s.parser.send(f)
+        self.assertEqual(s.closing, None)
+        self.assertEqual(len(s.errors), 1)
+        self.assertEqual(type(s.errors[0]), CloseControlMessage)
+        self.assertEqual(s.errors[0].code, 1002)
     
     def test_ping_message_received(self):
         msg = 'ping me'
