@@ -216,7 +216,7 @@ class Stream(object):
                         code = 1000
                         reason = ""
                         if len(bytes) == 0:
-                            self.errors.append(CloseControlMessage(code=1000))
+                            self.closing = CloseControlMessage(code=1000)
                         elif 1 < len(bytes) < 126:
                             code = struct.unpack("!H", str(bytes[0:2]))[0]
                             try:
