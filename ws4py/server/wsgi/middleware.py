@@ -11,51 +11,15 @@ from gevent.queue import Queue
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
-from ws4py.server.handler.threadedhandler import WebSocketHandler as ThreadedHandler
+from ws4py.websocket import WebSocket
 
 WS_VERSION = 13
-
-class WebSocketHandler(ThreadedHandler):
-    """WebSocket API for handlers
-    
-    This provides a socket-like interface similar to the browser
-    WebSocket API for managing a WebSocket connection. 
-    """
-    
-    def __init__(self, sock, protocols, extensions, environ):
-        ThreadedHandler.__init__(self, sock, protocols, extensions)
-
-        self.environ = environ
-        
-        self._messages = Queue()
-        self._lock = Lock()
-        self._th = gevent.spawn(self._receive)
-    
-    def closed(self, code, reason=None):
-        self._messages.put(StreamClosed(code, reason))
-    
-    def received_message(self, m):
-        self._messages.put(copy.deepcopy(m))
-    
-    def receive(self, msg_obj=False):
-        msg = self._messages.get()
-        
-        if isinstance(msg, StreamClosed):
-            # Maybe we'll do something better
-            return None
-            
-        if msg_obj:
-            return msg
-        else:
-            return msg.data
-
 
 class WebSocketUpgradeMiddleware(object):
     """WSGI middleware for handling WebSocket upgrades"""
     
-    def __init__(self, handle, fallback_app=None, protocols=None, extensions=None,
-                    websocket_class=WebSocketHandler):
-        self.handle = handle
+    def __init__(self, fallback_app=None, protocols=None, extensions=None,
+                    websocket_class=WebSocket):
         self.fallback_app = fallback_app
         self.protocols = protocols
         self.extensions = extensions
@@ -127,10 +91,8 @@ class WebSocketUpgradeMiddleware(object):
         start_response("101 Web Socket Hybi Handshake", headers)
         
         # Build a websocket object and pass it to the handler
-        self.handle(
-            self.websocket_class(
-                environ.get('upgrade.socket'), 
-                ws_protocols, 
-                ws_extensions, 
-                environ), 
-            environ)
+        ws = self.websocket_class(environ.get('upgrade.socket'), 
+                                  ws_protocols, 
+                                  ws_extensions)
+        ws.start()
+        ws.join()

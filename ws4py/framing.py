@@ -132,16 +132,16 @@ class Frame(object):
         if self.rsv1 or self.rsv2 or self.rsv3:
             raise ProtocolException()
 
+        # control frames between 3 and 7 as well as above 0xA are currently reserved
+        if 2 < self.opcode < 8 or self.opcode > 0xA:
+            raise ProtocolException()
+
         # control frames cannot be fragmented
         if self.opcode > 0x7 and self.fin == 0:
             raise ProtocolException()
 
         # do we already have enough bytes to continue?
-        if bytes and len(bytes) > 1:
-            buf = bytes[1:]
-            bytes = buf
-        else:
-            bytes = ''
+        bytes = bytes[1:] if bytes and len(bytes) > 1 else ''
 
         # Yield until we get the second header's byte
         while not bytes or len(bytes) < 1:
@@ -162,9 +162,6 @@ class Frame(object):
             buf = ''
             bytes = ''
 
-        # The spec doesn't disallow putting a value in 0x0-0xFFFF into the
-        # 8-octet extended payload length field (or 0x0-0xFD in 2-octet field).
-        # So, we don't check the range of extended_payload_length.
         if self.payload_length == 127:
             if len(buf) < 8:
                 nxt_buf_size = 8 - len(buf)
@@ -172,7 +169,7 @@ class Frame(object):
                 bytes = buf + (bytes or '')
                 while len(bytes) < 8:
                     b = (yield 8 - len(bytes))
-                    if isinstance(b, basestring):
+                    if b is not None:
                         bytes = bytes + b
                 if len(bytes) > 8:
                     buf = bytes[8:]
@@ -191,7 +188,7 @@ class Frame(object):
                 bytes = buf + (bytes or '')
                 while len(bytes) < 2:
                     b = (yield 2 - len(bytes))
-                    if isinstance(b, basestring):
+                    if b is not None:
                         bytes = bytes + b
                 if len(bytes) > 2:
                     buf = bytes[2:]
@@ -209,7 +206,7 @@ class Frame(object):
                 bytes = buf + (bytes or '')
                 while not bytes or len(bytes) < 4:
                     b = (yield 4 - len(bytes))
-                    if isinstance(b, basestring):
+                    if b is not None:
                         bytes = bytes + b
                 if len(bytes) > 4:
                     buf = bytes[4:]
@@ -225,13 +222,17 @@ class Frame(object):
             while len(bytes) < self.payload_length:
                 l = self.payload_length - len(bytes)
                 b = (yield l)
-                if isinstance(b, basestring):
+                if b is not None:
                     bytes = bytes + b
         else:
-            bytes = buf[:self.payload_length]
-
+            if self.payload_length == len(buf):
+                bytes = buf
+            else:
+                bytes = buf[:self.payload_length]
+                
         self.body = bytes
-        yield
+
+        #yield 
         
     def mask(self, data):
         """

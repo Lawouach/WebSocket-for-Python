@@ -1,9 +1,13 @@
+
+from gevent import monkey; monkey.patch_all()
+
 import gevent.pywsgi
 from gevent import version_info
 IS_GEVENT_V10 = version_info[0] == 1
 del version_info
 
 from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
+from ws4py.websocket import WebSocket
 
 class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
     """Upgradable version of gevent.pywsgi.WSGIHandler class
@@ -85,25 +89,31 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
 class WebSocketServer(gevent.pywsgi.WSGIServer):
     handler_class = UpgradableWSGIHandler
     
-    def __init__(self, *args, **kwargs):
-        gevent.pywsgi.WSGIServer.__init__(self, *args, **kwargs)
+    def __init__(self, address, *args, **kwargs):
+
         protocols = kwargs.pop('websocket_protocols', [])
         extensions = kwargs.pop('websocket_extensions', [])
-        self.application = WebSocketUpgradeMiddleware(self.application, 
-                                                      protocols=protocols,
-                                                      extensions=extensions)    
+        websocket = kwargs.pop('websocket_class', WebSocket)
+        
+        gevent.pywsgi.WSGIServer.__init__(self, address, *args, **kwargs)
+        self.application = WebSocketUpgradeMiddleware(protocols=protocols,
+                                                      extensions=extensions,
+                                                      websocket_class=websocket)    
 
 if __name__ == '__main__':
-    def echo_handler(websocket, environ):
-        try:
-            while True:
-                msg = websocket.receive(msg_obj=True)
-                if msg is not None:
-                    websocket.send(msg.data, msg.is_binary)
-                else:
-                    break
-        finally:
-            websocket.close()
-    
-    server = WebSocketServer(('127.0.0.1', 9001), echo_handler)
+    import logging
+    import sys
+    logging.basicConfig(format='%(asctime)s %(message)s')
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    h = logging.StreamHandler()
+    h.setLevel(logging.DEBUG)
+    logger.addHandler(h)
+
+    class EchoWebSocket(WebSocket):
+        def received_message(self, message):
+            self.send(message, message.is_binary)
+        
+    server = WebSocketServer(('127.0.0.1', 9001), websocket_class=EchoWebSocket)
     server.serve_forever()
+        

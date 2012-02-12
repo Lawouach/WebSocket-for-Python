@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import struct
+import time
 
 from ws4py.utf8validator import Utf8Validator
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
@@ -9,8 +10,10 @@ from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
 from ws4py.exc import FrameTooLargeException, ProtocolException, InvalidBytesError,\
      TextFrameEncodingException, UnsupportedFrameTypeException, StreamClosed
 
+VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
+
 class Stream(object):
-    def __init__(self):
+    def __init__(self, always_mask=False, expect_masking=True):
         """
         Represents a websocket stream of bytes flowing in and out.
 
@@ -29,7 +32,8 @@ class Stream(object):
         True
         >>> s.messages.pop()
         <TextMessage ... >
-        
+
+        @param always_mask: if set, every single frame is masked
         """
         self.message = None
         """
@@ -70,7 +74,18 @@ class Stream(object):
         # Python generators must be initialized once.
         self.parser.next()
 
+        self.always_mask = always_mask
+        self.expect_masking = expect_masking
 
+    def release(self):
+        self.message = None
+        self.parser.close()
+        self.parser = None
+        self.errors = None
+        self.pings = None
+        self.pongs = None
+        
+        
     def text_message(self, text):
         """
         Returns a messaging.TextMessage instance
@@ -123,7 +138,7 @@ class Stream(object):
         @param data: ping data
         @return: bytes representing a ping single framed message
         """
-        return PingControlMessage(data).single()
+        return PingControlMessage(data).single(mask=self.always_mask)
 
     def pong(self, data=''):
         """
@@ -133,7 +148,7 @@ class Stream(object):
         @param data: pong data
         @return: bytes representing a pong single framed message
         """
-        return PongControlMessage(data).single()
+        return PongControlMessage(data).single(mask=self.always_mask)
 
     def receiver(self):
         """
@@ -155,6 +170,7 @@ class Stream(object):
         Overall this makes the stream parser totally agonstic to
         the data provider.
         """
+        t = time.time
         utf8validator = Utf8Validator()
         running = True
         while running:
@@ -164,15 +180,20 @@ class Stream(object):
                     bytes = (yield frame.parser.next())
                     if bytes is None:
                         raise InvalidBytesError()
-                    
+
                     frame.parser.send(bytes)
                 except StopIteration:
                     bytes = frame.body or ''
-                    if frame.masking_key:
-                        bytes = frame.unmask(bytes)
-                    else:
-                        bytes = bytearray(frame.body)
-
+                    if bytes:
+                        if frame.masking_key and self.expect_masking:
+                            bytes = frame.unmask(bytes)
+                        elif not frame.masking_key and self.expect_masking:
+                            self.errors.append(CloseControlMessage(code=1002))
+                            break
+                        elif frame.masking_key and not self.expect_masking:
+                            self.errors.append(CloseControlMessage(code=1002))
+                            break
+                        
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
                             # We got a text frame before we completed the previous one
@@ -206,9 +227,6 @@ class Stream(object):
                                 m.extend(bytes)
                             else:
                                 self.errors.append(CloseControlMessage(code=1007))
-                            #except UnicodeDecodeError:
-                            #    self.errors.append(CloseControlMessage(code=1007))
-                            #    break
                         else:
                             m.extend(bytes)
 
@@ -217,27 +235,29 @@ class Stream(object):
                         reason = ""
                         if frame.payload_length == 0:
                             self.closing = CloseControlMessage(code=1000)
-                        elif 1 < frame.payload_length < 126:
-                            code = struct.unpack("!H", str(bytes[0:2]))[0]
+                        elif frame.payload_length == 1:
+                            self.closing = CloseControlMessage(code=1002)
+                        else:
                             try:
-                                code = int(code)
+                                code = int(struct.unpack("!H", str(bytes[0:2]))[0])
                             except TypeError:
                                 code = 1002
                                 reason = 'Invalid Closing Frame Code Type'
+                            except struct.error, sr:
+                                code = 1002
+                                reason = 'Failed at decoding closing code'
                             else:
                                 # Those codes are reserved or plainly forbidden
-                                if code < 1000 or code in [1004, 1005, 1006, 1012, 1013, 1014, 1015,
-                                                           1016, 1100, 2000, 2999, 5000, 65536]:
+                                if code not in VALID_CLOSING_CODES and not (2999 < code < 5000):
+                                    reason = 'Invalid Closing Frame Code: %d' % code
                                     code = 1002
-                                    reason = 'Invalid Closing Frame Code'
-                                else:    
-                                    if len(bytes) > 2:
-                                        try:
-                                            msg = bytes[2:] if frame.masking_key else frame.body[2:]
-                                            reason = msg.decode("utf-8")
-                                        except UnicodeDecodeError:
-                                            code = 1007
-                                            reason = ''                                
+                                elif frame.payload_length > 1:
+                                    try:
+                                        msg = bytes[2:] if frame.masking_key else frame.body[2:]
+                                        reason = msg.decode("utf-8")
+                                    except UnicodeDecodeError:
+                                        code = 1007
+                                        reason = ''
                             self.closing = CloseControlMessage(code=code, reason=reason)
                         
                     elif frame.opcode == OPCODE_PING:
@@ -249,13 +269,8 @@ class Stream(object):
                     else:
                         self.errors.append(CloseControlMessage(code=1003))
 
-                    # When the frame's payload is empty, we must yield
-                    # once more so that the caller is properly aligned
-                    if not bytes:
-                        yield 0
-
                     break
-
+                    
                 except ProtocolException:
                     self.errors.append(CloseControlMessage(code=1002))
                 except FrameTooLargeException:
@@ -264,6 +279,7 @@ class Stream(object):
                     running = False
                     break
 
+            frame.body = None
             frame.parser.close()
             utf8validator.reset()
             

@@ -73,9 +73,12 @@ from cherrypy import Tool
 from cherrypy.process import plugins
 from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 
+import gevent
+from gevent.pool import Pool
+
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError
-from ws4py.server.handler.threadedhandler import WebSocketHandler
+from ws4py.websocket import WebSocket
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
 
@@ -96,7 +99,7 @@ class WebSocketTool(Tool):
         hooks.attach('on_end_request', self.start_handler,
                      priority=70)
 
-    def upgrade(self, protocols=None, extensions=None, version=13, handler_cls=WebSocketHandler):
+    def upgrade(self, protocols=None, extensions=None, version=13, handler_cls=WebSocket):
         """
         Performs the upgrade of the connection to the WebSocket
         protocol.
@@ -194,8 +197,6 @@ class WebSocketTool(Tool):
 	addr = (request.remote.ip, request.remote.port)
         ws_conn = request.rfile.rfile._sock
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions)
-	# Start tracking the handler 
-        cherrypy.engine.publish('handle-websocket', request.ws_handler, addr)
         
     def complete(self):
         """
@@ -227,12 +228,16 @@ class WebSocketTool(Tool):
         request = cherrypy.request
         if not hasattr(request, 'ws_handler'):
             return
-        
-        request.ws_handler.opened()
+
+	addr = (request.remote.ip, request.remote.port)
+        ws_handler = request.ws_handler
         request.ws_handler = None
+        delattr(request, 'ws_handler')
 	# By doing this we detach the socket from
 	# the CherryPy stack avoiding memory leaks
 	request.rfile.rfile._sock = None
+        
+        cherrypy.engine.publish('handle-websocket', ws_handler, addr)
         
     def _set_internal_flags(self):
         """
@@ -269,20 +274,19 @@ class WebSocketTool(Tool):
 class WebSocketPlugin(plugins.SimplePlugin):
     def __init__(self, bus):
         plugins.SimplePlugin.__init__(self, bus)
-        self.handlers = []
+        self.pool = Pool()
 
     def start(self):
         cherrypy.log("Starting WebSocket processing")
         self.bus.subscribe('handle-websocket', self.handle)
         self.bus.subscribe('websocket-broadcast', self.broadcast)
-        self.bus.subscribe('main', self.cleanup)
         
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
-        self.bus.unsubscribe('main', self.cleanup)
+        self.pool.kill()
+        self.pool.join()
         self.bus.unsubscribe('handle-websocket', self.handle)
         self.bus.unsubscribe('websocket-broadcast', self.broadcast)
-	self.cleanup()
 
     def handle(self, ws_handler, peer_addr):
         """
@@ -292,28 +296,13 @@ class WebSocketPlugin(plugins.SimplePlugin):
 	@param peer_addr: remote peer address for tracing purpose
 	"""
         cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
-        self.handlers.append((ws_handler, peer_addr))
+        ws_handler.link(self.unhandle)
+        self.pool.start(ws_handler)
 
-    def cleanup(self):
-        """
-	Performs a bit of cleanup on tracked handlers
-	by closing connection of terminated streams then
-	removing them from the tracked list.
-	"""
-        handlers = self.handlers[:]
-        for peer in handlers:
-	    handler, addr = peer
-            if handler.terminated:
-		cherrypy.log("Removing WebSocket connection from peer: %s:%d" % (addr[0], addr[1]))
-                try:
-                    handler.close_connection()
-                except:
-                    cherrypy.log(traceback=True)
-                finally:
-                    if handler._th.is_alive():
-                        handler._th.join()
-                    self.handlers.remove(peer)
-
+    def unhandle(self, ws_handler):
+        cherrypy.log("Removing WebSocket connection")
+        self.pool.discard(ws_handler)
+        
     def broadcast(self, message, binary=False):
         """
         Broadcasts a message to all connected clients known to
@@ -323,13 +312,8 @@ class WebSocketPlugin(plugins.SimplePlugin):
           of the connected handler.
         @param binary: whether or not the message is a binary one
         """
-        handlers = self.handlers[:]
-        for peer in handlers:
-            try:
-                handler, addr = peer
-                handler.send(message, binary)
-            except:
-                cherrypy.log(traceback=True)
+        for ws_handler in self.pool:
+            ws_handler.send(message, message.is_binary)
             
 if __name__ == '__main__':
     import random

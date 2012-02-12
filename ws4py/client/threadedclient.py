@@ -114,11 +114,13 @@ class WebSocketClient(WebSocketBaseClient):
                         
                     for ping in s.pings:
                         self.write_to_connection(s.pong(str(ping.data)))
-                    s.pings = []
+                    else:
+                        s.pings = []
 
                     for pong in s.pongs:
                         self.ponged(pong)
-                    s.pongs = []
+                    else:
+                        s.pongs = []
                     
         except:
             print "".join(traceback.format_exception(*exc_info()))

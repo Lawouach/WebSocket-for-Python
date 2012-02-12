@@ -14,7 +14,7 @@ __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(object):
     def __init__(self, url, protocols=None, version='13'):
-        self.stream = Stream()
+        self.stream = Stream(always_mask=True, expect_masking=False)
         self.url = url
         self.protocols = protocols
         self.version = version

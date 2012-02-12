@@ -9,7 +9,7 @@ __all__ = ['TextMessage', 'BinaryMessage', 'CloseControlMessage',
            'PingControlMessage', 'PongControlMessage']
 
 class Message(object):
-    def __init__(self, opcode, data='', encoding='utf-8'):
+    def __init__(self, opcode, data='', encoding='utf-8', size=None):
         """
         A WebSocket message is made of an opcode defining its type
         and some bytes.
@@ -20,7 +20,7 @@ class Message(object):
         """
         self.opcode = opcode
         self._completed = False
-        
+
         if isinstance(data, basestring):
             if isinstance(data, unicode):
                 data = data.encode(encoding)

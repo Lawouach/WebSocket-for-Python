@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# for now I can't avoid this
+from gevent import monkey; monkey.patch_all()
+    
 import argparse
 import random
 import os
@@ -6,9 +9,9 @@ import os
 import cherrypy
 
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-from ws4py.server.handler.threadedhandler import WebSocketHandler, EchoWebSocketHandler
+from ws4py.websocket import WebSocket
 
-class ChatWebSocketHandler(WebSocketHandler):
+class ChatWebSocketHandler(WebSocket):
     def received_message(self, m):
         cherrypy.engine.publish('websocket-broadcast', m)
 
