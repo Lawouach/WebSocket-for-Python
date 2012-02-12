@@ -2,7 +2,6 @@
 from multiprocessing import Process
 
 def run_cherrypy_server(host="127.0.0.1", port=9000):
-    from gevent import monkey; monkey.patch_all()
     import cherrypy
     
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool

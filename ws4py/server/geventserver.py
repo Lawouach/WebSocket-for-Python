@@ -90,7 +90,6 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
     handler_class = UpgradableWSGIHandler
     
     def __init__(self, address, *args, **kwargs):
-
         protocols = kwargs.pop('websocket_protocols', [])
         extensions = kwargs.pop('websocket_extensions', [])
         websocket = kwargs.pop('websocket_class', WebSocket)
@@ -110,10 +109,7 @@ if __name__ == '__main__':
     h.setLevel(logging.DEBUG)
     logger.addHandler(h)
 
-    class EchoWebSocket(WebSocket):
-        def received_message(self, message):
-            self.send(message, message.is_binary)
-        
+    from ws4py.websocket import EchoWebSocket
     server = WebSocketServer(('127.0.0.1', 9001), websocket_class=EchoWebSocket)
     server.serve_forever()
         

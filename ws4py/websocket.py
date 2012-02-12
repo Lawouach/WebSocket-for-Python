@@ -9,21 +9,17 @@ import traceback
 import types
 import time
 
-import gevent
-from gevent.socket import wait_read
-
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.messaging import Message
-from ws4py.server.handler.threadedhandler import WebSocketHandler as ThreadedHandler
 
 WS_VERSION = 13
 DEFAULT_READING_SIZE = 2
 
 __all__ = ['WebSocket', 'EchoWebSocket']
 
-class WebSocket(gevent.Greenlet):
+class WebSocket(object):
     def __init__(self, sock, protocols, extensions):
         """
         A handler appropriate for servers. This handler
@@ -35,7 +31,6 @@ class WebSocket(gevent.Greenlet):
         @param protocols: list of protocols from the handshake
         @param extensions: list of extensions from the handshake
         """
-        gevent.Greenlet.__init__(self)
         self.stream = Stream(always_mask=False)
         
         self.protocols = protocols
@@ -151,7 +146,7 @@ class WebSocket(gevent.Greenlet):
         self.stream.release()
         self.stream = None
 
-    def _run(self):
+    def run(self):
         """
         Performs the operation of reading from the underlying
         connection in order to feed the stream of bytes.
@@ -179,7 +174,6 @@ class WebSocket(gevent.Greenlet):
             fileno = sock.fileno()
 
             while not self.terminated:
-                wait_read(fileno)
                 bytes = sock.recv(self.reading_buffer_size)
                 if not bytes and self.reading_buffer_size > 0:
                     break

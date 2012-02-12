@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# for now I can't avoid this
-from gevent import monkey; monkey.patch_all()
-    
 import argparse
 import random
 import os
@@ -48,6 +45,9 @@ class Root(object):
           };
           ws.onopen = function() {
              ws.send("%(username)s entered the room");
+          };
+          ws.onclose = function(evt) {
+             $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
           };
 
           $('#send').click(function() {

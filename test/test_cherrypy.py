@@ -3,7 +3,6 @@ import unittest
 
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
 
 class FakeSocket(object):
     def settimeout(self, timeout):

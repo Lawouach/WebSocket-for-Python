@@ -67,14 +67,12 @@ import base64
 from hashlib import sha1
 import inspect
 import socket
+import threading
 
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
 from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
-
-import gevent
-from gevent.pool import Pool
 
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError
@@ -180,7 +178,6 @@ class WebSocketTool(Tool):
             location.append("?%s" % request.query_string)
         ws_location = ''.join(location)
 
-        
         response = cherrypy.serving.response
         response.stream = True
         response.status = '101 Switching Protocols'
@@ -274,17 +271,19 @@ class WebSocketTool(Tool):
 class WebSocketPlugin(plugins.SimplePlugin):
     def __init__(self, bus):
         plugins.SimplePlugin.__init__(self, bus)
-        self.pool = Pool()
+        self.pool = {}
 
     def start(self):
         cherrypy.log("Starting WebSocket processing")
+        self.bus.subscribe('main', self.monitor)
+        self.bus.subscribe('stop', self.cleanup)
         self.bus.subscribe('handle-websocket', self.handle)
         self.bus.subscribe('websocket-broadcast', self.broadcast)
         
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
-        self.pool.kill()
-        self.pool.join()
+        self.bus.unsubscribe('main', self.monitor)
+        self.bus.unsubscribe('stop', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
         self.bus.unsubscribe('websocket-broadcast', self.broadcast)
 
@@ -296,13 +295,35 @@ class WebSocketPlugin(plugins.SimplePlugin):
 	@param peer_addr: remote peer address for tracing purpose
 	"""
         cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
-        ws_handler.link(self.unhandle)
-        self.pool.start(ws_handler)
+        th = threading.Thread(target=ws_handler.run, name="WebSocket client at %s:%d" % (peer_addr[0], peer_addr[1]))
+        th.daemon = True
+        self.pool[ws_handler] = (th, peer_addr)
+        th.start()
 
-    def unhandle(self, ws_handler):
-        cherrypy.log("Removing WebSocket connection")
-        self.pool.discard(ws_handler)
-        
+    def monitor(self):
+        """
+        Called within the engine's mainloop to drop connections
+        that have terminated since last iteration.
+        """
+        handlers = self.pool.keys()[:]
+        for handler in handlers:
+            if handler.terminated:
+                th, addr = self.pool[handler]
+                cherrypy.log("Removing WebSocket connection %s:%d" % (peer_addr[0], peer_addr[1]))
+                th.join()
+                del self.pool[handler]
+
+    def cleanup(self):
+        """
+        Terminate all connections and clear the pool. Executed when the engine stops.
+        """
+        cherrypy.log("Closing %d WebSocket connections" % len(self.pool))
+        for handler in self.pool:
+            handler.close(code=1001, reason='Server is shutting down')
+            th, addr = self.pool[handler]
+            th.join()
+        self.pool.clear()
+
     def broadcast(self, message, binary=False):
         """
         Broadcasts a message to all connected clients known to
@@ -317,8 +338,6 @@ class WebSocketPlugin(plugins.SimplePlugin):
             
 if __name__ == '__main__':
     import random
-    from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
-    
     cherrypy.config.update({'server.socket_host': '127.0.0.1',
                             'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
@@ -339,6 +358,9 @@ if __name__ == '__main__':
               };
               ws.onopen = function() {
                  ws.send("Hello there");
+              };
+              ws.onclose = function(evt) {
+                $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
               };
               $('#chatform').submit(function() {
                  ws.send('%(username)s: ' + $('#message').val());

@@ -90,9 +90,10 @@ class WebSocketUpgradeMiddleware(object):
         
         start_response("101 Web Socket Hybi Handshake", headers)
         
-        # Build a websocket object and pass it to the handler
-        ws = self.websocket_class(environ.get('upgrade.socket'), 
+        ws = self.websocket_class(environ.get('upgrade.socket'),
                                   ws_protocols, 
                                   ws_extensions)
-        ws.start()
-        ws.join()
+        
+        g = gevent.spawn(ws.run)
+        g.start()
+        g.join()

@@ -8,6 +8,7 @@ import gevent.pywsgi
 
 from ws4py.server.geventserver import UpgradableWSGIHandler
 from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
+from ws4py.websocket import EchoWebSocket
 
 class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
     handler_class = UpgradableWSGIHandler
@@ -23,7 +24,7 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         # let's use wrap the websocket handler with
         # a middleware that'll perform the websocket
         # handshake
-        self.ws = WebSocketUpgradeMiddleware(self.websocket)
+        self.ws = WebSocketUpgradeMiddleware(websocket_class=EchoWebSocket)
 
         # keep track of connected websocket clients
         # so that we can brodcasts messages sent by one
@@ -74,26 +75,6 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         
         return file(path).read()
         
-    def websocket(self, websocket, environ):
-        """
-        Can it be simpler to run websocket with gevent?
-        """
-        self.clients.append(websocket)
-        
-        try:
-            while True:
-                msg = websocket.receive(msg_obj=True)
-                if msg is not None:
-                    # broadcast the received message to all
-                    # connected clients
-                    for client in self.clients:
-                        client.send(msg.data, msg.is_binary)
-                else:
-                    break
-        finally:
-            websocket.close()
-            self.clients.remove(websocket)
-
     def webapp(self, environ, start_response):
         """
         Our main webapp that'll display the chat form
@@ -129,6 +110,9 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
               };
               ws.onopen = function() {
                  ws.send("%(username)s entered the room");
+              };
+              ws.onclose = function(evt) {
+                 $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
               };
 
               $('#send').click(function() {
