@@ -309,7 +309,7 @@ class WebSocketPlugin(plugins.SimplePlugin):
         for handler in handlers:
             if handler.terminated:
                 th, addr = self.pool[handler]
-                cherrypy.log("Removing WebSocket connection %s:%d" % (peer_addr[0], peer_addr[1]))
+                cherrypy.log("Removing WebSocket connection %s:%d" % (addr[0], addr[1]))
                 th.join()
                 del self.pool[handler]
 
