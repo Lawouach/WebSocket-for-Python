@@ -13,8 +13,8 @@ Requirements
 As a standalone client, ws4py only requires Python 2.6.6 or above though it hasn't been ported to Python 3.x yet.
 
  * Tornado client requires Tornado 2.0.x (https://github.com/facebook/tornado)
- * CherryPy server requires CherryPy 3.2.1 (http://download.cherrypy.org/cherrypy/3.2.1/)
- * gevent server requires gevent gevent 0.13.6 (http://pypi.python.org/pypi/gevent/0.13.6)
+ * CherryPy server requires CherryPy 3.2.1 (http://dowload.cherrypy.org/cherrypy/3.2.1/)
+ * gevent server requires gevent gevent 0.13.6 and 1.0.0dev (http://pypi.python.org/pypi/gevent/0.13.6)
 
 
 Installing
@@ -61,7 +61,7 @@ Examples
 
 ws4py comes with a few examples:
 
- * The echo_cherrypy_server provides a simple Echo server. It requires CherryPy 3.2.1. Once started, you can point your browser (it has been tested with Chrome 15.0.854.0).
+ * The echo_cherrypy_server provides a simple Echo server. It requires CherryPy 3.2.2. Once started, you can point your browser (it has been tested with Chrome 15.0.854.0).
    Open a couple of tabs pointing at http://localhost:9000 and chat accross those tables.
  * The droid_sensor_cherrypy_server broadcasts sensor metrics to clients. Point your browser to http://localhost:9000
    Then run the droid_sensor module from your Android device using SL4A.
