@@ -185,16 +185,21 @@ class Stream(object):
                         if frame.masking_key and self.expect_masking:
                             bytes = frame.unmask(bytes)
                         elif not frame.masking_key and self.expect_masking:
-                            self.errors.append(CloseControlMessage(code=1002))
+                            msg = CloseControlMessage(code=1002, reason='Missing masking when expected')
+                            self.errors.append(msg)
                             break
                         elif frame.masking_key and not self.expect_masking:
-                            self.errors.append(CloseControlMessage(code=1002))
+                            msg = CloseControlMessage(code=1002, reason='Masked when not expected')
+                            self.errors.append()
                             break
+                        else:
+                            bytes = bytearray(bytes)
                         
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
                             # We got a text frame before we completed the previous one
-                            self.errors.append(CloseControlMessage(code=1002))
+                            msg = CloseControlMessage(code=1002, reason='Received a new message before completing previous')
+                            self.errors.append(msg)
                             break
 
                         is_valid = True
@@ -206,7 +211,7 @@ class Stream(object):
                             m.completed = (frame.fin == 1)
                             self.message = m
                         elif not is_valid and frame.fin == 1:
-                            self.errors.append(CloseControlMessage(code=1007))
+                            self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
 
                     elif frame.opcode == OPCODE_BINARY:
                         m = BinaryMessage(bytes)
@@ -216,7 +221,7 @@ class Stream(object):
                     elif frame.opcode == OPCODE_CONTINUATION:
                         m = self.message
                         if m is None:
-                            self.errors.append(CloseControlMessage(code=1002))
+                            self.errors.append(CloseControlMessage(code=1002, reason='Message not started yet'))
                             break
                         
                         m.completed = (frame.fin == 1)
@@ -228,7 +233,7 @@ class Stream(object):
                             if is_valid:
                                 m.extend(bytes)
                             else:
-                                self.errors.append(CloseControlMessage(code=1007))
+                                self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                         else:
                             m.extend(bytes)
 
@@ -238,7 +243,7 @@ class Stream(object):
                         if frame.payload_length == 0:
                             self.closing = CloseControlMessage(code=1000)
                         elif frame.payload_length == 1:
-                            self.closing = CloseControlMessage(code=1002)
+                            self.closing = CloseControlMessage(code=1002, reason='Payload has invalid length')
                         else:
                             try:
                                 code = int(struct.unpack("!H", str(bytes[0:2]))[0])

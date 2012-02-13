@@ -16,7 +16,7 @@ from ws4py.messaging import Message
 WS_VERSION = 13
 DEFAULT_READING_SIZE = 2
 
-__all__ = ['WebSocket', 'EchoWebSocket']
+__all__ = ['WebSocket', 'EchoWebSocket', 'WS_VERSION']
 
 class WebSocket(object):
     def __init__(self, sock, protocols, extensions, environ=None):
@@ -37,7 +37,8 @@ class WebSocket(object):
         Underlying websocket stream that performs the websocket
         parsing to high level objects. By default this stream
         never masks its messages. Clients using this class should
-        set the `stream.always_mask` field to `True`.
+        set the `stream.always_mask` fields to `True`
+        and `stream.expect_masking' fields to `False`.
         """
         
         self.protocols = protocols
@@ -101,7 +102,7 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self.sender(self.stream.close(code=code, reason=reason).single())
+            self.sender(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
             
     def closed(self, code, reason=None):
         """
@@ -167,20 +168,20 @@ class WebSocket(object):
         message_sender = self.stream.binary_message if binary else self.stream.text_message
         
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
-            self.sender(message_sender(payload).single())
+            self.sender(message_sender(payload).single(mask=self.stream.always_mask))
 
         elif isinstance(payload, Message):
-            self.sender(payload.single())
+            self.sender(payload.single(mask=self.stream.always_mask))
                 
         elif type(payload) == types.GeneratorType:
             bytes = payload.next()
             first = True
             for chunk in payload:
-                self.sender(message_sender(bytes).fragment(first=first))
+                self.sender(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
                 bytes = chunk
                 first = False
 
-            self.sender(message_sender(bytes).fragment(last=True))
+            self.sender(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
 
     def _cleanup(self):
         """
@@ -214,8 +215,8 @@ class WebSocket(object):
         in a thread.
         """
         self.sock.setblocking(True)
-        self.opened()
         try:
+            self.opened()
             s = self.stream
             sock = self.sock
             fileno = sock.fileno()

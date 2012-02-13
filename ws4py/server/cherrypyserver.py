@@ -335,7 +335,10 @@ class WebSocketPlugin(plugins.SimplePlugin):
         @param binary: whether or not the message is a binary one
         """
         for ws_handler in self.pool:
-            ws_handler.send(message, message.is_binary)
+            try:
+                ws_handler.send(message, message.is_binary)
+            except:
+                cherrypy.log(traceback=True)
             
 if __name__ == '__main__':
     import random
