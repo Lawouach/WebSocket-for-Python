@@ -7,7 +7,6 @@ import socket
 from sys import exc_info
 import traceback
 import types
-import time
 
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError, StreamClosed
@@ -20,37 +19,70 @@ DEFAULT_READING_SIZE = 2
 __all__ = ['WebSocket', 'EchoWebSocket']
 
 class WebSocket(object):
-    def __init__(self, sock, protocols, extensions):
+    def __init__(self, sock, protocols, extensions, environ=None):
         """
-        A handler appropriate for servers. This handler
-        runs the connection's read and parsing in a thread,
-        meaning that incoming messages will be alerted in a different
-        thread from the one that created the handler.
+        Represents a websocket endpoint and provides a high level
+        interface to drive the endpoint.
 
         @param sock: opened connection after the websocket upgrade
         @param protocols: list of protocols from the handshake
         @param extensions: list of extensions from the handshake
+        @param environ: WSGI environ dictionary coming from the
+          underlying WSGI HTTP server, providing the context for
+          this connection.
         """
+        
         self.stream = Stream(always_mask=False)
+        """
+        Underlying websocket stream that performs the websocket
+        parsing to high level objects. By default this stream
+        never masks its messages. Clients using this class should
+        set the `stream.always_mask` field to `True`.
+        """
         
         self.protocols = protocols
+        """
+        List of protocols supported by this endpoint.
+        Unused for now.
+        """
+        
         self.extensions = extensions
+        """
+        List of extensions supported by this endpoint.
+        Unused for now.
+        """
 
         self.sock = sock
+        """
+        Underlying connection.
+        """
         
         self.client_terminated = False
+        """
+        Indicates if the client has been marked as terminated.
+        """
+        
         self.server_terminated = False
+        """
+        Indicates if the server has been marked as terminated.
+        """
 
         self.reading_buffer_size = DEFAULT_READING_SIZE
+        """
+        Current connection reading buffer size.
+        """
 
         self.sender = self.sock.sendall
+        
+        self.environ = environ
+        """
+        WSGI environ dictionary.
+        """
         
     def opened(self):
         """
         Called by the server when the upgrade handshake
-        has succeeeded. Starts the internal loop that
-        reads bytes from the connection and hands it over
-        to the stream for parsing.
+        has succeeeded. 
         """
         pass
 
@@ -59,7 +91,7 @@ class WebSocket(object):
         Call this method to initiate the websocket connection
         closing by sending a close frame to the connected peer.
 
-        Once this method is called, the server_terminated
+        Once this method is called, the `server_terminated`
         attribute is set. Calling this method several times is
         safe as the closing frame will be sent only the first
         time.
@@ -108,6 +140,15 @@ class WebSocket(object):
         pass
 
     def received_message(self, message):
+        """
+        Called whenever a complete message, binary or text,
+        is received and ready for application's processing.
+
+        You should override this methid in your subclass.
+
+        @param message: messaging.TextMessage or
+          messaging.BinaryMessage instance
+        """
         pass
 
     def send(self, payload, binary=False):
@@ -142,6 +183,9 @@ class WebSocket(object):
             self.sender(message_sender(bytes).fragment(last=True))
 
     def _cleanup(self):
+        """
+        Frees up some resources used by the endpoint.
+        """
         self.sender = None
         self.stream.release()
         self.stream = None
@@ -165,6 +209,9 @@ class WebSocket(object):
         * Whenever an error is raised by the stream parsing,
           we initiate the closing of the connection with the
           appropiate error code.
+
+        This method is blocking and should likely be run
+        in a thread.
         """
         self.sock.setblocking(True)
         self.opened()
@@ -172,12 +219,11 @@ class WebSocket(object):
             s = self.stream
             sock = self.sock
             fileno = sock.fileno()
-
             while not self.terminated:
                 bytes = sock.recv(self.reading_buffer_size)
                 if not bytes and self.reading_buffer_size > 0:
                     break
-                
+
                 self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
                 if s.closing is not None:
@@ -220,5 +266,5 @@ class WebSocket(object):
         
 class EchoWebSocket(WebSocket):
     def received_message(self, message):
-        self.send(message, message.is_binary)
+        self.send(message.data, message.is_binary)
         
