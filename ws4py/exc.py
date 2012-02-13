@@ -2,6 +2,7 @@
 
 __all__ = ['WebSocketException', 'FrameTooLargeException', 'ProtocolException',
            'FUnsupportedFrameTypeException', 'TextFrameEncodingException',
+           'UnsupportedFrameTypeException', 'TextFrameEncodingException',
            'StreamClosed', 'HandshakeError', 'InvalidBytesError']
 
 class WebSocketException(Exception): pass
