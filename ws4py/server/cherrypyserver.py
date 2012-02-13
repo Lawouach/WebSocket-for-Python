@@ -193,7 +193,8 @@ class WebSocketTool(Tool):
 
 	addr = (request.remote.ip, request.remote.port)
         ws_conn = request.rfile.rfile._sock
-        request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions)
+        request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
+                                         request.wsgi_environ.copy())
         
     def complete(self):
         """

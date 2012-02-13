@@ -92,7 +92,8 @@ class WebSocketUpgradeMiddleware(object):
         
         ws = self.websocket_class(environ.get('upgrade.socket'),
                                   ws_protocols, 
-                                  ws_extensions)
+                                  ws_extensions,
+                                  environ.copy())
         
         g = gevent.spawn(ws.run)
         g.start()
