@@ -176,7 +176,7 @@ class WebSocket(object):
             bytes = payload.next()
             first = True
             for chunk in payload:
-                write(message_sender(bytes).fragment(first=first))
+                self.sender(message_sender(bytes).fragment(first=first))
                 bytes = chunk
                 first = False
 
