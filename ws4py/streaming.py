@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import struct
-import time
 
 from ws4py.utf8validator import Utf8Validator
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
@@ -170,7 +169,6 @@ class Stream(object):
         Overall this makes the stream parser totally agonstic to
         the data provider.
         """
-        t = time.time
         utf8validator = Utf8Validator()
         running = True
         while running:
@@ -178,12 +176,11 @@ class Stream(object):
             while True:
                 try:
                     bytes = (yield frame.parser.next())
-                    if bytes is None:
-                        raise InvalidBytesError()
-
                     frame.parser.send(bytes)
                 except StopIteration:
                     bytes = frame.body or ''
+
+                    # Let's avoid unmasking when there is no payload
                     if bytes:
                         if frame.masking_key and self.expect_masking:
                             bytes = frame.unmask(bytes)
@@ -200,7 +197,9 @@ class Stream(object):
                             self.errors.append(CloseControlMessage(code=1002))
                             break
 
-                        is_valid, _, _, _ = utf8validator.validate(bytes)
+                        is_valid = True
+                        if bytes:
+                            is_valid, _, _, _ = utf8validator.validate(bytes)
                         
                         if is_valid or (not is_valid and frame.fin == 0):
                             m = TextMessage(bytes)
@@ -222,7 +221,10 @@ class Stream(object):
                         
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
-                            is_valid, _, _, _ = utf8validator.validate(bytes)
+                            is_valid = True
+                            if bytes:
+                                is_valid, _, _, _ = utf8validator.validate(bytes)
+                                
                             if is_valid:
                                 m.extend(bytes)
                             else:
