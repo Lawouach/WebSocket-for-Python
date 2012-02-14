@@ -1,58 +1,36 @@
 # -*- coding: utf-8 -*-
-from urlparse import urlsplit
+from gevent import monkey; monkey.patch_all()
+
 import copy
+from urlparse import urlsplit
 
 import gevent
 from gevent import Greenlet
-from gevent import socket
-from gevent.coros import Semaphore
 from gevent.queue import Queue
 
-from ws4py.client.threadedclient import WebSocketClient as ThreadedClient
-from ws4py.exc import HandshakeError, StreamClosed
+from ws4py.client import WebSocketBaseClient
 
 __all__ = ['WebSocketClient']
 
-class WebSocketClient(ThreadedClient):
-    def __init__(self, url, protocols=None, version='8'):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        ThreadedClient.__init__(self, url, protocols=protocols, version=version, sock=sock)
-        
-        self._lock = Semaphore()
-        self._th = Greenlet(self._receive)
-        self._messages = Queue()
-        
-        self.extensions = []
+class WebSocketClient(WebSocketBaseClient):
+    def __init__(self, url, protocols=None, extensions=None):
+        WebSocketBaseClient.__init__(self, url, protocols, extensions)
+        self._th = Greenlet(self.run)
 
-    def opened(self, protocols, extensions):
-        self.protocols = protocols
-        self.extensions = extensions
-    
-    def received_message(self, m):
-        self._messages.put(copy.deepcopy(m))
-    
-    def write_to_connection(self, bytes):
-        if not self.client_terminated:
-            return self.sock.sendall(bytes)    
-    
-    def closed(self, code, reason=None):
-        self._messages.put(StreamClosed(code, reason))
-    
-    def receive(self, msg_obj=False):
-        msg = self._messages.get()
+        self.messages = Queue()
         
-        if isinstance(msg, StreamClosed):
-            return None
-            
-        if msg_obj:
-            return msg
-        else:
-            return msg.data
+    def handshake_ok(self):
+        self._th.start()
 
-
+    def received_message(self, message):
+        self.messages.put(copy.deepcopy(message))
+        
+    def receive(self):
+        return self.messages.get()
+        
 if __name__ == '__main__':
                 
-    ws = WebSocketClient('http://localhost:9000/', protocols=['http-only', 'chat'])
+    ws = WebSocketClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
     
     ws.send("Hello world")
