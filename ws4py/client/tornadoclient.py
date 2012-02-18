@@ -3,16 +3,15 @@ import socket
 from urlparse import urlsplit
 
 from tornado import iostream, escape
-
 from ws4py.client import WebSocketBaseClient
-from ws4py.exc import HandshakeError
 
 __all__ = ['TornadoWebSocketClient']
 
 class TornadoWebSocketClient(WebSocketBaseClient):
-    def __init__(self, url, protocols=None, version='8', io_loop=None):
-        WebSocketBaseClient.__init__(self, url, protocols=protocols, version=version)
-        self.io = iostream.IOStream(socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0), io_loop)
+    def __init__(self, url, protocols=None, extensions=None, io_loop=None):
+        WebSocketBaseClient.__init__(self, url, protocols, extensions)
+        self.io = iostream.IOStream(self.sock, io_loop)
+        self.sender = self.io.write
 
     def connect(self):
         parts = urlsplit(self.url)
@@ -40,58 +39,42 @@ class TornadoWebSocketClient(WebSocketBaseClient):
             self.process_response_line(response_line)
             protocols, extensions = self.process_handshake_header(headers)
         except HandshakeError:
-            self.io.close()
+            self.close_connection()
             raise
         
-        self.opened(protocols, extensions)
-        self.io.read_bytes(1, self.__fetch_more)
+        self.opened()
+        self.io.set_close_callback(self.__stream_closed)
+        self.io.read_bytes(self.reading_buffer_size, self.__fetch_more)
 
     def __fetch_more(self, bytes):
-        s = self.stream
         try:
-            next_size = s.parser.send(bytes)
+            should_continue = self.process(bytes)
         except:
-            self.close_connection()
-            self.closed(1006)
-            return
-                
-        if s.closing is not None:
-            if not self.client_terminated:
-                next_size = 2
-                self.close()
-            else:
-                self.server_terminated = True
-                self.close_connection()
-                self.closed(s.closing.code, s.closing.reason)
-                return
-            
-        elif s.errors:
-            errors = s.errors[:]
-            for error in s.errors:
-                self.close(error.code, error.reason)
-                s.errors.remove(error)
-                
-        elif s.has_message:
-            self.received_message(s.message)
-            s.message.data = None
-            s.message = None
+            should_continue = False
 
-        for ping in s.pings:
-            self.write_to_connection(s.pong(str(ping.data)))
-        s.pings = []
+        if should_continue:
+            self.io.read_bytes(self.reading_buffer_size, self.__fetch_more)
+        else:
+            self.__gracefully_terminate()
 
-        for pong in s.pongs:
-            self.ponged(pong)
-        s.pongs = []
-    
-        self.io.read_bytes(next_size, self.__fetch_more)
-     
-    def write_to_connection(self, bytes):
-        self.io.write(bytes)
-
-    def read_from_connection(self, amount):
-        self.io.read_bytes(amount, self.__fetch_more)
+    def __gracefully_terminate(self):
+        self.client_terminated = self.server_terminated = True
         
+        try:
+            if not self.stream.closing:
+                self.closed(1006)
+        finally:
+            self.close_connection()
+
+    def __stream_closed(self, *args, **kwargs):
+        self.io.set_close_callback(None)
+        code = 1006
+        reason = None
+        if self.stream.closing:
+            code, reason = self.stream.closing.code, self.stream.closing.reason
+        self.closed(code, reason)
+        self._cleanup()
+
     def close_connection(self):
         self.io.close()
 
@@ -99,7 +82,7 @@ if __name__ == '__main__':
     from tornado import ioloop
 
     class MyClient(TornadoWebSocketClient):
-        def opened(self, protocols, extensions):
+        def opened(self):
             def data_provider():
                 for i in range(1, 200, 25):
                     yield "#" * i
@@ -114,10 +97,10 @@ if __name__ == '__main__':
             if len(str(m)) == 175:
                 self.close()
 
-        def closed(self, code, reason):
+        def closed(self, code, reason=None):
             ioloop.IOLoop.instance().stop()
                 
-    ws = MyClient('http://localhost:9000/', protocols=['http-only', 'chat'])
+    ws = MyClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
         
     ioloop.IOLoop.instance().start()
