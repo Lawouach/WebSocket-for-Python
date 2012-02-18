@@ -220,50 +220,59 @@ class WebSocket(object):
             s = self.stream
             sock = self.sock
             fileno = sock.fileno()
+            
             while not self.terminated:
                 bytes = sock.recv(self.reading_buffer_size)
-                if not bytes and self.reading_buffer_size > 0:
+                if not self.process(bytes):
                     break
-
-                self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
-
-                if s.closing is not None:
-                    if not self.server_terminated:
-                        self.close(s.closing.code, s.closing.reason)
-                    else:
-                        self.client_terminated = True
-                    break
-
-                if s.errors:
-                    for error in s.errors:
-                        self.close(error.code, error.reason)
-                    s.errors = []
-                    break
-
-                if s.has_message:
-                    self.received_message(s.message)
-                    s.message.data = None
-                    s.message = None
-                    continue
-                
-                if s.pings:
-                    for ping in s.pings:
-                        self.sender(s.pong(ping.data))
-                    s.pings = []
-
-                if s.pongs:
-                    for pong in s.pongs:
-                        self.ponged(pong)
-                    s.pongs = []
         finally:
             self.client_terminated = self.server_terminated = True
-
+            
             try:
-                if not self.stream.closing:
+                if not s.closing:
                     self.closed(1006)
             finally:
                 self.close_connection()
                 self._cleanup()
+
+    def process(self, bytes):
+        s = self.stream
+        
+        if not bytes and self.reading_buffer_size > 0:
+            return False
+
+        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
+
+        if s.closing is not None:
+            if not self.server_terminated:
+                self.close(s.closing.code, s.closing.reason)
+            else:
+                self.client_terminated = True
+            return False
+
+        if s.errors:
+            for error in s.errors:
+                self.close(error.code, error.reason)
+            s.errors = []
+            return False
+
+        if s.has_message:
+            self.received_message(s.message)
+            s.message.data = None
+            s.message = None
+            return True
+
+        if s.pings:
+            for ping in s.pings:
+                self.sender(s.pong(ping.data))
+            s.pings = []
+
+        if s.pongs:
+            for pong in s.pongs:
+                self.ponged(pong)
+            s.pongs = []
+
+        return True
         
 class EchoWebSocket(WebSocket):
     def received_message(self, message):
