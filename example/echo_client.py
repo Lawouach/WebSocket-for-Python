@@ -2,7 +2,7 @@
 from ws4py.client.threadedclient import WebSocketClient
 
 class EchoClient(WebSocketClient):
-    def opened(self, protocols, extensions):
+    def opened(self):
         def data_provider():
             for i in range(1, 200, 25):
                 yield "#" * i
