@@ -49,7 +49,6 @@ class WebSocketUpgradeMiddleware(object):
             if self.fallback_app:
                 return self.fallback_app(environ, start_response)
             else:
-                print e
                 start_response("400 Bad Handshake", [])
                 return [str(e)]
         
