@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from gevent import monkey; monkey.patch_all()
+
 import argparse
 import random
 import os
 
-from gevent import monkey; monkey.patch_all()
+import gevent
 import gevent.pywsgi
 
 from ws4py.server.geventserver import UpgradableWSGIHandler
@@ -24,7 +26,8 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         # let's use wrap the websocket handler with
         # a middleware that'll perform the websocket
         # handshake
-        self.ws = WebSocketUpgradeMiddleware(websocket_class=EchoWebSocket)
+        self.ws = WebSocketUpgradeMiddleware(app=self.ws_app,
+                                             websocket_class=EchoWebSocket)
 
         # keep track of connected websocket clients
         # so that we can brodcasts messages sent by one
@@ -46,6 +49,11 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
             return self.static(environ, start_response)
         
         return self.webapp(environ, start_response)
+
+    def ws_app(self, websocket):
+        g = gevent.spawn(websocket.run)
+        g.start()
+        g.join()
 
     def favicon(self, environ, start_response):
         """
