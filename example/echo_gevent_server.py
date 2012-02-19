@@ -12,6 +12,24 @@ from ws4py.server.geventserver import UpgradableWSGIHandler
 from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
 from ws4py.websocket import EchoWebSocket
 
+class BroadcastWebSocket(EchoWebSocket):
+    def received_message(self, m):
+        # self.clients is set from within the server
+        # and holds the list of all connected servers
+        # we can dispatch to
+        for client in self.clients:
+            client.send(m)
+
+    def closed(self, code, reason="A client left the room without a proper explanation."):
+        if self in self.clients:
+            self.clients.remove(self)
+            try:
+                for client in self.clients:
+                    client.send(reason)
+            finally:
+                self.clients = None
+                delattr(self, 'clients')
+
 class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
     handler_class = UpgradableWSGIHandler
     
@@ -27,7 +45,7 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         # a middleware that'll perform the websocket
         # handshake
         self.ws = WebSocketUpgradeMiddleware(app=self.ws_app,
-                                             websocket_class=EchoWebSocket)
+                                             websocket_class=BroadcastWebSocket)
 
         # keep track of connected websocket clients
         # so that we can brodcasts messages sent by one
@@ -51,6 +69,8 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         return self.webapp(environ, start_response)
 
     def ws_app(self, websocket):
+        websocket.clients = self.clients
+        self.clients.append(websocket)
         g = gevent.spawn(websocket.run)
         g.start()
         g.join()
@@ -110,9 +130,14 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
                 return;
               }
 
-              $(window).unload(function() {
-                 ws.close();
-              });
+              window.onbeforeunload = function(e) {
+                 $('#chat').val($('#chat').val() + 'Bye bye...\\n');
+                 ws.close(1000, '%(username)s left the room');
+                 
+                 if(!e) e = window.event;
+                 e.stopPropagation();
+                 e.preventDefault();
+              };
               ws.onmessage = function (evt) {
                  $('#chat').val($('#chat').val() + evt.data + '\\n');
               };

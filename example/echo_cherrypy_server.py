@@ -7,10 +7,14 @@ import cherrypy
 
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
+from ws4py.messaging import TextMessage
 
 class ChatWebSocketHandler(WebSocket):
     def received_message(self, m):
         cherrypy.engine.publish('websocket-broadcast', m)
+
+    def closed(self, code, reason="A client left the room without a proper explanation."):
+        cherrypy.engine.publish('websocket-broadcast', TextMessage(reason))
 
 class Root(object):
     def __init__(self, host, port):
@@ -37,9 +41,14 @@ class Root(object):
             return;
           }
 
-          $(window).unload(function() {
-             ws.close();
-          });
+          window.onbeforeunload = function(e) {
+            $('#chat').val($('#chat').val() + 'Bye bye...\\n');
+            ws.close(1000, '%(username)s left the room');
+                 
+            if(!e) e = window.event;
+            e.stopPropagation();
+            e.preventDefault();
+          };
           ws.onmessage = function (evt) {
              $('#chat').val($('#chat').val() + evt.data + '\\n');
           };
