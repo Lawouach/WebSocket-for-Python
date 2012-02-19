@@ -1,25 +1,21 @@
+# -*- coding: utf-8 -*-
 import copy
 import base64
 from hashlib import sha1
 import types
 import socket
 
-import gevent
-from gevent.coros import Semaphore as Lock
-from gevent.queue import Queue
-
-from ws4py import WS_KEY
+from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.websocket import WebSocket
 
-WS_VERSION = 13
-
 class WebSocketUpgradeMiddleware(object):
     """WSGI middleware for handling WebSocket upgrades"""
     
-    def __init__(self, fallback_app=None, protocols=None, extensions=None,
+    def __init__(self, app, fallback_app=None, protocols=None, extensions=None,
                     websocket_class=WebSocket):
+        self.app = app
         self.fallback_app = fallback_app
         self.protocols = protocols
         self.extensions = extensions
@@ -53,6 +49,7 @@ class WebSocketUpgradeMiddleware(object):
             if self.fallback_app:
                 return self.fallback_app(environ, start_response)
             else:
+                print e
                 start_response("400 Bad Handshake", [])
                 return [str(e)]
         
@@ -89,12 +86,8 @@ class WebSocketUpgradeMiddleware(object):
             headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
         
         start_response("101 Web Socket Hybi Handshake", headers)
-        
-        ws = self.websocket_class(environ.get('upgrade.socket'),
-                                  ws_protocols, 
-                                  ws_extensions,
-                                  environ.copy())
-        
-        g = gevent.spawn(ws.run)
-        g.start()
-        g.join()
+
+        return self.app(self.websocket_class(environ.get('upgrade.socket'),
+                                             ws_protocols, 
+                                             ws_extensions,
+                                             environ.copy()))

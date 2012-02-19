@@ -9,7 +9,7 @@ In order to work around this constraint, we take some advantage
 of some internals of CherryPy as well as the introspection
 Python provides.
 
-Basically, whene the WebSocket upgrade is performed, we take over
+Basically, when the WebSocket handshake is complete, we take over
 the socket and let CherryPy take back the thread that was
 associated with the upgrade request.
 
@@ -26,15 +26,19 @@ Here are the various utilities provided by this module:
                   any path you wish to handle as a WebSocket
                   handler.
                   
- * WebSocketPlugin: The plugin tracks the web socket handler
-                    instanciated. It also cleans out websocket handler
-                    which connection have been closed down.
+ * WebSocketPlugin: The plugin tracks the instanciated web socket handlers.
+                    It also cleans out websocket handler which connection
+                    have been closed down. The websocket connection then
+                    runs in its own thread that this plugin manages.
              
 Simple usage example:
 
+.. code-block:: python
+    :linenos:
+
     import cherrypy
-    from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool, WebSocketHandler
-    from ws4py.server.handler.threadedhandler import EchoWebSocketHandler
+    from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+    from ws4py.websocket import EchoWebSocket
     
     cherrypy.config.update({'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
@@ -50,18 +54,12 @@ Simple usage example:
             pass
         
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True,
-                                                     'tools.websocket.handler_cls': EchoWebSocketHandler}})
+                                                     'tools.websocket.handler_cls': EchoWebSocket}})
 
 
 Note that you can set the handler class on per-path basis,
 meaning you could also dynamically change the class based
 on other envrionmental settings (is the user authenticated for ex).
-
-The current implementation of the handler is based on a thread that will
-constantly read bytes from the socket and feed the stream instance with them
-until an error or a close condition arise. This might be a bit
-suboptimal and one could implement the handler in a different fashion
-using a poll based socket handling (select, poll, tornado, gevent, etc.)
 """
 import base64
 from hashlib import sha1
@@ -132,18 +130,20 @@ class WebSocketTool(Tool):
                 raise HandshakeError('Illegal value for header %s: %s' %
                                      (key, actual_value))
             
+        version = request.headers.get('Sec-WebSocket-Version')
+        if version:
+            if version != str(ws_version):
+                cherrypy.response.headers['Sec-WebSocket-Version'] = str(ws_version)
+                raise HandshakeError('Unsupported WebSocket version: %s' % version)
+        else:
+            cherrypy.response.headers['Sec-WebSocket-Version'] = str(ws_version)
+            raise HandshakeError('WebSocket version required')
+        
         key = request.headers.get('Sec-WebSocket-Key')
         if key:
             ws_key = base64.b64decode(key)
             if len(ws_key) != 16:
                 raise HandshakeError("WebSocket key's length is invalid")
-        
-        version = request.headers.get('Sec-WebSocket-Version')
-        if version:
-            if version != str(ws_version):
-                raise HandshakeError('Unsupported WebSocket version: %s' % version)
-        else:
-            raise HandshakeError('WebSocket version required')
         
         protocols = protocols or []
         subprotocols = request.headers.get('Sec-WebSocket-Protocol')

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from gevent import monkey; monkey.patch_all()
-
+import gevent
 import gevent.pywsgi
 from gevent import version_info
 IS_GEVENT_V10 = version_info[0] == 1
@@ -95,9 +94,16 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
         websocket = kwargs.pop('websocket_class', WebSocket)
         
         gevent.pywsgi.WSGIServer.__init__(self, address, *args, **kwargs)
-        self.application = WebSocketUpgradeMiddleware(protocols=protocols,
+        self.application = WebSocketUpgradeMiddleware(app=self.handler,
+                                                      protocols=protocols,
                                                       extensions=extensions,
                                                       websocket_class=websocket)    
+
+    def handler(self, websocket):
+        g = gevent.spawn(websocket.run)
+        g.start()
+        g.join()
+        return ['']
 
 if __name__ == '__main__':
     import logging

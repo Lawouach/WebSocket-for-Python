@@ -18,15 +18,19 @@ __all__ = ['Frame']
 class Frame(object):
     def __init__(self, opcode=None, body='', masking_key=None, fin=0, rsv1=0, rsv2=0, rsv3=0):
         """
-        Implements the framing protocol as defined by draft-10 of the specification
-        supporting protocol version 8.
+        Implements the framing protocol as defined by RFC 6455.
 
-        >>> f = Frame(OPCODE_TEXT, 'hello world', os.urandom(4), fin=1)
-        >>> bytes = f.build()
-        >>> f = Frame()
-        >>> f.parser.send(bytes[1])
-        >>> f.parser.send(bytes[2])
-        >>> f.parser.send(bytes[2:])
+        .. code-block:: python
+           :linenos:
+
+           >>> f = Frame(OPCODE_TEXT, 'hello world', os.urandom(4), fin=1)
+           >>> bytes = f.build()
+           >>> f = Frame()
+           >>> f.parser.send(bytes[1])
+           >>> f.parser.send(bytes[2])
+           >>> f.parser.send(bytes[2:])
+
+        .. seealso:: Data Framing http://tools.ietf.org/html/rfc6455#section-5.2
         """
         self.opcode = opcode
         self.body = body
@@ -42,9 +46,8 @@ class Frame(object):
 
     def build(self):
         """
-        Builds a frame from the instance's attributes.
-
-        @return: The frame header and payload as bytes.
+        Builds a frame from the instance's attributes and returns
+        its bytes representation.
         """
         header = ''
 
@@ -232,15 +235,15 @@ class Frame(object):
                 
         self.body = bytes
 
-        #yield 
-        
     def mask(self, data):
         """
         Performs the masking or unmasking operation on data
-        using the simple masking algorithme:
+        using the simple masking algorithm:
 
-        j                   = i MOD 4
-        transformed-octet-i = original-octet-i XOR masking-key-octet-j
+        .. 
+           j                   = i MOD 4
+           transformed-octet-i = original-octet-i XOR masking-key-octet-j
+           
         """
         masked = bytearray(data)
         key = map(ord, self.masking_key)

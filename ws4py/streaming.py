@@ -13,27 +13,33 @@ VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
 class Stream(object):
     def __init__(self, always_mask=False, expect_masking=True):
-        """
-        Represents a websocket stream of bytes flowing in and out.
-
+        """ Represents a websocket stream of bytes flowing in and out.
+ 
         The stream doesn't know about the data provider itself and
         doesn't even know about sockets. Instead the stream simply
-        yields for more bytes whenever it requires it. The stream owner
+        yields for more bytes whenever it requires them. The stream owner
         is responsible to provide the stream with those bytes until
         a frame can be interpreted.
 
-        >>> s = Stream()
-        >>> s.parser.send(BYTES)
-        >>> s.has_messages
-        False
-        >>> s.parser.send(MORE_BYTES)
-        >>> s.has_messages
-        True
-        >>> s.messages.pop()
-        <TextMessage ... >
+        .. code-block:: python
+           :linenos:
 
-        @param always_mask: if set, every single frame is masked
+           >>> s = Stream()
+           >>> s.parser.send(BYTES)
+           >>> s.has_messages
+           False
+           >>> s.parser.send(MORE_BYTES)
+           >>> s.has_messages
+           True
+           >>> s.message
+           <TextMessage ... >
+
+        Set ``always_mask`` to mask all frames built.
+        
+        Set ``expect_masking`` to indicate masking will be
+        checked on all parsed frames.
         """
+        
         self.message = None
         """
         Parsed test or binary messages. Whenever the parser
@@ -44,25 +50,25 @@ class Stream(object):
         self.pings = []
         """
         Parsed ping control messages. They are instances of
-        messaging.PingControlMessage
+        :class:`ws4py.messaging.PingControlMessage`
         """
         
         self.pongs = []
         """
         Parsed pong control messages. They are instances of
-        messaging.PongControlMessage
+        :class:`ws4py.messaging.PongControlMessage`
         """
         
         self.closing = None
         """
         Parsed close control messsage. Instance of
-        messaging.CloseControlMessage
+        :class:`ws4py.messaging.CloseControlMessage`
         """
         
         self.errors = []
         """
         Detected errors while parsing. Instances of
-        messaging.CloseControlMessage
+        :class:`ws4py.messaging.CloseControlMessage`
         """
         
         self.parser = self.receiver()
@@ -77,6 +83,9 @@ class Stream(object):
         self.expect_masking = expect_masking
 
     def release(self):
+        """
+        Frees the stream's resources rendering it unusable.
+        """
         self.message = None
         self.parser.close()
         self.parser = None
@@ -84,26 +93,21 @@ class Stream(object):
         self.pings = None
         self.pongs = None
         
-        
     def text_message(self, text):
         """
-        Returns a messaging.TextMessage instance
+        Returns a :class:`ws4py.messaging.TextMessage` instance
         ready to be built. Convenience method so
         that the caller doesn't need to import the
-        TextMessage class itself.
-
-        @param text: data to be carried by the message
+        :class:`ws4py.messaging.TextMessage` class itself.
         """
         return TextMessage(text=text)
 
     def binary_message(self, bytes):
         """
-        Returns a messaging.BinaryMessage instance
+        Returns a :class:`ws4py.messaging.BinaryMessage` instance
         ready to be built. Convenience method so
         that the caller doesn't need to import the
-        BinaryMessage class itself.
-
-        @param text: data to be carried by the message
+        :class:`ws4py.messaging.BinaryMessage` class itself.
         """
         return BinaryMessage(bytes)
 
@@ -111,7 +115,7 @@ class Stream(object):
     def has_message(self):
         """
         Checks if the stream has received any message
-        which, if fragmented, is completed.
+        which, if fragmented, is now completed.
         """
         if self.message is not None:
             return self.message.completed
@@ -121,31 +125,22 @@ class Stream(object):
     def close(self, code=1000, reason=''):
         """
         Returns a close control message built from
-        a messaging.CloseControlMessage instance.
-
-        @param code: closing status code
-        @param reason: status message
-        @return: bytes representing a close control single framed message
+        a :class:`ws4py.messaging.CloseControlMessage` instance,
+        using the given status ``code`` and ``reason`` message.
         """
         return CloseControlMessage(code=code, reason=reason)
 
     def ping(self, data=''):
         """
         Returns a ping control message built from
-        a messaging.PingControlMessage instance.
-
-        @param data: ping data
-        @return: bytes representing a ping single framed message
+        a :class:`ws4py.messaging.PingControlMessage` instance.
         """
         return PingControlMessage(data).single(mask=self.always_mask)
 
     def pong(self, data=''):
         """
         Returns a ping control message built from
-        a messaging.PongControlMessage instance.
-
-        @param data: pong data
-        @return: bytes representing a pong single framed message
+        a :class:`ws4py.messaging.PongControlMessage` instance.
         """
         return PongControlMessage(data).single(mask=self.always_mask)
 
@@ -157,12 +152,12 @@ class Stream(object):
         Control message are single frames only while data messages, like text
         and binary, may be fragmented accross frames.
 
-        The way it works is by instanciating a framing.Frame object,
+        The way it works is by instanciating a :class:`wspy.framing.Frame` object,
         then running its parser generator which yields how much bytes
         it requires to performs its task. The stream parser yields this value
         to its caller and feeds the frame parser.
 
-        When the frame parser raises StopIteration, the stream parser
+        When the frame parser raises :exc:`StopIteration`, the stream parser
         tries to make sense of the parsed frame. It dispatches the frame's bytes
         to the most appropriate message type based on the frame's opcode.
 
@@ -173,7 +168,7 @@ class Stream(object):
         running = True
         while running:
             frame = Frame()
-            while True:
+            while 1:
                 try:
                     bytes = (yield frame.parser.next())
                     frame.parser.send(bytes)

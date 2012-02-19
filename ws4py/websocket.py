@@ -8,28 +8,27 @@ from sys import exc_info
 import traceback
 import types
 
-from ws4py import WS_KEY
+from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.messaging import Message
 
-WS_VERSION = 13
 DEFAULT_READING_SIZE = 2
 
-__all__ = ['WebSocket', 'EchoWebSocket', 'WS_VERSION']
+__all__ = ['WebSocket', 'EchoWebSocket']
 
 class WebSocket(object):
-    def __init__(self, sock, protocols, extensions, environ=None):
-        """
-        Represents a websocket endpoint and provides a high level
-        interface to drive the endpoint.
-
-        @param sock: opened connection after the websocket upgrade
-        @param protocols: list of protocols from the handshake
-        @param extensions: list of extensions from the handshake
-        @param environ: WSGI environ dictionary coming from the
-          underlying WSGI HTTP server, providing the context for
-          this connection.
+    """ Represents a websocket endpoint and provides a high level interface to drive the endpoint. """
+    
+    def __init__(self, sock, protocols=None, extensions=None, environ=None):
+        """ The ``sock`` is an opened connection
+        resulting from the websocket handshake.
+        
+        If ``protocols`` is provided, it is a list of protocols
+        negotiated during the handshake as is ``extensions``.
+        
+        If ``environ`` is provided, it is a copy of the WSGI environ
+        dictionnary from the underlying WSGI server.
         """
         
         self.stream = Stream(always_mask=False)
@@ -37,8 +36,8 @@ class WebSocket(object):
         Underlying websocket stream that performs the websocket
         parsing to high level objects. By default this stream
         never masks its messages. Clients using this class should
-        set the `stream.always_mask` fields to `True`
-        and `stream.expect_masking' fields to `False`.
+        set the ``stream.always_mask`` fields to ``True``
+        and ``stream.expect_masking`` fields to ``False``.
         """
         
         self.protocols = protocols
@@ -91,14 +90,15 @@ class WebSocket(object):
         """
         Call this method to initiate the websocket connection
         closing by sending a close frame to the connected peer.
+        The ``code`` is the status code representing the
+        termination's reason.
 
-        Once this method is called, the `server_terminated`
+        Once this method is called, the ``server_terminated``
         attribute is set. Calling this method several times is
         safe as the closing frame will be sent only the first
         time.
-
-        @param code: status code describing why the connection is closed
-        @param reason: a human readable message describing why the connection is closed
+        
+        .. seealso:: Defined Status Codes http://tools.ietf.org/html/rfc6455#section-7.4.1
         """
         if not self.server_terminated:
             self.server_terminated = True
@@ -106,18 +106,18 @@ class WebSocket(object):
             
     def closed(self, code, reason=None):
         """
-        Called by the server when the websocket connection
-        is finally closed.
+        Called  when the websocket stream and connection are finally closed.
+        The provided ``code`` is status set by the other point and
+        ``reason`` is a human readable message.
 
-        @param code: status code
-        @param reason: human readable message of the closing exchange
+        .. seealso:: Defined Status Codes http://tools.ietf.org/html/rfc6455#section-7.4.1
         """
         pass
 
     @property
     def terminated(self):
         """
-        Returns True if both the client and server have been
+        Returns ``True`` if both the client and server have been
         marked as terminated.
         """
         return self.client_terminated is True and self.server_terminated is True
@@ -134,36 +134,34 @@ class WebSocket(object):
 
     def ponged(self, pong):
         """
-        Pong message received on the stream.
-
-        @param pong: messaging.PongControlMessage instance
+        Pong message, as a :class:`messaging.PongControlMessage` instance,
+        received on the stream.
         """
         pass
 
     def received_message(self, message):
         """
-        Called whenever a complete message, binary or text,
+        Called whenever a complete ``message``, binary or text,
         is received and ready for application's processing.
 
-        You should override this methid in your subclass.
+        The passed message is an instance of :class:`messaging.TextMessage`
+        or :class:`messaging.BinaryMessage`.
 
-        @param message: messaging.TextMessage or
-          messaging.BinaryMessage instance
+        .. note:: You should override this method in your subclass.
         """
         pass
 
     def send(self, payload, binary=False):
         """
-        Sends the given payload out.
+        Sends the given ``payload`` out.
 
-        If payload is some bytes or a bytearray,
+        If ``payload`` is some bytes or a bytearray,
         then it is sent as a single message not fragmented.
 
-        If payload is a generator, each chunk is sent as part of
+        If ``payload`` is a generator, each chunk is sent as part of
         fragmented message.
 
-        @param payload: string, bytes, bytearray or a generator
-        @param binary: if set, handles the payload as a binary message
+        If ``binary`` is set, handles the payload as a binary message.
         """
         message_sender = self.stream.binary_message if binary else self.stream.text_message
         
@@ -185,11 +183,12 @@ class WebSocket(object):
 
     def _cleanup(self):
         """
-        Frees up some resources used by the endpoint.
+        Frees up resources used by the endpoint.
         """
         self.sender = None
         self.stream.release()
         self.stream = None
+        self.sock = None
 
     def run(self):
         """
@@ -220,10 +219,13 @@ class WebSocket(object):
             s = self.stream
             sock = self.sock
             fileno = sock.fileno()
+            process = self.process
             
+            print "#", self.terminated
             while not self.terminated:
+                print self.terminated
                 bytes = sock.recv(self.reading_buffer_size)
-                if not self.process(bytes):
+                if not process(bytes):
                     break
         finally:
             self.client_terminated = self.server_terminated = True
@@ -236,6 +238,19 @@ class WebSocket(object):
                 self._cleanup()
 
     def process(self, bytes):
+        """ Takes some bytes and process them through the
+        internal stream's parser. If a message of any kind is
+        found, performs one of these actions:
+
+        * A closing message will initiate the closing handshake
+        * Errors will initiate a closing handshake
+        * A message will be passed to the ``received_message`` method
+        * Pings will see pongs be sent automatically
+        * Pongs will be passed to the ``ponged`` method
+
+        The process should be terminated when this method
+        returns ``False``.
+        """
         s = self.stream
         
         if not bytes and self.reading_buffer_size > 0:
@@ -276,5 +291,9 @@ class WebSocket(object):
         
 class EchoWebSocket(WebSocket):
     def received_message(self, message):
+        """
+        Automatically sends back the provided ``message`` to
+        its originating endpoint.
+        """
         self.send(message.data, message.is_binary)
         
