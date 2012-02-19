@@ -221,9 +221,7 @@ class WebSocket(object):
             fileno = sock.fileno()
             process = self.process
             
-            print "#", self.terminated
             while not self.terminated:
-                print self.terminated
                 bytes = sock.recv(self.reading_buffer_size)
                 if not process(bytes):
                     break
