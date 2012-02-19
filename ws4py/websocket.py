@@ -231,6 +231,8 @@ class WebSocket(object):
             try:
                 if not s.closing:
                     self.closed(1006)
+                else:
+                    self.closed(s.closing.code, s.closing.reason)
             finally:
                 self.close_connection()
                 self._cleanup()
