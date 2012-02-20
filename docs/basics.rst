@@ -7,7 +7,7 @@ ws4py provides high-level, yet simple, interface to provide your application wit
 
     from ws4py.websocket import WebSocket
 
-The :class:`WebSocket <ws4py.websocket.WebSocket>` should be sub-classes by your application to make something sensible with it. To the very least we suggest you override the :func:`received_message(message) <ws4py.websocket.WebSocket.received_message>` method.
+The :class:`WebSocket <ws4py.websocket.WebSocket>` class should be sub-classed by your application to make something sensible with it. To the very least we suggest you override the :func:`received_message(message) <ws4py.websocket.WebSocket.received_message>` method.
 
 For instance a straightforward echo application would look like this:
 
