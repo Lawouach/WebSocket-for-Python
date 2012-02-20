@@ -8,7 +8,7 @@ ws4py provides an extension to CherryPy 3 to enable WebSocket from the framework
 
 The :class:`WebSocket tool <ws4py.server.cherrypyserver.WebSocketTool>` plays at the request level on every request received by the server. Its goal is to perform the WebSocket handshake and, if it succeeds, to create the :class:`WebSocket <ws4py.websocket.WebSocket>` instance (well a subclass you will be implementing) and push it to the plugin.
 
-The :class:`WebSocket plugin <ws4py.server.cherrypyserver.WebSocketPlugin>` works at the CherryPy system level and has a single instance throughout. It's goal is to track websocket instances created by the tool and free their resources when connections are closed.
+The :class:`WebSocket plugin <ws4py.server.cherrypyserver.WebSocketPlugin>` works at the CherryPy system level and has a single instance throughout. Its goal is to track websocket instances created by the tool and free their resources when connections are closed.
 
 Here is a simple example of an echo server:
 
