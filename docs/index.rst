@@ -5,16 +5,16 @@ ws4py is a Python package implementing the WebSocket protocol as defined in `RFC
 
 It provides client and server implementations alike that using different techniques like threads, micro-threads or event loops.
 
-Requirements:
--------------
+Requirements
+------------
 
 .. toctree::
    :maxdepth: 2
 
    requirements
 
-Tutorial:
----------
+Tutorial
+--------
 
 .. toctree::
    :maxdepth: 2
@@ -23,8 +23,8 @@ Tutorial:
    clienttutorial
    servertutorial
 
-Packages:
----------
+Packages
+--------
 
 .. toctree::
    :maxdepth: 6

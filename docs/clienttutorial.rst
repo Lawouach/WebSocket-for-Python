@@ -9,6 +9,7 @@ ws4py comes with various client implementation but they roughly share the same a
 An example is better than any word so let's have a look at a basic client:
 
 .. code-block:: python
+    :linenos:
 
     from ws4py.client.threadedclient import WebSocketClient
 
