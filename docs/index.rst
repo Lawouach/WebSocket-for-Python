@@ -13,6 +13,15 @@ Requirements
 
    requirements
 
+Install
+-------
+
+.. toctree::
+   :maxdepth: 2
+
+   install
+
+
 Tutorial
 --------
 
