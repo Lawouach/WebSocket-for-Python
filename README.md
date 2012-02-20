@@ -32,6 +32,11 @@ Or use a package manager like pip and run:
  $ pip install git+git://github.com/Lawouach/WebSocket-for-Python.git
 ```
 
+Documentation
+-------------
+
+Online documentation can be found at: http://www.defuze.org/oss/ws4py/docs/
+
 Test suite
 ----------
 
