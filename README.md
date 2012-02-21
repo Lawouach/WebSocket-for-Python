@@ -37,16 +37,15 @@ Documentation
 
 Online documentation can be found at: http://www.defuze.org/oss/ws4py/docs/
 
-Test suite
-----------
+Conformance
+-----------
 
-The code currently provides a few unit tests of the stream and frame processing. 
-For functional testing, you can use the Autobahn project (http://www.tavendo.de/autobahn) which provides an extensive test suite.
+ws4py tries hard to be as conformant as it can to the specification. In order to validate this conformance, each release is run against the Autobahn testsuite (http://www.tavendo.de/autobahn) which provides an extensive converage of various aspects of the protocol.
 
 You may try to run it against the CherryPy server as follow:
 
 ```
- $ python ws4py/server/cherrypyserver.py
+ $ python test/autobahn_test_servers.py
 ```
 
 Then from a different terminal:
@@ -56,8 +55,7 @@ Then from a different terminal:
  $ python fuzzing_client.py
 ```
 
-This will run the complete suite. As of this writing, the CherryPy server passes all the functional tests but
-fails on some performance tests by being too slow.
+This will run the complete suite. 
 
 Test reports can be found at: http://www.defuze.org/oss/ws4py/testreports/servers/
 
