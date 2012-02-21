@@ -3,9 +3,9 @@ import os.path
 import cherrypy
 
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
-from ws4py.server.handler.threadedhandler import WebSocketHandler, EchoWebSocketHandler
+from ws4py.websocket import WebSocket
 
-class BroadcastWebSocketHandler(WebSocketHandler):
+class BroadcastWebSocketHandler(WebSocket):
     def received_message(self, m):
         cherrypy.engine.publish('websocket-broadcast', str(m))
         
