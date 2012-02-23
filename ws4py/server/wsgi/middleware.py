@@ -11,10 +11,37 @@ from ws4py.streaming import Stream
 from ws4py.websocket import WebSocket
 
 class WebSocketUpgradeMiddleware(object):
-    """WSGI middleware for handling WebSocket upgrades"""
-    
     def __init__(self, app, fallback_app=None, protocols=None, extensions=None,
                     websocket_class=WebSocket):
+        """
+        WSGI middleware that performs the WebSocket upgrade handshake.
+
+        .. code-block:: python
+           :linenos:
+
+           def ws_handler(websocket):
+              ...
+
+           app = WebSocketUpgradeMiddleware(ws_handler)
+        
+
+        If the handshake succeeds, it calls ``app`` with an instance of
+        ``websocket_class`` with a copy of the environ dictionary.
+
+        If an error occurs and ``fallback_app`` is provided, it must be a
+        WSGI application which will be called. Otherwise it returns a
+        simple error through the inner ``start_response``.
+
+        One interesting aspect is that wsgiref fails with this middleware
+        due to the ``Upgrade`` hop-by-hop header which is not allowed.
+
+        Make sure that your server does not close the underlying socket for you
+        since it would close the whole WebSocket connection as well.
+
+        You may provide your own representation of the socket by setting
+        the environ key: ``'upgrade.socket'``. Otherwise, ``'wsgi.input'._sock``
+        will be used.
+        """
         self.app = app
         self.fallback_app = fallback_app
         self.protocols = protocols
@@ -24,7 +51,7 @@ class WebSocketUpgradeMiddleware(object):
     def __call__(self, environ, start_response):        
         # Initial handshake validation
         try:
-            if 'websocket' not in environ.get('upgrade.protocol', '').lower():
+            if 'websocket' not in environ.get('upgrade.protocol', environ.get('HTTP_UPGRADE', '')).lower():
                 raise HandshakeError("Upgrade protocol is not websocket")
             
             if environ.get('REQUEST_METHOD') != 'GET':
@@ -86,7 +113,8 @@ class WebSocketUpgradeMiddleware(object):
         
         start_response("101 Web Socket Hybi Handshake", headers)
 
-        return self.app(self.websocket_class(environ.get('upgrade.socket'),
+        return self.app(self.websocket_class(environ.get('upgrade.socket',
+                                                         environ.get('wsgi.input')._sock),
                                              ws_protocols, 
                                              ws_extensions,
                                              environ.copy()))

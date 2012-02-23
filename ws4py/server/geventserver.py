@@ -18,11 +18,11 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
     If an HTTP request comes in that includes the Upgrade header, it will add
     to the environment two items:
     
-    `upgrade.protocol` 
+    ``upgrade.protocol` `
       The protocol to upgrade to. Checking for this lets you know the request
       wants to be upgraded and the WSGI server supports this interface. 
     
-    `upgrade.socket`
+    ``upgrade.socket``
       The raw Python socket object for the connection. From this you can do any
       upgrade negotiation and hand it off to the proper protocol handler.
     
@@ -34,14 +34,20 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
     To use this handler with gevent.pywsgi.WSGIServer, you can pass it to the
     constructor:
     
-    server = WSGIServer(('127.0.0.1', 80), app, 
-                            handler_class=UpgradableWSGIHandler)
+    .. code-block:: python
+       :linenos:
+
+       server = WSGIServer(('127.0.0.1', 80), app, 
+                           handler_class=UpgradableWSGIHandler)
     
     Alternatively, you can specify it as a class variable for a WSGIServer 
     subclass:
     
-    class UpgradableWSGIServer(gevent.pywsgi.WSGIServer):
-        handler_class = UpgradableWSGIHandler
+    .. code-block:: python
+       :linenos:
+
+       class UpgradableWSGIServer(gevent.pywsgi.WSGIServer):
+             handler_class = UpgradableWSGIHandler
     
     """
     def run_application(self):
