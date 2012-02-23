@@ -44,6 +44,11 @@ class Frame(object):
         self.parser = self._parser()
         self.parser.next()
 
+    def _cleanup(self):
+        if self.parser:
+            self.parser.close()
+            self.parser = None
+
     def build(self):
         """
         Builds a frame from the instance's attributes and returns

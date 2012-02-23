@@ -82,7 +82,7 @@ class Stream(object):
         self.always_mask = always_mask
         self.expect_masking = expect_masking
 
-    def release(self):
+    def _cleanup(self):
         """
         Frees the stream's resources rendering it unusable.
         """
@@ -92,6 +92,7 @@ class Stream(object):
         self.errors = None
         self.pings = None
         self.pongs = None
+        self.closing = None
         
     def text_message(self, text):
         """
@@ -166,6 +167,7 @@ class Stream(object):
         """
         utf8validator = Utf8Validator()
         running = True
+        frame = None
         while running:
             frame = Frame()
             while 1:
@@ -173,6 +175,7 @@ class Stream(object):
                     bytes = (yield frame.parser.next())
                     frame.parser.send(bytes)
                 except StopIteration:
+                    frame._cleanup()
                     bytes = frame.body or ''
 
                     # Let's avoid unmasking when there is no payload
@@ -185,7 +188,7 @@ class Stream(object):
                             break
                         elif frame.masking_key and not self.expect_masking:
                             msg = CloseControlMessage(code=1002, reason='Masked when not expected')
-                            self.errors.append()
+                            self.errors.append(msg)
                             break
                         else:
                             bytes = bytearray(bytes)
@@ -282,7 +285,14 @@ class Stream(object):
                     break
 
             frame.body = None
-            frame.parser.close()
+            frame = None
             utf8validator.reset()
+
+        if frame:
+            frame._cleanup()
+            frame = None
             
+        utf8validator.reset()    
         utf8validator = None
+
+        self._cleanup()

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import struct
+import copy
 
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG

@@ -186,10 +186,11 @@ class WebSocket(object):
         Frees up resources used by the endpoint.
         """
         self.sender = None
-        self.stream.release()
-        self.stream = None
         self.sock = None
-
+        self.environ = None
+        self.stream._cleanup()
+        self.stream = None
+        
     def run(self):
         """
         Performs the operation of reading from the underlying
@@ -214,9 +215,9 @@ class WebSocket(object):
         in a thread.
         """
         self.sock.setblocking(True)
+        s = self.stream
         try:
             self.opened()
-            s = self.stream
             sock = self.sock
             fileno = sock.fileno()
             process = self.process
@@ -230,12 +231,14 @@ class WebSocket(object):
             
             try:
                 if not s.closing:
-                    self.closed(1006)
+                    self.closed(1006, "Going away")
                 else:
                     self.closed(s.closing.code, s.closing.reason)
             finally:
+                s = sock = fileno = process = None
                 self.close_connection()
                 self._cleanup()
+
 
     def process(self, bytes):
         """ Takes some bytes and process them through the
@@ -263,18 +266,21 @@ class WebSocket(object):
                 self.close(s.closing.code, s.closing.reason)
             else:
                 self.client_terminated = True
+            s = None
             return False
 
         if s.errors:
             for error in s.errors:
                 self.close(error.code, error.reason)
             s.errors = []
+            s = None
             return False
 
         if s.has_message:
             self.received_message(s.message)
             s.message.data = None
             s.message = None
+            s = None
             return True
 
         if s.pings:
@@ -287,6 +293,7 @@ class WebSocket(object):
                 self.ponged(pong)
             s.pongs = []
 
+        s = None
         return True
         
 class EchoWebSocket(WebSocket):
@@ -296,4 +303,3 @@ class EchoWebSocket(WebSocket):
         its originating endpoint.
         """
         self.send(message.data, message.is_binary)
-        
