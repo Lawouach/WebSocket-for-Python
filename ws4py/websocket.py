@@ -180,6 +180,9 @@ class WebSocket(object):
                 first = False
 
             self.sender(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            
+        else:
+            raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
 
     def _cleanup(self):
         """
