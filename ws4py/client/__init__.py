@@ -27,14 +27,17 @@ class WebSocketBaseClient(WebSocket):
         #self.sock.settimeout(3)
         parts = urlsplit(self.url)
         host, port = parts.netloc, 80
+        if parts.scheme == "wss":
+            # default port is now 443; upgrade self.sender to send ssl
+            self.sock = ssl.wrap_socket(self.sock)
+            port = 443
+            self.sender = self.sock.sendall
         if ':' in host:
             host, port = parts.netloc.split(':')
         self.sock.connect((host, int(port)))
         
-        if parts.scheme == "wss":
-            self.sock = ssl.wrap_socket(self.sock)
-        
         self.sender(self.handshake_request)
+
 
         response = ''
         while True:
