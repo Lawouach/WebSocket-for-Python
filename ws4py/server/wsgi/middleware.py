@@ -113,8 +113,11 @@ class WebSocketUpgradeMiddleware(object):
         
         start_response("101 Web Socket Hybi Handshake", headers)
 
-        return self.app(self.websocket_class(environ.get('upgrade.socket',
-                                                         environ.get('wsgi.input')._sock),
-                                             ws_protocols, 
+        if environ.get('upgrade.socket'):
+            upgrade_socket = environ['upgrade.socket']
+        else:
+            upgrade_socket = environ['wsgi.input']._sock
+        return self.app(self.websocket_class(upgrade_socket,
+                                             ws_protocols,
                                              ws_extensions,
                                              environ.copy()))
