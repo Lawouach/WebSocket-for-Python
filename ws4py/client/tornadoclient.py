@@ -4,6 +4,7 @@ from urlparse import urlsplit
 
 from tornado import iostream, escape
 from ws4py.client import WebSocketBaseClient
+from ws4py.exc import HandshakeError
 
 __all__ = ['TornadoWebSocketClient']
 
