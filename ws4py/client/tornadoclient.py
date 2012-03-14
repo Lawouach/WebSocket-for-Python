@@ -18,7 +18,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
     def connect(self):
         parts = urlsplit(self.url)
         if parts.scheme == "wss":
-            self.io = iostream.SSLIOStream(self.sock, io_loop)
+            self.io = iostream.SSLIOStream(self.sock, self.io_loop)
         host, port = parts.netloc, 80
         if ':' in host:
             host, port = parts.netloc.split(':')
@@ -28,11 +28,11 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         self.io.set_close_callback(self.__connection_closed)
         self.io.write(escape.utf8(self.handshake_request),
                       self.__handshake_sent)
-    
+
     def __connection_closed(self, *args, **kwargs):
         self.server_terminated = True
         self.closed(1006, 'Connection closed during handshake')
-    
+
     def __handshake_sent(self):
         self.io.read_until("\r\n\r\n", self.__handshake_completed)
 
@@ -45,7 +45,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         except HandshakeError:
             self.close_connection()
             raise
-        
+
         self.opened()
         self.io.set_close_callback(self.__stream_closed)
         self.io.read_bytes(self.reading_buffer_size, self.__fetch_more)
@@ -63,7 +63,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
 
     def __gracefully_terminate(self):
         self.client_terminated = self.server_terminated = True
-        
+
         try:
             if not self.stream.closing:
                 self.closed(1006)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                     yield "#" * i
 
             self.send(data_provider())
-            
+
             for i in range(0, 200, 25):
                 self.send("*" * i)
 
@@ -103,9 +103,9 @@ if __name__ == '__main__':
 
         def closed(self, code, reason=None):
             ioloop.IOLoop.instance().stop()
-                
+
     ws = MyClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
-        
+
     ioloop.IOLoop.instance().start()
 
