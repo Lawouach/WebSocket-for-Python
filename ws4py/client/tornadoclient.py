@@ -4,6 +4,7 @@ from urlparse import urlsplit
 
 from tornado import iostream, escape
 from ws4py.client import WebSocketBaseClient
+from ws4py.exc import HandshakeError
 
 __all__ = ['TornadoWebSocketClient']
 
@@ -12,9 +13,12 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
         self.io = iostream.IOStream(self.sock, io_loop)
         self.sender = self.io.write
+        self.io_loop = io_loop
 
     def connect(self):
         parts = urlsplit(self.url)
+        if parts.scheme == "wss":
+            self.io = iostream.SSLIOStream(self.sock, io_loop)
         host, port = parts.netloc, 80
         if ':' in host:
             host, port = parts.netloc.split(':')
