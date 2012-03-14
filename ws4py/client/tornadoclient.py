@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import socket
 from urlparse import urlsplit
+import ssl
 
 from tornado import iostream, escape
 from ws4py.client import WebSocketBaseClient
@@ -11,14 +12,18 @@ __all__ = ['TornadoWebSocketClient']
 class TornadoWebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None, io_loop=None):
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
-        self.io = iostream.IOStream(self.sock, io_loop)
+        parts = urlsplit(self.url)
+        if parts.scheme == "wss":
+            self.sock = ssl.wrap_socket(self.sock,
+                    do_handshake_on_connect=False)
+            self.io = iostream.SSLIOStream(self.sock, io_loop)
+        else:
+            self.io = iostream.IOStream(self.sock, io_loop)
         self.sender = self.io.write
         self.io_loop = io_loop
 
     def connect(self):
         parts = urlsplit(self.url)
-        if parts.scheme == "wss":
-            self.io = iostream.SSLIOStream(self.sock, self.io_loop)
         host, port = parts.netloc, 80
         if ':' in host:
             host, port = parts.netloc.split(':')
