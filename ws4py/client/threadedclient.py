@@ -6,10 +6,10 @@ from ws4py.client import WebSocketBaseClient
 __all__ = ['WebSocketClient']
 
 class WebSocketClient(WebSocketBaseClient):
-    def __init__(self, url, protocols=None, extensions=None):
+    def __init__(self, url, protocols=None, extensions=None, daemon=False):
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
         self._th = threading.Thread(target=self.run, name='WebSocketClient')
-        #self._th.daemon = True
+        self._th.daemon = daemon
         
     def handshake_ok(self):
         self._th.start()
