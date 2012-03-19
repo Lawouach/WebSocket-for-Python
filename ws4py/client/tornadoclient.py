@@ -18,7 +18,12 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         host, port = parts.netloc, 80
         if ':' in host:
             host, port = parts.netloc.split(':')
+        self.io.set_close_callback(self.__connection_refused)
         self.io.connect((host, int(port)), self.__send_handshake)
+
+    def __connection_refused(self, *args, **kwargs):
+        self.server_terminated = True
+        self.closed(1005, 'Connection refused')
 
     def __send_handshake(self):
         self.io.set_close_callback(self.__connection_closed)
