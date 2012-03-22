@@ -78,6 +78,14 @@ from ws4py.websocket import WebSocket
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
 
+def get_version_range(version):
+    version_string = str(version)
+    if "-" not in version_string:
+        min_version = max_version = int(version_string)
+    else:
+        min_version, max_version = map(int, version_string.split("-", 1))
+    return min_version, max_version
+
 class WebSocketTool(Tool):
     def __init__(self):
         Tool.__init__(self, 'before_request_body', self.upgrade)
@@ -112,9 +120,11 @@ class WebSocketTool(Tool):
         request = cherrypy.serving.request
         request.process_request_body = False
         
+        ws_min_version, ws_max_version = get_version_range(version)
+        
         ws_protocols = None
         ws_location = None
-        ws_version = version
+        ws_version = ws_max_version
         ws_key = None
         ws_extensions = []
         
@@ -132,7 +142,7 @@ class WebSocketTool(Tool):
             
         version = request.headers.get('Sec-WebSocket-Version')
         if version:
-            if version != str(ws_version):
+            if not version.isdigit() or not (ws_min_version <= int(version) <= ws_max_version):
                 cherrypy.response.headers['Sec-WebSocket-Version'] = str(ws_version)
                 raise HandshakeError('Unsupported WebSocket version: %s' % version)
         else:
