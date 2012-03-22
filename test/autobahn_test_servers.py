@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from multiprocessing import Process
+import logging
 
 def run_cherrypy_server(host="127.0.0.1", port=9000):
     import cherrypy
@@ -24,7 +24,12 @@ def run_cherrypy_server(host="127.0.0.1", port=9000):
             'tools.websocket.handler_cls': EchoWebSocket
             }
         }
+    logger = logging.getLogger('autobahn_testsuite')
+    logger.warning("Serving CherryPy server on %s:%s" % (host, port))
+
     cherrypy.quickstart(Root(), '/', config)
+
+
 
 def run_gevent_server(host="127.0.0.1", port=9001):
     from gevent import monkey; monkey.patch_all()
@@ -32,16 +37,73 @@ def run_gevent_server(host="127.0.0.1", port=9001):
     from ws4py.websocket import EchoWebSocket
     
     server = WebSocketServer((host, port), websocket_class=EchoWebSocket)
+    logger = logging.getLogger('autobahn_testsuite')
+    logger.warning("Serving gevent server on %s:%s" % (host, port))
     server.serve_forever()
 
+
+
+def run_tornado_server(host="127.0.0.1", port=9002):
+    from tornado import ioloop, web, websocket
+    class EchoWebSocket(websocket.WebSocketHandler):
+        def on_message(self, message):
+            self.write_message(message)
+
+    app = web.Application([(r"/", EchoWebSocket)])
+    app.listen(port, address=host)
+    logger = logging.getLogger('autobahn_testsuite')
+    logger.warning("Serving Tornado server on %s:%s" % (host, port))
+    ioloop.IOLoop.instance().start()
+
+
+
 if __name__ == '__main__':
-    p0 = Process(target=run_cherrypy_server)
-    p0.daemon = True
-    p0.start()
+    import argparse
+    from multiprocessing import Process
     
-    p1 = Process(target=run_gevent_server)
-    p1.daemon = True
-    p1.start()
+    logging.basicConfig(format='%(asctime)s %(message)s')
+    logger = logging.getLogger('autobahn_testsuite')
+    logger.setLevel(logging.WARNING)
     
-    p0.join()
-    p1.join()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--run-all', dest='run_all', action='store_true',
+                        help='Run all servers backend')
+    parser.add_argument('--run-cherrypy-server', dest='run_cherrypy', action='store_true',
+                        help='Run the CheryPy server backend')
+    parser.add_argument('--run-gevent-server', dest='run_gevent', action='store_true',
+                        help='Run the gevent server backend')
+    parser.add_argument('--run-tornado-server', dest='run_tornado', action='store_true',
+                        help='Run the Tornado server backend')
+    args = parser.parse_args()
+
+    if args.run_all:
+        args.run_cherrypy = True
+        args.run_gevent = True
+        args.run_tornado = True
+
+    procs = []
+    logger.warning("CherryPy server: %s" % args.run_cherrypy)
+    if args.run_cherrypy:
+        p0 = Process(target=run_cherrypy_server)
+        p0.daemon = True
+        procs.append(p0)
+
+    logger.warning("Gevent server: %s" % args.run_gevent)
+    if args.run_gevent:
+        p1 = Process(target=run_gevent_server)
+        p1.daemon = True
+        procs.append(p1)
+
+    logger.warning("Tornado server: %s" % args.run_tornado)
+    if args.run_tornado:
+        p2 = Process(target=run_tornado_server)
+        p2.daemon = True
+        procs.append(p2)
+
+    for p in procs:
+        p.start()
+        logging.info("Starting process... %d" % p.pid)
+
+    for p in procs:
+        p.join()
+    
