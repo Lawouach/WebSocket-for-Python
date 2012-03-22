@@ -72,7 +72,7 @@ from cherrypy import Tool
 from cherrypy.process import plugins
 from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 
-from ws4py import WS_KEY
+from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
 
@@ -95,7 +95,7 @@ class WebSocketTool(Tool):
         hooks.attach('on_end_request', self.start_handler,
                      priority=70)
 
-    def upgrade(self, protocols=None, extensions=None, version=13, handler_cls=WebSocket):
+    def upgrade(self, protocols=None, extensions=None, version=WS_VERSION, handler_cls=WebSocket):
         """
         Performs the upgrade of the connection to the WebSocket
         protocol.
@@ -131,13 +131,16 @@ class WebSocketTool(Tool):
                                      (key, actual_value))
             
         version = request.headers.get('Sec-WebSocket-Version')
+        supported_versions = ', '.join([str(v) for v in ws_version])
+        version_is_valid = False
         if version:
-            if version != str(ws_version):
-                cherrypy.response.headers['Sec-WebSocket-Version'] = str(ws_version)
-                raise HandshakeError('Unsupported WebSocket version: %s' % version)
-        else:
-            cherrypy.response.headers['Sec-WebSocket-Version'] = str(ws_version)
-            raise HandshakeError('WebSocket version required')
+            try: version = int(version)
+            except: pass
+            else: version_is_valid = version in ws_version
+            
+        if not version_is_valid:
+            cherrypy.response.headers['Sec-WebSocket-Version'] = supported_versions
+            raise HandshakeError('Unhandled or missing WebSocket version')
         
         key = request.headers.get('Sec-WebSocket-Key')
         if key:
@@ -184,7 +187,7 @@ class WebSocketTool(Tool):
         response.headers['Content-Type'] = 'text/plain'
         response.headers['Upgrade'] = 'websocket'
         response.headers['Connection'] = 'Upgrade'
-        response.headers['Sec-WebSocket-Version'] = str(ws_version)
+        response.headers['Sec-WebSocket-Version'] = str(version)
         response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(key + WS_KEY).digest())
         if ws_protocols:
             response.headers['Sec-WebSocket-Protocol'] = ', '.join(ws_protocols)

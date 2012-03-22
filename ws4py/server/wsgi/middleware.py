@@ -12,7 +12,7 @@ from ws4py.websocket import WebSocket
 
 class WebSocketUpgradeMiddleware(object):
     def __init__(self, app, fallback_app=None, protocols=None, extensions=None,
-                    websocket_class=WebSocket):
+                    websocket_class=WebSocket, versions=WS_VERSION):
         """
         WSGI middleware that performs the WebSocket upgrade handshake.
 
@@ -47,8 +47,10 @@ class WebSocketUpgradeMiddleware(object):
         self.protocols = protocols
         self.extensions = extensions
         self.websocket_class = websocket_class
+        self.versions = versions
+        self.supported_versions = ', '.join([str(v) for v in versions])
     
-    def __call__(self, environ, start_response):        
+    def __call__(self, environ, start_response):  
         # Initial handshake validation
         try:
             if 'websocket' not in environ.get('upgrade.protocol', environ.get('HTTP_UPGRADE', '')).lower():
@@ -66,17 +68,22 @@ class WebSocketUpgradeMiddleware(object):
                 raise HandshakeError("Not a valid HyBi WebSocket request")
             
             version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
+            version_is_valid = False
             if version:
-                if version != str(WS_VERSION):
-                    raise HandshakeError('Unsupported WebSocket version')
-                environ['websocket.version'] = str(WS_VERSION)
-            else:
-                raise HandshakeError('WebSocket version required')
+                try: version = int(version)
+                except: pass
+                else: version_is_valid = version in self.versions
+                        
+            if not version_is_valid:
+                raise HandshakeError('Unsupported WebSocket version: %s' % version)
+
+            environ['websocket.version'] = str(version)
         except HandshakeError, e:
             if self.fallback_app:
                 return self.fallback_app(environ, start_response)
             else:
-                start_response("400 Bad Handshake", [])
+                start_response("400 Bad Handshake",
+                               [('Sec-WebSocket-Version', self.supported_versions)])
                 return [str(e)]
         
         # Collect supported subprotocols
