@@ -107,7 +107,6 @@ class WebSocketServer(gevent.pywsgi.WSGIServer):
 
     def handler(self, websocket):
         g = gevent.spawn(websocket.run)
-        g.start()
         g.join()
         return ['']
 
