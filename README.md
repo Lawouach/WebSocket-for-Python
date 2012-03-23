@@ -30,8 +30,8 @@ capacity to send to a generator. So everytime one of those layers requires somet
 it yields and then its holder sends it back whatever was required.
 
 The Frame parser yields the number of bytes it needs at any time, the stream parser
-forwards it back to the WebSocket class which gets data from the underlying socket
-it holds a reference to. The WebSocket class sends bytes as they are read from the socket
+forwards it back to the WebSocket class which gets data from the underlying data provider
+it holds a reference to (a socket typically). The WebSocket class sends bytes as they are read from the socket
 down to the stream parser which forwards them to the frame parser.
 
 Eventually a frame is parsed and handled by the stream parser which eventually
