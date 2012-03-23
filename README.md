@@ -87,6 +87,12 @@ In order to install ws4py you can either grab the source code and run:
 Or use a package manager like pip and run:
 
 ```
+ $ pip install ws4py
+```
+
+or even:
+
+```
  $ pip install git+git://github.com/Lawouach/WebSocket-for-Python.git
 ```
 
