@@ -16,7 +16,7 @@ Client support
 To its simplest form, ws4py comes with a client that doesn't depends on anything but Python.
 It's a threaded client as simple as:
 
-```
+```python
 from ws4py.client.threadedclient import WebSocketClient
 class MyClient(WebSocketClient):
      def opened(self):
@@ -37,6 +37,9 @@ except KeyboardInterrupt:
 
 ws4py provides also a client based on Tornado and gevent. Strangely enough, Tornado
 comes up with a server implementation but not a client. They work in a similar fashion.
+
+Note that ws4py may should run on Android rather well through SL4A (http://code.google.com/p/android-scripting/).
+
 
 Server support
 --------------
