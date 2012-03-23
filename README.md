@@ -5,6 +5,8 @@ Python library providing support for the WebSocket protocol defined in RFC 6455 
 
 The latest stable release is 0.2.0
 
+ws4py is released under a BSD license.
+
 Getting Started
 ===============
 
