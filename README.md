@@ -1,11 +1,57 @@
 WebSocket for Python (ws4py)
 ============================
 
-Python library providing support for the WebSocket protocol defined in RFC 6455 (http://tools.ietf.org/html/rfc6455).
+Python library providing an implementation of the WebSocket protocol defined in RFC 6455 (http://tools.ietf.org/html/rfc6455).
 
-The latest stable release is 0.2.0
+The latest stable release is 0.2.0. ws4py is released under a BSD license.
 
-ws4py is released under a BSD license.
+ws4py does not support older version of the protocol like Hixie-76.
+
+Overview
+========
+
+Client support
+--------------
+
+To its simplest form, ws4py comes with a client that doesn't depends on anything but Python.
+It's a threaded client as simple as:
+
+```
+from ws4py.client.threadedclient import WebSocketClient
+class MyClient(WebSocketClient):
+     def opened(self):
+     	 print "Connection opened..."
+
+     def closed(self, code, reason=None):
+         print code, reason
+            
+     def received_message(self, m):
+     	 print m
+
+try:
+    ws = MyClient('http://localhost:9000/ws')
+    ws.connect()
+except KeyboardInterrupt:
+    ws.close()
+```
+
+ws4py provides also a client based on Tornado and gevent. Strangely enough, Tornado
+comes up with a server implementation but not a client. They work in a similar fashion.
+
+Server support
+--------------
+
+ws4py does provides two server implementation. Mostly, servers are only used
+for the initial HTTP handshake, once that's done ws4py takes over the socket
+and the server isn't required any longer aside from managing the WebSocket instance
+itself.
+
+ws4py implements the server side through:
+
+ * CherryPy
+ * gevent
+
+Tornado already offers its own implementation.
 
 Getting Started
 ===============
