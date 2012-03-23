@@ -74,6 +74,7 @@ As a standalone client, ws4py only requires Python 2.6.6 or above though it hasn
  * CherryPy server requires CherryPy 3.2.2 (http://dowload.cherrypy.org/cherrypy/3.2.2/)
  * gevent server requires gevent gevent 0.13.6 and 1.0.0dev (http://pypi.python.org/pypi/gevent/0.13.6)
 
+Since not everyone will want all of them, ws4py will not attempt to install them automatically.
 
 Installing
 ----------
