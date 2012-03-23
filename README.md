@@ -25,7 +25,7 @@ ws4py data model is rather simple and follows the protocol itself:
  * a Stream class that handles a single message at a time
  * a Frame class that performs the low level protocol parsing of frames
 
-Each are interconected as russian dolls generators. The process heavily relies on the
+Each are inter-connected as russian dolls generators. The process heavily relies on the
 capacity to send to a generator. So everytime one of those layers requires something,
 it yields and then its holder sends it back whatever was required.
 
