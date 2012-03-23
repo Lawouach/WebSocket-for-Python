@@ -34,8 +34,8 @@ forwards it back to the WebSocket class which gets data from the underlying data
 it holds a reference to (a socket typically). The WebSocket class sends bytes as they are read from the socket
 down to the stream parser which forwards them to the frame parser.
 
-Eventually a frame is parsed and handled by the stream parser which eventually
-yield a complete message made of those frames.
+Eventually a frame is parsed and handled by the stream parser which in turns
+yields a complete message made of all parsed frames.
 
 The interesting aspect here is that the socket provider is totally abstracted
 from the protocol implementation which simply requires bytes as they come.
