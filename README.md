@@ -129,16 +129,24 @@ Once the tests have finished, reports will be available from ```test/reports/ser
 
 Online test reports can be found at: http://www.defuze.org/oss/ws4py/testreports/servers/
 
+Browser Support
+---------------
+
+ws4py has been tested using:
+
+ * Chromium 17
+ * Firefox 11
+
+Since Saphari, Opera and IE do not support the protocol or the RFC's version, ws4py won't
+work with them. See http://caniuse.com/#feat=websockets
+
 Examples
 --------
 
 ws4py comes with a few examples:
 
  * The ```echo_cherrypy_server``` example provides a simple Echo server. It requires CherryPy 3.2.2.
-   Open a couple of tabs pointing at http://localhost:9000 and chat accross those tables. Tested with:
-   * Chrome 17.0.963.83
-   * Firefox 11
-   
+   Open a couple of tabs pointing at http://localhost:9000 and chat accross those tables.
  * The droid_sensor_cherrypy_server broadcasts sensor metrics to clients. Point your browser to http://localhost:9000
    Then run the droid_sensor module from your Android device using SL4A.
    A screenshot of what this renders to: http://www.defuze.org/oss/ws4py/screenshots/droidsensors.png
