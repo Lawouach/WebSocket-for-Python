@@ -17,9 +17,10 @@ class ChatWebSocketHandler(WebSocket):
         cherrypy.engine.publish('websocket-broadcast', TextMessage(reason))
 
 class Root(object):
-    def __init__(self, host, port):
+    def __init__(self, host, port, ssl=False):
         self.host = host
         self.port = port
+        self.scheme = 'wss' if ssl else 'ws'
 
     @cherrypy.expose
     def index(self):
@@ -29,7 +30,7 @@ class Root(object):
       <script type='application/javascript'>
         $(document).ready(function() {
 
-          websocket = 'ws://%(host)s:%(port)s/ws';
+          websocket = '%(scheme)s://%(host)s:%(port)s/ws';
           if (window.WebSocket) {
             ws = new WebSocket(websocket);
           }
@@ -77,9 +78,7 @@ class Root(object):
       </form>
     </body>
     </html>
-    """ % {'username': "User%d" % random.randint(0, 100),
-           'host': self.host,
-           'port': self.port}
+    """ % {'username': "User%d" % random.randint(0, 100), 'host': self.host, 'port': self.port, 'scheme': self.scheme}
 
     @cherrypy.expose
     def ws(self):
@@ -89,16 +88,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Echo CherryPy Server')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('-p', '--port', default=9000, type=int)
+    parser.add_argument('--ssl', action='store_true')
     args = parser.parse_args()
 
     cherrypy.config.update({'server.socket_host': args.host,
                             'server.socket_port': args.port,
                             'tools.staticdir.root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))})
 
+    if args.ssl:
+        cherrypy.config.update({'server.ssl_certificate': './server.crt',
+                                'server.ssl_private_key': './server.key'})
+                            
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 
-    cherrypy.quickstart(Root(args.host, args.port), '', config={
+    cherrypy.quickstart(Root(args.host, args.port, args.ssl), '', config={
         '/ws': {
             'tools.websocket.on': True,
             'tools.websocket.handler_cls': ChatWebSocketHandler
