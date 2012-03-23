@@ -1,0 +1,28 @@
+{
+   "options": {"failByDrop": false},
+   "outdir": "./reports/servers",
+ 
+   "servers": [
+                
+                {"agent": "CherryPy  3.2.2",
+                 "url": "ws://127.0.0.1:9000",
+                 "options": {"version": 13}},
+                
+                {"agent": "gevent 1.0.0b",
+                 "url": "ws://127.0.0.1:9001",
+                 "options": {"version": 13}},
+                
+                {"agent": "Tornado 2.2",
+                 "url": "ws://127.0.0.1:9002",
+                 "options": {"version": 13}},
+                
+                {"agent": "Autobahn 0.5.0",
+                 "url": "ws://127.0.0.1:9003",
+                 "options": {"version": 13}}
+ 
+              ],
+ 
+   "cases": ["*"],
+   "exclude-cases": [],
+   "exclude-agent-cases": {}
+}
