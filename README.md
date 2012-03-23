@@ -29,7 +29,7 @@ class EchoClient(WebSocketClient):
      	 self.send(m)
 
 try:
-    ws = MyClient('http://localhost:9000/ws')
+    ws = EchoClient('http://localhost:9000/ws')
     ws.connect()
 except KeyboardInterrupt:
     ws.close()
