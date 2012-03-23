@@ -140,6 +140,9 @@ ws4py has been tested using:
 Since Saphari, Opera and IE do not support the protocol or the RFC's version, ws4py won't
 work with them. See http://caniuse.com/#feat=websockets
 
+Bear in mind that time is a premium and maintaining obsolete and unsecure protocols is not
+one of ws4py's goals. It's therefore unlikely it will evere support them.
+
 Examples
 --------
 
