@@ -18,7 +18,7 @@ It's a threaded client as simple as:
 
 ```python
 from ws4py.client.threadedclient import WebSocketClient
-class MyClient(WebSocketClient):
+class EchoClient(WebSocketClient):
      def opened(self):
      	 print "Connection opened..."
 
@@ -26,7 +26,7 @@ class MyClient(WebSocketClient):
          print code, reason
             
      def received_message(self, m):
-     	 print m
+     	 self.send(m)
 
 try:
     ws = MyClient('http://localhost:9000/ws')
