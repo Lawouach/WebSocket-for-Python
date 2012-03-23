@@ -9,6 +9,7 @@ def run_cherrypy_server(host="127.0.0.1", port=9000):
     
     cherrypy.config.update({'server.socket_host': host,
                             'server.socket_port': port,
+                            'engine.autoreload_on': False, 
                             'log.screen': False})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
@@ -55,7 +56,26 @@ def run_tornado_server(host="127.0.0.1", port=9002):
     logger.warning("Serving Tornado server on %s:%s" % (host, port))
     ioloop.IOLoop.instance().start()
 
+def run_autobahn_server(host="127.0.0.1", port=9003):
+    from autobahntestsuite import choosereactor
+    import autobahn
+    from autobahn.websocket import listenWS
+    from twisted.internet import reactor
+    from autobahn.websocket import WebSocketServerFactory, \
+         WebSocketServerProtocol
 
+    class ServerProtocol(WebSocketServerProtocol):
+        def onMessage(self, msg, binary):
+            self.sendMessage(msg, binary)
+
+    class ServerFactory(WebSocketServerFactory):
+        protocol = ServerProtocol
+
+    factory = ServerFactory("ws://%s:%d" % (host, port))
+    factory.setProtocolOptions(failByDrop=False)
+    logger.warning("Serving Autobahn server on %s:%s" % (host, port))
+    listenWS(factory, None)
+    reactor.run()
 
 if __name__ == '__main__':
     import argparse
@@ -74,12 +94,15 @@ if __name__ == '__main__':
                         help='Run the gevent server backend')
     parser.add_argument('--run-tornado-server', dest='run_tornado', action='store_true',
                         help='Run the Tornado server backend')
+    parser.add_argument('--run-autobahn-server', dest='run_autobahn', action='store_true',
+                        help='Run the Autobahn server backend')
     args = parser.parse_args()
 
     if args.run_all:
         args.run_cherrypy = True
         args.run_gevent = True
         args.run_tornado = True
+        args.run_autobahn = True
 
     procs = []
     logger.warning("CherryPy server: %s" % args.run_cherrypy)
@@ -99,6 +122,12 @@ if __name__ == '__main__':
         p2 = Process(target=run_tornado_server)
         p2.daemon = True
         procs.append(p2)
+
+    logger.warning("Autobahn server: %s" % args.run_autobahn)
+    if args.run_autobahn:
+        p3 = Process(target=run_autobahn_server)
+        p3.daemon = True
+        procs.append(p3)
 
     for p in procs:
         p.start()
