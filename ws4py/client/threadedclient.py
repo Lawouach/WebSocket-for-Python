@@ -9,12 +9,12 @@ class WebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None):
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
         self._th = threading.Thread(target=self.run, name='WebSocketClient')
-        #self._th.daemon = True
-        
+        self._th.daemon = True
+
     def handshake_ok(self):
         self._th.start()
-        self._th.join()
-        
+        self._th.join(timeout=1.0)
+
 if __name__ == '__main__':
     class MyClient(WebSocketClient):
         def opened(self):
@@ -33,12 +33,10 @@ if __name__ == '__main__':
         def received_message(self, m):
             print m, len(str(m))
             if len(str(m)) == 175:
-                self.close()
+                self.close(reason="Done...")
 
+    ws = MyClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
     try:
-        ws = MyClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
         ws.connect()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         ws.close()
-
-        print "terminated"
