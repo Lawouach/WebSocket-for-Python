@@ -8,9 +8,9 @@ import types
 from urlparse import urlsplit
 import json
 
-from ws4py import WS_KEY
+from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
-from ws4py.websocket import WebSocket, WS_VERSION
+from ws4py.websocket import WebSocket
 
 __all__ = ['WebSocketBaseClient']
 
@@ -23,6 +23,11 @@ class WebSocketBaseClient(WebSocket):
         self.key = b64encode(os.urandom(16))
         self.url = url
         
+    def close(self, code=1000, reason=''):
+        if not self.client_terminated:
+            self.client_terminated = True
+            self.sender(self.stream.close(code=code, reason=reason).single(mask=True))
+
     def connect(self):
         #self.sock.settimeout(3)
         parts = urlsplit(self.url)
@@ -79,7 +84,7 @@ class WebSocketBaseClient(WebSocket):
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key),
             ('Sec-WebSocket-Origin', self.url),
-            ('Sec-WebSocket-Version', WS_VERSION)
+            ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
         
         if self.protocols:
