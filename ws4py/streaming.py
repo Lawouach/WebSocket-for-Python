@@ -200,16 +200,16 @@ class Stream(object):
                             self.errors.append(msg)
                             break
 
-                        is_valid = True
+                        m = TextMessage(bytes)
+                        m.completed = (frame.fin == 1)
+                        self.message = m
+                            
                         if bytes:
-                            is_valid, _, _, _ = utf8validator.validate(bytes)
-                        
-                        if is_valid or (not is_valid and frame.fin == 0):
-                            m = TextMessage(bytes)
-                            m.completed = (frame.fin == 1)
-                            self.message = m
-                        elif not is_valid and frame.fin == 1:
-                            self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
+                            is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
+
+                            if not is_valid or (m.completed and not end_on_code_point):
+                                self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
+                                break
 
                     elif frame.opcode == OPCODE_BINARY:
                         m = BinaryMessage(bytes)
@@ -222,18 +222,15 @@ class Stream(object):
                             self.errors.append(CloseControlMessage(code=1002, reason='Message not started yet'))
                             break
                         
+                        m.extend(bytes)
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
-                            is_valid = True
                             if bytes:
-                                is_valid, _, _, _ = utf8validator.validate(bytes)
+                                is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
                                 
-                            if is_valid:
-                                m.extend(bytes)
-                            else:
-                                self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
-                        else:
-                            m.extend(bytes)
+                                if not is_valid or (m.completed and not end_on_code_point):
+                                    self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
+                                    break
 
                     elif frame.opcode == OPCODE_CLOSE:
                         code = 1000
@@ -257,13 +254,12 @@ class Stream(object):
                                     reason = 'Invalid Closing Frame Code: %d' % code
                                     code = 1002
                                 elif frame.payload_length > 1:
-                                    try:
-                                        msg = bytes[2:] if frame.masking_key else frame.body[2:]
-                                        reason = msg.decode("utf-8")
-                                    except UnicodeDecodeError:
-                                        code = 1007
-                                        reason = ''
-                            self.closing = CloseControlMessage(code=code, reason=reason)
+                                    reason = bytes[2:] if frame.masking_key else frame.body[2:]
+                                    is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
+                                    if not is_valid or not end_on_code_point:
+                                        self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
+                                        break
+                            self.closing = CloseControlMessage(code=code, reason=reason.decode('utf-8'))
                         
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))
@@ -286,12 +282,14 @@ class Stream(object):
 
             frame.body = None
             frame = None
-            utf8validator.reset()
+            
+            if self.message and self.message.completed:
+                utf8validator.reset()
 
         if frame:
             frame._cleanup()
             frame = None
-            
+
         utf8validator.reset()    
         utf8validator = None
 
