@@ -6,7 +6,7 @@ Python library providing an implementation of the WebSocket protocol defined in 
 Overview
 ========
 
-The latest stable release is 0.2.0. 
+The latest stable release is 0.2.1. 
 
 ws4py does not support older version of the protocol like Hixie-76.
 
