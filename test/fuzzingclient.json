@@ -4,11 +4,11 @@
  
    "servers": [
                 
-                {"agent": "CherryPy  3.2.2",
+                {"agent": "ws4py (CherryPy  3.2.2)",
                  "url": "ws://127.0.0.1:9000",
                  "options": {"version": 13}},
                 
-                {"agent": "gevent 1.0.0b",
+                {"agent": "ws4py (gevent 1.0.0b)",
                  "url": "ws://127.0.0.1:9001",
                  "options": {"version": 13}},
                 
