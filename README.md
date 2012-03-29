@@ -16,6 +16,14 @@ Licensing
 
 ws4py is released under a BSD license.
 
+Platforms
+---------
+
+ws4py runs on:
+
+ * CPython 2.7.x
+ * pypy 1.8
+
 Implementation
 --------------
 
