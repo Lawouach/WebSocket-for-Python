@@ -22,13 +22,16 @@ class Frame(object):
 
         .. code-block:: python
            :linenos:
-
-           >>> f = Frame(OPCODE_TEXT, 'hello world', os.urandom(4), fin=1)
+           >>> test_mask = '\xbe\x04\xe6j' # perhaps from os.urandom(4)
+           >>> f = Frame(OPCODE_TEXT, 'hello world', masking_key=test_mask, fin=1) 
            >>> bytes = f.build()
+           >>> bytes.encode('hex')
+           '818bbe04e66ad6618a06d1249105cc6882'
            >>> f = Frame()
+           >>> f.parser.send(bytes[0])
+           1
            >>> f.parser.send(bytes[1])
-           >>> f.parser.send(bytes[2])
-           >>> f.parser.send(bytes[2:])
+           4
 
         .. seealso:: Data Framing http://tools.ietf.org/html/rfc6455#section-5.2
         """
