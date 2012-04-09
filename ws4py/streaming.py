@@ -254,7 +254,7 @@ class Stream(object):
                                     reason = 'Invalid Closing Frame Code: %d' % code
                                     code = 1002
                                 elif frame.payload_length > 1:
-                                    reason = bytes[2:] if frame.masking_key else frame.body[2:]
+                                    reason = bytes[2:] if frame.masking_key else bytearray(frame.body[2:])
                                     is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
                                     if not is_valid or not end_on_code_point:
                                         self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
