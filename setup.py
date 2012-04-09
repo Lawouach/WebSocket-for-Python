@@ -5,7 +5,7 @@ except ImportError:
     from distutils.core import setup
 
 setup(name = "ws4py",
-      version = '0.2.1',
+      version = '0.2.2',
       description = "WebSocket library for Python",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
@@ -23,6 +23,8 @@ setup(name = "ws4py",
           'Operating System :: OS Independent',
           'Programming Language :: Python :: 2.6',
           'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: Implementation :: CPython',
+          'Programming Language :: Python :: Implementation :: PyPy',
           'Topic :: Communications',
           'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware',
           'Topic :: Software Development :: Libraries :: Python Modules'
