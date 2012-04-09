@@ -72,7 +72,6 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         websocket.clients = self.clients
         self.clients.append(websocket)
         g = gevent.spawn(websocket.run)
-        g.start()
         g.join()
 
     def favicon(self, environ, start_response):
