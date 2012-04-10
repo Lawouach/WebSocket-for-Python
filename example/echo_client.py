@@ -24,6 +24,7 @@ class EchoClient(WebSocketClient):
 if __name__ == '__main__':
     try:
         ws = EchoClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
+        ws.daemon = False
         ws.connect()
     except KeyboardInterrupt:
         ws.close()
