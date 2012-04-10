@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 import os
+import struct
 
 from ws4py.framing import Frame, \
      OPCODE_CONTINUATION, OPCODE_TEXT, \
@@ -17,13 +18,17 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(type(s.closing), CloseControlMessage)
     
     def test_too_large_close_message(self):
-        f = Frame(opcode=OPCODE_CLOSE, body='*' * 330, fin=1, masking_key=os.urandom(4)).build()
+        payload = struct.pack("!H", 1000) + '*' * 330
+        f = Frame(opcode=OPCODE_CLOSE, body=payload, fin=1, masking_key=os.urandom(4)).build()
         s = Stream()
+        self.assertEqual(len(s.errors), 0)
         self.assertEqual(s.closing, None)
         s.parser.send(f)
+        self.assertEqual(s.closing, None)
         
-        self.assertEqual(type(s.closing), CloseControlMessage)
-        self.assertEqual(s.closing.code, 1002)
+        self.assertEqual(len(s.errors), 1)
+        self.assertEqual(type(s.errors[0]), CloseControlMessage)
+        self.assertEqual(s.errors[0].code, 1002)
     
     def test_ping_message_received(self):
         msg = 'ping me'

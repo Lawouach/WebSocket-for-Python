@@ -239,8 +239,6 @@ class Stream(object):
                             self.closing = CloseControlMessage(code=1000)
                         elif frame.payload_length == 1:
                             self.closing = CloseControlMessage(code=1002, reason='Payload has invalid length')
-                        elif frame.payload_length > 125:
-                            self.closing = CloseControlMessage(code=1002, reason='Payload was too large')
                         else:
                             try:
                                 code = int(struct.unpack("!H", str(bytes[0:2]))[0])
@@ -276,8 +274,10 @@ class Stream(object):
                     
                 except ProtocolException:
                     self.errors.append(CloseControlMessage(code=1002))
+                    break
                 except FrameTooLargeException:
-                    self.errors.append(CloseControlMessage(code=1002))
+                    self.errors.append(CloseControlMessage(code=1002, reason="Frame was too large"))
+                    break
                 except StreamClosed:
                     running = False
                     break
