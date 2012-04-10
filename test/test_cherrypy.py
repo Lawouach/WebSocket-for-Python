@@ -3,6 +3,7 @@ import unittest
 
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+from ws4py.websocket import EchoWebSocket
 
 class FakeSocket(object):
     def settimeout(self, timeout):
@@ -16,6 +17,15 @@ class FakeSocket(object):
 
     def sendall(self, bytes):
         return len(bytes)
+
+    def setblocking(self, flag):
+        pass
+
+    def fileno(self):
+        return 1
+
+    def recv(self, bufsize=0):
+        pass
 
 class App(object):
     @cherrypy.expose
@@ -34,7 +44,7 @@ def setup_engine():
     cherrypy.tools.websocket = WebSocketTool()
     
     config={'/ws': {'tools.websocket.on': True,
-                    'tools.websocket.handler_cls': EchoWebSocketHandler}}
+                    'tools.websocket.handler_cls': EchoWebSocket}}
     cherrypy.tree.mount(App(), '/', config)
     cherrypy.engine.start()
 
@@ -49,20 +59,21 @@ class CherryPyTest(unittest.TestCase):
         teardown_engine()
 
     def test_plugin(self):
-        self.assertEquals(len(cherrypy.engine.websocket.handlers), 0)
+        self.assertEquals(len(cherrypy.engine.websocket.pool), 0)
 
         s = FakeSocket()
-        h = EchoWebSocketHandler(s, [], [])
+        h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
-        self.assertEquals(len(cherrypy.engine.websocket.handlers), 1)
-        self.assertTrue(cherrypy.engine.websocket.handlers[0][0] is h)
-        self.assertEquals(cherrypy.engine.websocket.handlers[0][1], ('127.0.0.1', 0))
+        self.assertEquals(len(cherrypy.engine.websocket.pool), 1)
+        k = cherrypy.engine.websocket.pool.keys()[0]
+        self.assertTrue(k is h)
+        self.assertEquals(cherrypy.engine.websocket.pool[k][1], ('127.0.0.1', 0))
 
-        self.assertEquals(len(cherrypy.engine.websocket.handlers), 1)
+        self.assertEquals(len(cherrypy.engine.websocket.pool), 1)
         h.close() # shutdown server side of the websocket connection
         h.client_terminated = True # we aren't actually connected so pretend the client shutdown
         cherrypy.engine.publish('main')
-        self.assertEquals(len(cherrypy.engine.websocket.handlers), 0)
+        self.assertEquals(len(cherrypy.engine.websocket.pool), 0)
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
