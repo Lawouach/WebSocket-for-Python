@@ -24,7 +24,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
 
     def connect(self):
         parts = urlsplit(self.url)
-        host, port = parts.netloc, 80
+        host, port = parts.netloc, 443 if parts.scheme == "wss" else 80
         if ':' in host:
             host, port = parts.netloc.split(':')
         self.io.set_close_callback(self.__connection_refused)
