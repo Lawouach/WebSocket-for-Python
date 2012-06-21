@@ -25,9 +25,23 @@ class WebSocketClient(WebSocketBaseClient):
     def received_message(self, message):
         self.messages.put(copy.deepcopy(message))
         
+    def closed(self, code, reason=None):
+        # When the connection is closed, put a StopIteration
+        # on the message queue to signal there's nothing left
+        # to wait for
+        self.messages.put(StopIteration)
+
     def receive(self):
-        return self.messages.get()
-        
+        # If the websocket was terminated and there are no messages
+        # left in the queue, return None immediately otherwise the client
+        # will block forever
+        if self.terminated and self.messages.empty():
+            return None
+        message = self.messages.get()
+        if message is StopIteration:
+            return None
+        return message
+
 if __name__ == '__main__':
                 
     ws = WebSocketClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
