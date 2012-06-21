@@ -6,7 +6,7 @@ Python library providing an implementation of the WebSocket protocol defined in 
 Overview
 ========
 
-The latest stable release is 0.2.1. 
+The latest stable release is 0.2.2. 
 
 ws4py does not support older version of the protocol like Hixie-76.
 
@@ -21,8 +21,8 @@ Platforms
 
 ws4py runs on:
 
- * CPython 2.7.x
- * pypy 1.8
+ * CPython 2.6+/2.7+
+ * pypy 1.8/1.9
 
 Implementation
 --------------
@@ -52,6 +52,13 @@ This means one could write a ws4py socket provider that doesn't read from the
 wire but from any other source.
 
 It's also pretty fast and easy to read.
+
+Performances
+------------
+
+ws4py doesn't perform too bad but it's far from being the fastest WebSocket lib under heavy load.
+The reason is that it was first designed to implement the protocol with simplicity
+and clarity in mind. Future developments will look at performances.
 
 Client support
 --------------
