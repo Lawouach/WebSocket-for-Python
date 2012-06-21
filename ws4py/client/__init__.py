@@ -83,7 +83,7 @@ class WebSocketBaseClient(WebSocket):
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key),
-            ('Sec-WebSocket-Origin', self.url),
+            ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
         
