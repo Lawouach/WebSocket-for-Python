@@ -60,8 +60,6 @@ class WebSocketBaseClient(WebSocket):
         headers, _, body = response.partition('\r\n\r\n')
         response_line, _, headers = headers.partition('\r\n')
 
-        self.__buffer = body
-
         try:
             self.process_response_line(response_line)
             self.protocols, self.extensions = self.process_handshake_header(headers)
@@ -70,6 +68,8 @@ class WebSocketBaseClient(WebSocket):
             raise
 
         self.handshake_ok()
+        if body:
+            self.process(body)
 
     @property
     def handshake_headers(self):
