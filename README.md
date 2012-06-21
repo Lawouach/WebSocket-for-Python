@@ -53,12 +53,14 @@ wire but from any other source.
 
 It's also pretty fast and easy to read.
 
-Performances
-------------
+Performance
+-----------
 
 ws4py doesn't perform too bad but it's far from being the fastest WebSocket lib under heavy load.
 The reason is that it was first designed to implement the protocol with simplicity
 and clarity in mind. Future developments will look at performances.
+
+Note however that ws4py runs way faster with CherryPy on PyPy than it does on CPython with either gevent or CherryPy.
 
 Client support
 --------------
