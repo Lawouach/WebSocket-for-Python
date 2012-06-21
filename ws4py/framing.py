@@ -44,13 +44,20 @@ class Frame(object):
         self.rsv3 = rsv3
         self.payload_length = len(body)
 
-        self.parser = self._parser()
-        self.parser.next()
+        self._parser = None
 
+    @property
+    def parser(self):
+        if self._parser is None:
+            self._parser = self._parsing()
+            # Python generators must be initialized once.
+            self.parser.next()
+        return self._parser
+        
     def _cleanup(self):
-        if self.parser:
-            self.parser.close()
-            self.parser = None
+        if self._parser:
+            self._parser.close()
+            self._parser = None
 
     def build(self):
         """
@@ -113,7 +120,7 @@ class Frame(object):
         bytes = header + self.masking_key + self.mask(self.body)
         return str(bytes)
 
-    def _parser(self):
+    def _parsing(self):
         """
         Generator to parse bytes into a frame. Yields until
         enough bytes have been read or an error is met.

@@ -71,24 +71,30 @@ class Stream(object):
         :class:`ws4py.messaging.CloseControlMessage`
         """
         
-        self.parser = self.receiver()
+        self._parser = None
         """
         Parser in charge to process bytes it is fed with.
         """
 
-        # Python generators must be initialized once.
-        self.parser.next()
-
         self.always_mask = always_mask
         self.expect_masking = expect_masking
 
+    @property
+    def parser(self):
+        if self._parser is None:
+            self._parser = self.receiver()
+            # Python generators must be initialized once.
+            self.parser.next()
+        return self._parser
+        
     def _cleanup(self):
         """
         Frees the stream's resources rendering it unusable.
         """
         self.message = None
-        self.parser.close()
-        self.parser = None
+        if self._parser is not None:
+            self._parser.close()
+            self._parser = None
         self.errors = None
         self.pings = None
         self.pongs = None
