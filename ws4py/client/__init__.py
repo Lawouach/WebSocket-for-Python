@@ -15,13 +15,14 @@ from ws4py.websocket import WebSocket
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
-    def __init__(self, url, protocols, extensions):
+    def __init__(self, url, protocols, extensions, custom_headers=[]):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         WebSocket.__init__(self, sock, protocols=protocols, extensions=extensions)
         self.stream.always_mask = True
         self.stream.expect_masking = False
         self.key = b64encode(os.urandom(16))
         self.url = url
+        self.custom_headers = custom_headers
         
     def close(self, code=1000, reason=''):
         if not self.client_terminated:
@@ -77,8 +78,8 @@ class WebSocketBaseClient(WebSocket):
         host = parts.netloc
         if ':' in host:
             host, port = parts.netloc.split(':')
-            
-        headers = [
+        
+        headers = self.custom_headers + [
             ('Host', host),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
