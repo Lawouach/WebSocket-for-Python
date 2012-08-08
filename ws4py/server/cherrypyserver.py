@@ -123,7 +123,7 @@ class WebSocketTool(Tool):
 
         for key, expected_value in [('Upgrade', 'websocket'),
                                      ('Connection', 'upgrade')]:
-            actual_value = request.headers.get(key).lower()
+            actual_value = request.headers.get(key, '').lower()
             if not actual_value:
                 raise HandshakeError('Header %s is not defined' % key)
             if expected_value not in actual_value:
