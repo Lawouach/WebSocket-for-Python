@@ -339,7 +339,7 @@ class WebSocketPlugin(plugins.SimplePlugin):
         """
         for ws_handler in self.pool:
             try:
-                ws_handler.send(message, message.is_binary)
+                ws_handler.send(message, binary)
             except:
                 cherrypy.log(traceback=True)
             
