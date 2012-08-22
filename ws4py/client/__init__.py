@@ -97,7 +97,10 @@ class WebSocketBaseClient(WebSocket):
         parts = urlsplit(self.url)
         
         headers = self.handshake_headers
-        request = ["GET %s HTTP/1.1" % parts.path]
+        if parts.query:
+            request = ["GET %s?%s HTTP/1.1" % (parts.path, parts.query)]
+        else:
+            request = ["GET %s HTTP/1.1" % parts.path]
         for header, value in headers:
             request.append("%s: %s" % (header, value))
         request.append('\r\n')
