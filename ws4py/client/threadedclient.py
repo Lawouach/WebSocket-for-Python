@@ -31,13 +31,13 @@ if __name__ == '__main__':
                     yield "#" * i
 
             self.send(data_provider())
-            
+
             for i in range(0, 200, 25):
                 self.send("*" * i)
 
         def closed(self, code, reason=None):
             print code, reason
-            
+
         def received_message(self, m):
             print m, len(str(m))
             if len(str(m)) == 175:
