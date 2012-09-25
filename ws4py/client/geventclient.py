@@ -2,7 +2,6 @@
 from gevent import monkey; monkey.patch_all()
 
 import copy
-from urlparse import urlsplit
 
 import gevent
 from gevent import Greenlet
@@ -18,13 +17,13 @@ class WebSocketClient(WebSocketBaseClient):
         self._th = Greenlet(self.run)
 
         self.messages = Queue()
-        
+
     def handshake_ok(self):
         self._th.start()
 
     def received_message(self, message):
         self.messages.put(copy.deepcopy(message))
-        
+
     def closed(self, code, reason=None):
         # When the connection is closed, put a StopIteration
         # on the message queue to signal there's nothing left
@@ -43,16 +42,16 @@ class WebSocketClient(WebSocketBaseClient):
         return message
 
 if __name__ == '__main__':
-                
+
     ws = WebSocketClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
-    
+
     ws.send("Hello world")
     print ws.receive()
-    
+
     ws.send("Hello world again")
     print ws.receive()
-    
+
     def incoming():
         while True:
             m = ws.receive()
@@ -64,14 +63,14 @@ if __name__ == '__main__':
             else:
                 break
         print "Connection closed!"
-    
+
     def outgoing():
         for i in range(0, 40, 5):
             ws.send("*" * i)
-        
+
         # We won't get this back
         ws.send("Foobar")
-    
+
     greenlets = [
         gevent.spawn(incoming),
         gevent.spawn(outgoing),

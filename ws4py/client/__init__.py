@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-from base64 import b64encode, b64encode
+from base64 import b64encode
 from hashlib import sha1
 import os
 import socket
 import ssl
-import types
 from urlparse import urlsplit
-import json
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
@@ -22,7 +20,52 @@ class WebSocketBaseClient(WebSocket):
         self.stream.expect_masking = False
         self.key = b64encode(os.urandom(16))
         self.url = url
-        
+
+        self.host = None
+        self.scheme = None
+        self.port = None
+        self.resource = None
+
+        self._parse_url()
+
+    # Adpated from: https://github.com/liris/websocket-client/blob/master/websocket.py#L105
+    def _parse_url(self):
+        if ":" not in self.url:
+            raise ValueError("Invalid URL: %s" % self.url)
+
+        # Python 2.6.1 and below don't parse ws or wss urls properly. netloc is empty.
+        # See: https://github.com/Lawouach/WebSocket-for-Python/issues/59
+        scheme, url = self.url.split(":", 1)
+
+        parsed = urlsplit(url, scheme="http")
+        if parsed.hostname:
+            self.host = parsed.hostname
+        else:
+            raise ValueError("Invalid hostname from: %s", self.url)
+
+        if parsed.port:
+            self.port = parsed.port
+
+        if scheme == "ws":
+            if not self.port:
+                self.port = 80
+        elif scheme == "wss":
+            if not self.port:
+                self.port = 443
+        else:
+            raise ValueError("Invalid scheme: %s" % scheme)
+
+        if parsed.path:
+            resource = parsed.path
+        else:
+            resource = "/"
+
+        if parsed.query:
+            resource += "?" + parsed.query
+
+        self.scheme = scheme
+        self.resource = resource
+
     def close(self, code=1000, reason=''):
         if not self.client_terminated:
             self.client_terminated = True
@@ -30,17 +73,13 @@ class WebSocketBaseClient(WebSocket):
 
     def connect(self):
         #self.sock.settimeout(3)
-        parts = urlsplit(self.url)
-        host, port = parts.netloc, 80
-        if parts.scheme == "wss":
+        if self.scheme == "wss":
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock)
-            port = 443
             self.sender = self.sock.sendall
-        if ':' in host:
-            host, port = parts.netloc.split(':')
-        self.sock.connect((host, int(port)))
-        
+
+        self.sock.connect((self.host, int(self.port)))
+
         self.sender(self.handshake_request)
 
 
@@ -73,20 +112,15 @@ class WebSocketBaseClient(WebSocket):
 
     @property
     def handshake_headers(self):
-        parts = urlsplit(self.url)
-        host = parts.netloc
-        if ':' in host:
-            host, port = parts.netloc.split(':')
-            
         headers = [
-            ('Host', host),
+            ('Host', self.host),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key),
             ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
-        
+
         if self.protocols:
             headers.append(('Sec-WebSocket-Protocol', ','.join(self.protocols)))
 
@@ -94,10 +128,8 @@ class WebSocketBaseClient(WebSocket):
 
     @property
     def handshake_request(self):
-        parts = urlsplit(self.url)
-        
         headers = self.handshake_headers
-        request = ["GET %s HTTP/1.1" % parts.path]
+        request = ["GET %s HTTP/1.1" % self.resource]
         for header, value in headers:
             request.append("%s: %s" % (header, value))
         request.append('\r\n')
@@ -114,12 +146,12 @@ class WebSocketBaseClient(WebSocket):
         extensions = []
 
         headers = headers.strip()
-        
+
         for header_line in headers.split('\r\n'):
             header, value = header_line.split(':', 1)
             header = header.strip().lower()
             value = value.strip().lower()
-            
+
             if header == 'upgrade' and value != 'websocket':
                 raise HandshakeError("Invalid Upgrade header: %s" % value)
 
