@@ -22,7 +22,7 @@ class Frame(object):
 
         .. code-block:: python
            :linenos:
-           >>> test_mask = '\xbe\x04\xe6j' # perhaps from os.urandom(4)
+           >>> test_mask = 'XXXXXX' # perhaps from os.urandom(4)
            >>> f = Frame(OPCODE_TEXT, 'hello world', masking_key=test_mask, fin=1) 
            >>> bytes = f.build()
            >>> bytes.encode('hex')
