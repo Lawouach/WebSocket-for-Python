@@ -194,23 +194,23 @@ class WebSocketTool(Tool):
         if ws_extensions:
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
-	addr = (request.remote.ip, request.remote.port)
+        addr = (request.remote.ip, request.remote.port)
         ws_conn = request.rfile.rfile._sock
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
                                          request.wsgi_environ.copy())
         
     def complete(self):
         """
-	Sets some internal flags of CherryPy so that it
-	doesn't close the socket down.
-	"""
+        Sets some internal flags of CherryPy so that it
+        doesn't close the socket down.
+        """
         self._set_internal_flags()
 
     def cleanup_headers(self):
         """
-	Some clients aren't that smart when it comes to
-	headers lookup.
-	"""
+        Some clients aren't that smart when it comes to
+        headers lookup.
+        """
         response = cherrypy.response
         if not response.header_list:
             return
@@ -223,20 +223,20 @@ class WebSocketTool(Tool):
 
     def start_handler(self):
         """
-	Runs at the end of the request processing by calling
-	the opened method of the handler. 
-	"""
+        Runs at the end of the request processing by calling
+        the opened method of the handler. 
+        """
         request = cherrypy.request
         if not hasattr(request, 'ws_handler'):
             return
 
-	addr = (request.remote.ip, request.remote.port)
+        addr = (request.remote.ip, request.remote.port)
         ws_handler = request.ws_handler
         request.ws_handler = None
         delattr(request, 'ws_handler')
-	# By doing this we detach the socket from
-	# the CherryPy stack avoiding memory leaks
-	request.rfile.rfile._sock = None
+        # By doing this we detach the socket from
+        # the CherryPy stack avoiding memory leaks
+        request.rfile.rfile._sock = None
         
         cherrypy.engine.publish('handle-websocket', ws_handler, addr)
         
@@ -293,11 +293,11 @@ class WebSocketPlugin(plugins.SimplePlugin):
 
     def handle(self, ws_handler, peer_addr):
         """
-	Tracks the provided handler.
+        Tracks the provided handler.
 
-	@param ws_handler: websocket handler instance
-	@param peer_addr: remote peer address for tracing purpose
-	"""
+        @param ws_handler: websocket handler instance
+        @param peer_addr: remote peer address for tracing purpose
+        """
         cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
         th = threading.Thread(target=ws_handler.run, name="WebSocket client at %s:%d" % (peer_addr[0], peer_addr[1]))
         th.daemon = True
