@@ -178,7 +178,7 @@ class Stream(object):
             frame = Frame()
             while 1:
                 try:
-                    bytes = (yield frame.parser.next())
+                    bytes = (yield next(frame.parser))
                     frame.parser.send(bytes)
                 except StopIteration:
                     frame._cleanup()
