@@ -84,7 +84,7 @@ class Stream(object):
         if self._parser is None:
             self._parser = self.receiver()
             # Python generators must be initialized once.
-            self.parser.next()
+            next(self.parser)
         return self._parser
         
     def _cleanup(self):

@@ -172,7 +172,7 @@ class WebSocket(object):
             self.sender(payload.single(mask=self.stream.always_mask))
                 
         elif type(payload) == types.GeneratorType:
-            bytes = payload.next()
+            bytes = next(payload)
             first = True
             for chunk in payload:
                 self.sender(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))

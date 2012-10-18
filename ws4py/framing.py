@@ -51,7 +51,7 @@ class Frame(object):
         if self._parser is None:
             self._parser = self._parsing()
             # Python generators must be initialized once.
-            self.parser.next()
+            next(self.parser)
         return self._parser
         
     def _cleanup(self):
