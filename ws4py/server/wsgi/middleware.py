@@ -78,7 +78,7 @@ class WebSocketUpgradeMiddleware(object):
                 raise HandshakeError('Unsupported WebSocket version: %s' % version)
 
             environ['websocket.version'] = str(version)
-        except HandshakeError, e:
+        except HandshakeError as e:
             if self.fallback_app:
                 return self.fallback_app(environ, start_response)
             else:
