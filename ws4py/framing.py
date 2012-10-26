@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import array
 import os
-import struct
+from struct import pack, unpack
 
 from ws4py.exc import FrameTooLargeException, ProtocolException
+from ws4py.compat import py3k, ord, enc, dec
 
 # Frame opcodes defined in the spec.
 OPCODE_CONTINUATION = 0x0
@@ -64,7 +65,7 @@ class Frame(object):
         Builds a frame from the instance's attributes and returns
         its bytes representation.
         """
-        header = ''
+        header = enc('')
 
         if self.fin > 0x1:
             raise ValueError('FIN bit parameter must be 0 or 1')
@@ -78,11 +79,11 @@ class Frame(object):
         ## |N|V|V|V|       |
         ## | |1|2|3|       |
         ## +-+-+-+-+-------+
-        header += chr(((self.fin << 7)
-                       | (self.rsv1 << 6)
-                       | (self.rsv2 << 5)
-                       | (self.rsv3 << 4)
-                       | self.opcode))
+        header = pack('!B', ((self.fin << 7)
+                             | (self.rsv1 << 6)
+                             | (self.rsv2 << 5)
+                             | (self.rsv3 << 4)
+                             | self.opcode))
 
         ##                 +-+-------------+-------------------------------+
         ##                 |M| Payload len |    Extended payload length    |
@@ -95,13 +96,13 @@ class Frame(object):
         if self.masking_key: mask_bit = 1 << 7
         else: mask_bit = 0
 
-        length = self.payload_length 
+        length = self.payload_length
         if length < 126:
-            header += chr(mask_bit | length)
+            header += pack('!B', (mask_bit | length))
         elif length < (1 << 16):
-            header += chr(mask_bit | 126) + struct.pack('!H', length)
+            header += pack('!B', (mask_bit | 126)) + pack('!H', length)
         elif length < (1 << 63):
-            header += chr(mask_bit | 127) + struct.pack('!Q', length)
+            header += pack('!B', (mask_bit | 127)) + pack('!Q', length)
         else:
             raise FrameTooLargeException()
 
@@ -115,21 +116,20 @@ class Frame(object):
         ## |                     Payload Data continued ...                |
         ## +---------------------------------------------------------------+
         if not self.masking_key:
-            return header + self.body 
+            return header + enc(self.body)
 
-        bytes = header + self.masking_key + self.mask(self.body)
-        return str(bytes)
+        return header + self.masking_key + self.mask(enc(self.body))
 
     def _parsing(self):
         """
         Generator to parse bytes into a frame. Yields until
         enough bytes have been read or an error is met.
         """
-        buf = ''
-        bytes = ''
+        buf = enc('')
+        bytes = enc('')
 
         # yield until we get the first header's byte
-        while not bytes or len(bytes) < 1:
+        while not bytes:
             bytes = (yield 1)
 
         first_byte = ord(bytes[0])
@@ -159,10 +159,10 @@ class Frame(object):
             raise ProtocolException()
 
         # do we already have enough bytes to continue?
-        bytes = bytes[1:] if bytes and len(bytes) > 1 else ''
+        bytes = bytes[1:] if bytes and len(bytes) > 1 else enc('')
 
         # Yield until we get the second header's byte
-        while not bytes or len(bytes) < 1:
+        while not bytes:
             bytes = (yield 1)
  
         second_byte = ord(bytes[0])
@@ -177,14 +177,14 @@ class Frame(object):
             buf = bytes[1:]
             bytes = buf
         else:
-            buf = ''
-            bytes = ''
+            buf = enc('')
+            bytes = enc('')
 
         if self.payload_length == 127:
             if len(buf) < 8:
                 nxt_buf_size = 8 - len(buf)
                 bytes = (yield nxt_buf_size)
-                bytes = buf + (bytes or '')
+                bytes = buf + (bytes or enc(''))
                 while len(bytes) < 8:
                     b = (yield 8 - len(bytes))
                     if b is not None:
@@ -195,7 +195,7 @@ class Frame(object):
                 bytes = buf[:8]
                 buf = buf[8:]
             extended_payload_length = bytes
-            self.payload_length = struct.unpack(
+            self.payload_length = unpack(
                 '!Q', extended_payload_length)[0]
             if self.payload_length > 0x7FFFFFFFFFFFFFFF:
                 raise FrameTooLargeException()
@@ -203,7 +203,7 @@ class Frame(object):
             if len(buf) < 2:
                 nxt_buf_size = 2 - len(buf)
                 bytes = (yield nxt_buf_size)
-                bytes = buf + (bytes or '')
+                bytes = buf + (bytes or enc(''))
                 while len(bytes) < 2:
                     b = (yield 2 - len(bytes))
                     if b is not None:
@@ -214,14 +214,14 @@ class Frame(object):
                 bytes = buf[:2]
                 buf = buf[2:]
             extended_payload_length = bytes
-            self.payload_length = struct.unpack(
+            self.payload_length = unpack(
                 '!H', extended_payload_length)[0]
             
         if mask:
             if len(buf) < 4:
                 nxt_buf_size = 4 - len(buf)
                 bytes = (yield nxt_buf_size)
-                bytes = buf + (bytes or '')
+                bytes = buf + (bytes or enc(''))
                 while not bytes or len(bytes) < 4:
                     b = (yield 4 - len(bytes))
                     if b is not None:
@@ -236,7 +236,7 @@ class Frame(object):
         if len(buf) < self.payload_length:
             nxt_buf_size = self.payload_length - len(buf)
             bytes = (yield nxt_buf_size)
-            bytes = buf + (bytes or '')
+            bytes = buf + (bytes or enc(''))
             while len(bytes) < self.payload_length:
                 l = self.payload_length - len(bytes)
                 b = (yield l)
@@ -262,9 +262,9 @@ class Frame(object):
            
         """
         masked = bytearray(data)
-        key = map(ord, self.masking_key)
+        if py3k: key = self.masking_key
+        else: key = map(ord, self.masking_key)
         for i in range(len(data)):
             masked[i] = masked[i] ^ key[i%4]
         return masked
-
     unmask = mask

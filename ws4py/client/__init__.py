@@ -4,11 +4,11 @@ from hashlib import sha1
 import os
 import socket
 import ssl
-from urlparse import urlsplit
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
+from ws4py.compat import urlsplit, enc, dec
 
 __all__ = ['WebSocketBaseClient']
 
@@ -82,22 +82,22 @@ class WebSocketBaseClient(WebSocket):
 
         self.sender(self.handshake_request)
 
-
-        response = ''
+        response = enc('')
+        doubleCLRF = enc('\r\n\r\n')
         while True:
             bytes = self.sock.recv(128)
             if not bytes:
                 break
             response += bytes
-            if '\r\n\r\n' in response:
+            if doubleCLRF in response:
                 break
 
         if not response:
             self.close_connection()
             raise HandshakeError("Invalid response")
 
-        headers, _, body = response.partition('\r\n\r\n')
-        response_line, _, headers = headers.partition('\r\n')
+        headers, _, body = response.partition(doubleCLRF)
+        response_line, _, headers = headers.partition(enc('\r\n'))
 
         try:
             self.process_response_line(response_line)
@@ -116,7 +116,7 @@ class WebSocketBaseClient(WebSocket):
             ('Host', self.host),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
-            ('Sec-WebSocket-Key', self.key),
+            ('Sec-WebSocket-Key', dec(self.key)),
             ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
@@ -134,11 +134,11 @@ class WebSocketBaseClient(WebSocket):
             request.append("%s: %s" % (header, value))
         request.append('\r\n')
 
-        return '\r\n'.join(request)
+        return enc('\r\n'.join(request))
 
     def process_response_line(self, response_line):
-        protocol, code, status = response_line.split(' ', 2)
-        if code != '101':
+        protocol, code, status = response_line.split(enc(' '), 2)
+        if code != enc('101'):
             raise HandshakeError("Invalid response status: %s %s" % (code, status))
 
     def process_handshake_header(self, headers):
@@ -147,8 +147,8 @@ class WebSocketBaseClient(WebSocket):
 
         headers = headers.strip()
 
-        for header_line in headers.split('\r\n'):
-            header, value = header_line.split(':', 1)
+        for header_line in headers.split(enc('\r\n')):
+            header, value = header_line.split(enc(':'), 1)
             header = header.strip().lower()
             value = value.strip().lower()
 
@@ -159,7 +159,7 @@ class WebSocketBaseClient(WebSocket):
                 raise HandshakeError("Invalid Connection header: %s" % value)
 
             elif header == 'sec-websocket-accept':
-                match = b64encode(sha1(self.key + WS_KEY).digest())
+                match = b64encode(sha1(enc(self.key + WS_KEY)).digest())
                 if value != match.lower():
                     raise HandshakeError("Invalid challenge response: %s" % value)
 

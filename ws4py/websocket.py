@@ -12,6 +12,7 @@ from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.messaging import Message
+from ws4py.compat import basestring, unicode, dec
 
 DEFAULT_READING_SIZE = 2
 
@@ -166,10 +167,12 @@ class WebSocket(object):
         message_sender = self.stream.binary_message if binary else self.stream.text_message
         
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
-            self.sender(message_sender(payload).single(mask=self.stream.always_mask))
+            m = message_sender(payload).single(mask=self.stream.always_mask)
+            self.sender(m)
 
         elif isinstance(payload, Message):
-            self.sender(payload.single(mask=self.stream.always_mask))
+            data = payload.single(mask=self.stream.always_mask)
+            self.sender(data)
                 
         elif type(payload) == types.GeneratorType:
             bytes = next(payload)
@@ -258,7 +261,7 @@ class WebSocket(object):
         returns ``False``.
         """
         s = self.stream
-        
+
         if not bytes and self.reading_buffer_size > 0:
             return False
 

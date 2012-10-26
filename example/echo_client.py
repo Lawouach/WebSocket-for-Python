@@ -10,20 +10,20 @@ class EchoClient(WebSocketClient):
         self.send(data_provider())
 
         for i in range(0, 200, 25):
-            print i
+            print(i)
             self.send("*" * i)
 
     def closed(self, code, reason):
-        print "Closed down", code, reason
+        print(("Closed down", code, reason))
 
     def received_message(self, m):
-        print "=> %d %s" % (len(m), str(m))
-        if len(str(m)) == 175:
+        print("=> %d %s" % (len(m), str(m)))
+        if len(m) == 175:
             self.close(reason='Bye bye')
 
 if __name__ == '__main__':
     try:
-        ws = EchoClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
+        ws = EchoClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
         ws.daemon = False
         ws.connect()
     except KeyboardInterrupt:

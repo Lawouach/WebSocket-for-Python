@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import struct
+from struct import unpack
 
 from ws4py.utf8validator import Utf8Validator
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
@@ -8,6 +9,7 @@ from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
 from ws4py.exc import FrameTooLargeException, ProtocolException, InvalidBytesError,\
      TextFrameEncodingException, UnsupportedFrameTypeException, StreamClosed
+from ws4py.compat import enc, dec, py3k
 
 VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
@@ -182,7 +184,7 @@ class Stream(object):
                     frame.parser.send(bytes)
                 except StopIteration:
                     frame._cleanup()
-                    bytes = frame.body or ''
+                    bytes = frame.body
 
                     # Let's avoid unmasking when there is no payload
                     if bytes:
@@ -209,7 +211,7 @@ class Stream(object):
                         m = TextMessage(bytes)
                         m.completed = (frame.fin == 1)
                         self.message = m
-                            
+
                         if bytes:
                             is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
 
@@ -247,7 +249,7 @@ class Stream(object):
                             self.closing = CloseControlMessage(code=1002, reason='Payload has invalid length')
                         else:
                             try:
-                                code = int(struct.unpack("!H", str(bytes[0:2]))[0])
+                                code = int(unpack("!H", enc(bytes[0:2]))[0])
                             except TypeError:
                                 code = 1002
                                 reason = 'Invalid Closing Frame Code Type'
@@ -261,11 +263,12 @@ class Stream(object):
                                     code = 1002
                                 elif frame.payload_length > 1:
                                     reason = bytes[2:] if frame.masking_key else bytearray(frame.body[2:])
+                                    
                                     is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
                                     if not is_valid or not end_on_code_point:
                                         self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                                         break
-                            self.closing = CloseControlMessage(code=code, reason=reason.decode('utf-8'))
+                            self.closing = CloseControlMessage(code=code, reason=reason)
                         
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))
@@ -291,7 +294,7 @@ class Stream(object):
             frame.body = None
             frame = None
             
-            if self.message and self.message.completed:
+            if self.message is not None and self.message.completed:
                 utf8validator.reset()
 
         if frame:

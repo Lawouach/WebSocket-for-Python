@@ -5,6 +5,7 @@ import copy
 
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
+from ws4py.compat import basestring, enc, dec, py3k
 
 __all__ = ['Message', 'TextMessage', 'BinaryMessage', 'CloseControlMessage',
            'PingControlMessage', 'PongControlMessage']
@@ -30,18 +31,8 @@ class Message(object):
         """
         self.opcode = opcode
         self._completed = False
-
-        if isinstance(data, basestring):
-            if isinstance(data, unicode):
-                data = data.encode(encoding)
-            # bytarrays are way faster than strings
-            self.data = bytearray(data)
-        elif isinstance(data, bytearray):
-            self.data = data
-        else:
-            raise TypeError("'%s' is not a supported message data type" % type(data))
-            
         self.encoding = encoding
+        self.data = enc(data, encoding)
         
     def single(self, mask=False):
         """
@@ -51,7 +42,7 @@ class Message(object):
         using a generated 4-byte token.
         """
         mask = os.urandom(4) if mask else None
-        return Frame(body=self.data or '', opcode=self.opcode,
+        return Frame(body=self.data, opcode=self.opcode,
                      masking_key=mask, fin=1).build()
 
     def fragment(self, first=False, last=False, mask=False):
@@ -67,7 +58,7 @@ class Message(object):
         fin = 1 if last is True else 0
         opcode = self.opcode if first is True else OPCODE_CONTINUATION
         mask = os.urandom(4) if mask else None
-        return Frame(body=self.data or '',
+        return Frame(body=self.data,
                      opcode=opcode, masking_key=mask,
                      fin=fin).build()
 
@@ -91,18 +82,16 @@ class Message(object):
         """
         Add more ``data`` to the message.
         """
-        if isinstance(data, unicode):
-            data = data.encode(self.encoding)
-        self.data.extend(data)
+        self.data += enc(data, self.encoding)
         
     def __len__(self):
-        return len(self.data)
+        return len(self.__unicode__())
 
     def __str__(self):
-        return str(self.data)
-
+        return self.data
+    
     def __unicode__(self):
-        return unicode(self.data, self.encoding or 'utf-8')
+        return dec(self.data, self.encoding)
 
 class TextMessage(Message):
     def __init__(self, text=None):
@@ -130,21 +119,21 @@ class BinaryMessage(Message):
 
 class CloseControlMessage(Message):
     def __init__(self, code=1000, reason=''):
-        data = ""
+        data = enc("")
         if code:
             data += struct.pack("!H", code)
         if reason:
-            data += reason.encode('utf-8')
+            data += enc(reason, 'utf-8')
             
-        Message.__init__(self, OPCODE_CLOSE, data)
+        Message.__init__(self, OPCODE_CLOSE, data, 'utf-8')
         self.code = code
-        self.reason = reason
+        self.reason = enc(reason, self.encoding)
 
     def __str__(self):
         return self.reason
-
+    
     def __unicode__(self):
-        return self.reason.decode('utf-8')
+        return dec(self.reason, self.encoding)
 
 class PingControlMessage(Message):
     def __init__(self, data=None):

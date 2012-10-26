@@ -29,6 +29,7 @@
 ##
 ###############################################################################
 
+from ws4py.compat import range
 
 class Utf8Validator:
    """
@@ -103,7 +104,7 @@ class Utf8Validator:
       total amount of consumed bytes.
       """
       l = len(ba)
-      for i in xrange(0, l):
+      for i in range(0, l):
          ## optimized version of decode(), since we are not interested in actual code points
          self.state = Utf8Validator.UTF8VALIDATOR_DFA[256 + (self.state << 4) + Utf8Validator.UTF8VALIDATOR_DFA[ba[i]]]
          if self.state == Utf8Validator.UTF8_REJECT:

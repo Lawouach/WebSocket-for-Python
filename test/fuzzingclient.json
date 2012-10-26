@@ -4,25 +4,33 @@
  
    "servers": [
                 
-                {"agent": "ws4py (CherryPy  3.2.2)",
+                {"agent": "ws4py (CherryPy 3.2.2) for Python 2.x",
                  "url": "ws://127.0.0.1:9000",
                  "options": {"version": 13}},
-                
-                {"agent": "ws4py (gevent 1.0.0b)",
+
+                {"agent": "ws4py (CherryPy 3.2.2) for Python 3.x",
+                 "url": "ws://127.0.0.1:9004",
+                 "options": {"version": 13}},
+
+                {"agent": "ws4py (CherryPy 3.2.2) for PyPy 1.9",
+                 "url": "ws://127.0.0.1:9005",
+                 "options": {"version": 13}},
+
+                {"agent": "ws4py (gevent 1.0.0dev)",
                  "url": "ws://127.0.0.1:9001",
                  "options": {"version": 13}},
                 
-                {"agent": "Tornado 2.2",
+                {"agent": "Tornado 2.4",
                  "url": "ws://127.0.0.1:9002",
                  "options": {"version": 13}},
                 
-                {"agent": "Autobahn 0.5.0",
+                {"agent": "Autobahn 0.5.8",
                  "url": "ws://127.0.0.1:9003",
                  "options": {"version": 13}}
  
               ],
  
    "cases": ["*"],
-   "exclude-cases": [],
+   "exclude-cases": ["6.4.3", "6.4.4"],
    "exclude-agent-cases": {}
 }

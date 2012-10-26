@@ -61,6 +61,7 @@ Note that you can set the handler class on per-path basis,
 meaning you could also dynamically change the class based
 on other envrionmental settings (is the user authenticated for ex).
 """
+import sys
 import base64
 from hashlib import sha1
 import inspect
@@ -75,6 +76,7 @@ from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
+from ws4py.compat import py3k, enc, dec, get_connection, detach_connection
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
 
@@ -188,14 +190,14 @@ class WebSocketTool(Tool):
         response.headers['Upgrade'] = 'websocket'
         response.headers['Connection'] = 'Upgrade'
         response.headers['Sec-WebSocket-Version'] = str(version)
-        response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(key + WS_KEY).digest())
+        response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(enc(key) + WS_KEY).digest())
         if ws_protocols:
             response.headers['Sec-WebSocket-Protocol'] = ', '.join(ws_protocols)
         if ws_extensions:
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
         addr = (request.remote.ip, request.remote.port)
-        ws_conn = request.rfile.rfile._sock
+        ws_conn = get_connection(request.rfile.rfile)
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
                                          request.wsgi_environ.copy())
         
@@ -217,7 +219,7 @@ class WebSocketTool(Tool):
         
         headers = response.header_list[:]
         for (k, v) in headers:
-            if k.startswith('Sec-Web'):
+            if k[:7] == 'Sec-Web':
                 response.header_list.remove((k, v))
                 response.header_list.append((k.replace('Sec-Websocket', 'Sec-WebSocket'), v))
 
@@ -234,9 +236,10 @@ class WebSocketTool(Tool):
         ws_handler = request.ws_handler
         request.ws_handler = None
         delattr(request, 'ws_handler')
+
         # By doing this we detach the socket from
         # the CherryPy stack avoiding memory leaks
-        request.rfile.rfile._sock = None
+        detach_connection(request.rfile.rfile)
         
         cherrypy.engine.publish('handle-websocket', ws_handler, addr)
         
@@ -309,7 +312,11 @@ class WebSocketPlugin(plugins.SimplePlugin):
         Called within the engine's mainloop to drop connections
         that have terminated since last iteration.
         """
-        handlers = self.pool.keys()[:]
+        if py3k:
+            handlers = list(self.pool.keys())
+        else:
+            handlers = self.pool.keys()[:]
+            
         for handler in handlers:
             if handler.terminated:
                 th, addr = self.pool[handler]
