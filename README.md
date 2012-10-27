@@ -6,7 +6,7 @@ Python library providing an implementation of the WebSocket protocol defined in 
 Overview
 ========
 
-The latest stable release is 0.2.2.
+The latest stable release is 0.2.3.
 
 ws4py does not support older version of the protocol like Hixie-76.
 
@@ -21,7 +21,7 @@ Platforms
 
 ws4py runs on:
 
- * CPython 2.6+/2.7+
+ * CPython 2.6+/2.7+/3.2+
  * pypy 1.8/1.9
 
 Implementation
@@ -60,7 +60,7 @@ ws4py doesn't perform too bad but it's far from being the fastest WebSocket lib 
 The reason is that it was first designed to implement the protocol with simplicity
 and clarity in mind. Future developments will look at performances.
 
-Note however that ws4py runs way faster with CherryPy on PyPy than it does on CPython with either gevent or CherryPy.
+Note however that ws4py runs way faster with CherryPy on PyPy than it does on CPython.
 
 Client support
 --------------
@@ -103,8 +103,8 @@ itself.
 
 ws4py implements the server side through:
 
- * CherryPy
- * gevent
+ * CherryPy (works with CPython 2.6+ and 3.2+ as well as PyPy)
+ * gevent (works with CPython 2.6+)
 
 Tornado already offers its own implementation.
 
@@ -114,11 +114,12 @@ Getting Started
 Requirements
 ------------
 
-As a standalone client, ws4py only requires Python 2.6.6 or above though it hasn't been ported to Python 3.x yet.
+As a standalone client, ws4py only requires Python (2.6+ or 3.x).
 
  * Tornado client requires Tornado 2.0.x (https://github.com/facebook/tornado)
  * CherryPy server requires CherryPy 3.2.2 (http://dowload.cherrypy.org/cherrypy/3.2.2/)
  * gevent server requires gevent gevent 0.13.6 and 1.0.0dev (http://pypi.python.org/pypi/gevent/0.13.6)
+ * SL4A for Android support (http://code.google.com/p/android-scripting/)
 
 Since not everyone will want all of them, ws4py will not attempt to install them automatically.
 
@@ -147,6 +148,13 @@ Documentation
 -------------
 
 Online documentation can be found at: http://www.defuze.org/oss/ws4py/docs/
+
+Continuous Build
+----------------
+
+Travis is running continuous building against the master branch at:
+
+https://travis-ci.org/#!/Lawouach/WebSocket-for-Python
 
 Conformance
 -----------
@@ -181,14 +189,14 @@ Browser Support
 
 ws4py has been tested using:
 
- * Chromium 17
- * Firefox 11
+ * Chromium 22
+ * Firefox 16
 
-Since Saphari, Opera and IE do not support the protocol or the RFC's version, ws4py won't
-work with them. See http://caniuse.com/#feat=websockets
+Since Safari, Opera and IE do not yet support the protocol or the RFC's version, ws4py won't
+work with them. See http://caniuse.com/websockets for reference.
 
 Bear in mind that time is a premium and maintaining obsolete and unsecure protocols is not
-one of ws4py's goals. It's therefore unlikely it will evere support them.
+one of ws4py's goals. It's therefore unlikely it will ever support them.
 
 Examples
 --------
