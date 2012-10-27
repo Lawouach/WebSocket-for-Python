@@ -1,7 +1,8 @@
 Python
 ======
 
-ws4py requires Python 2.7+ but does not yet support Python 3+.
+ws4py requires Python 2.7+ or Python 3+.
+It also works with PyPy 1.8+.
 Note that ws4py will not try to automatically install dependencies and will
 let you decide which one you need.
 
