@@ -146,7 +146,7 @@ class WebSocketTool(Tool):
         
         key = request.headers.get('Sec-WebSocket-Key')
         if key:
-            ws_key = base64.b64decode(key)
+            ws_key = base64.b64decode(enc(key))
             if len(ws_key) != 16:
                 raise HandshakeError("WebSocket key's length is invalid")
         
