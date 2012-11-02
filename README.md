@@ -76,7 +76,7 @@ class EchoClient(WebSocketClient):
 
      def closed(self, code, reason=None):
          print code, reason
-            
+
      def received_message(self, m):
      	 self.send(m)
 
