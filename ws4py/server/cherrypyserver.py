@@ -346,7 +346,8 @@ class WebSocketPlugin(plugins.SimplePlugin):
         """
         for ws_handler in self.pool:
             try:
-                ws_handler.send(message, binary)
+                if not ws_handler.terminated:
+                    ws_handler.send(message, binary)
             except:
                 cherrypy.log(traceback=True)
             
