@@ -18,7 +18,7 @@ class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
     If an HTTP request comes in that includes the Upgrade header, it will add
     to the environment two items:
     
-    ``upgrade.protocol` `
+    ``upgrade.protocol``
       The protocol to upgrade to. Checking for this lets you know the request
       wants to be upgraded and the WSGI server supports this interface. 
     
