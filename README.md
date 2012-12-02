@@ -76,12 +76,12 @@ class EchoClient(WebSocketClient):
 
      def closed(self, code, reason=None):
          print code, reason
-            
+
      def received_message(self, m):
      	 self.send(m)
 
 try:
-    ws = EchoClient('http://localhost:9000/ws')
+    ws = EchoClient('ws://localhost:9000/ws')
     ws.connect()
 except KeyboardInterrupt:
     ws.close()
