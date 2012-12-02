@@ -298,8 +298,8 @@ class WebSocketPlugin(plugins.SimplePlugin):
         """
         Tracks the provided handler.
 
-        @param ws_handler: websocket handler instance
-        @param peer_addr: remote peer address for tracing purpose
+        :param ws_handler: websocket handler instance
+        :param peer_addr: remote peer address for tracing purpose
         """
         cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
         th = threading.Thread(target=ws_handler.run, name="WebSocket client at %s:%d" % (peer_addr[0], peer_addr[1]))
@@ -340,9 +340,9 @@ class WebSocketPlugin(plugins.SimplePlugin):
         Broadcasts a message to all connected clients known to
         the server.
 
-        @param message: a message suitable to pass to the send() method
+        :param message: a message suitable to pass to the send() method
           of the connected handler.
-        @param binary: whether or not the message is a binary one
+        :param binary: whether or not the message is a binary one
         """
         for ws_handler in self.pool:
             try:
