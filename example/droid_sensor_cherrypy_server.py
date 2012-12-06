@@ -20,7 +20,7 @@ class Root(object):
       <link rel="stylesheet" href="/css/style.css" type="text/css" />
 
       <script type="application/javascript" src="/js/jquery-1.6.2.min.js"> </script>
-      <script type="application/javascript" src="/js/jcanvas.min.js"> </script>
+      <script type="application/javascript" src="/js/jcanvas-3.6.min.js"> </script>
       <script type="application/javascript" src="/js/droidsensor.js"> </script>
       <script type="application/javascript">
         $(document).ready(function() {
