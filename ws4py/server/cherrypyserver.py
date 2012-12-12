@@ -364,7 +364,7 @@ if __name__ == '__main__':
         def ws(self):
             return """<html>
         <head>
-          <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'> </script>
+          <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'> </script>
           <script type='application/javascript'>
             $(document).ready(function() {
               var ws = new WebSocket('ws://192.168.0.10:9000/');

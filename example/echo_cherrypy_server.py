@@ -26,7 +26,7 @@ class Root(object):
     def index(self):
         return """<html>
     <head>
-      <script type='application/javascript' src='/js/jquery-1.6.2.min.js'></script>
+      <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>
       <script type='application/javascript'>
         $(document).ready(function() {
 

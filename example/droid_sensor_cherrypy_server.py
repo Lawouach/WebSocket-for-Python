@@ -19,8 +19,8 @@ class Root(object):
       <title>WebSocket example displaying Android device sensors</title>
       <link rel="stylesheet" href="/css/style.css" type="text/css" />
 
-      <script type="application/javascript" src="/js/jquery-1.6.2.min.js"> </script>
-      <script type="application/javascript" src="/js/jcanvas.min.js"> </script>
+      <script type="application/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"> </script>
+      <script type="application/javascript" src="https://raw.github.com/caleb531/jcanvas/master/jcanvas.min.js"> </script>
       <script type="application/javascript" src="/js/droidsensor.js"> </script>
       <script type="application/javascript">
         $(document).ready(function() {
