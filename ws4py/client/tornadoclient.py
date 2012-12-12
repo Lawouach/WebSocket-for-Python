@@ -107,7 +107,7 @@ if __name__ == '__main__':
         def closed(self, code, reason=None):
             ioloop.IOLoop.instance().stop()
 
-    ws = MyClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
+    ws = MyClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
 
     ioloop.IOLoop.instance().start()
