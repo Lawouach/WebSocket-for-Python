@@ -6,7 +6,7 @@ Python library providing an implementation of the WebSocket protocol defined in 
 Overview
 ========
 
-The latest stable release is 0.2.3.
+The latest stable release is 0.2.4.
 
 ws4py does not support older version of the protocol like Hixie-76.
 
@@ -215,5 +215,3 @@ Credits
 Many thanks to the pywebsocket and Tornado projects which have provided a good base to write ws4py.
 Thanks also to Jeff Lindsay (progrium) for the gevent server support.
 A well deserved thank you to Tobias Oberstein for his websocket test suite: https://github.com/oberstet/Autobahn
-
-The background in the droid example is courtesy of http://killxthexscenexstock.deviantart.com/art/Vintage-Wall-Paper-Texture-70982719
