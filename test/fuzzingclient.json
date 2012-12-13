@@ -20,11 +20,11 @@
                  "url": "ws://127.0.0.1:9001",
                  "options": {"version": 13}},
                 
-                {"agent": "Tornado 2.4",
+                {"agent": "Tornado 2.4.1",
                  "url": "ws://127.0.0.1:9002",
                  "options": {"version": 13}},
                 
-                {"agent": "Autobahn 0.5.8",
+                {"agent": "Autobahn 0.5.9",
                  "url": "ws://127.0.0.1:9003",
                  "options": {"version": 13}}
  
