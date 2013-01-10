@@ -4,6 +4,7 @@ import unittest
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import EchoWebSocket
+from ws4py.compat import py3k
 
 class FakeSocket(object):
     def settimeout(self, timeout):
@@ -31,18 +32,18 @@ class App(object):
     @cherrypy.expose
     def ws(self):
         assert cherrypy.request.ws_handler != None
-        
+
 def setup_engine():
     # we don't need a HTTP server for this test
     cherrypy.server.unsubscribe()
 
     cherrypy.config.update({'log.screen': False})
-    
+
     cherrypy.engine.websocket = WebSocketPlugin(cherrypy.engine)
     cherrypy.engine.websocket.subscribe()
-    
+
     cherrypy.tools.websocket = WebSocketTool()
-    
+
     config={'/ws': {'tools.websocket.on': True,
                     'tools.websocket.handler_cls': EchoWebSocket}}
     cherrypy.tree.mount(App(), '/', config)
@@ -50,7 +51,7 @@ def setup_engine():
 
 def teardown_engine():
     cherrypy.engine.exit()
-    
+
 class CherryPyTest(unittest.TestCase):
     def setUp(self):
         setup_engine()
@@ -65,7 +66,10 @@ class CherryPyTest(unittest.TestCase):
         h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
         self.assertEquals(len(cherrypy.engine.websocket.pool), 1)
-        k = cherrypy.engine.websocket.pool.keys()[0]
+        if py3k:
+            k = list(cherrypy.engine.websocket.pool.keys())[0]
+        else:
+            k = cherrypy.engine.websocket.pool.keys()[0]
         self.assertTrue(k is h)
         self.assertEquals(cherrypy.engine.websocket.pool[k][1], ('127.0.0.1', 0))
 
