@@ -29,7 +29,7 @@
 from ws4py.compat import enc
 
 __author__ = "Sylvain Hellegouarch"
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 __all__ = ['WS_KEY', 'WS_VERSION']
 
 WS_KEY = enc("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
