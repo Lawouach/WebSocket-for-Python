@@ -13,9 +13,10 @@ from ws4py.compat import urlsplit, enc, dec
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
-    def __init__(self, url, protocols, extensions):
+    def __init__(self, url, protocols, extensions, heartbeat_freq=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        WebSocket.__init__(self, sock, protocols=protocols, extensions=extensions)
+        WebSocket.__init__(self, sock, protocols=protocols, extensions=extensions,
+                           heartbeat_freq=heartbeat_freq)
         self.stream.always_mask = True
         self.stream.expect_masking = False
         self.key = b64encode(os.urandom(16))

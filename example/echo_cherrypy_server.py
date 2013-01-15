@@ -45,7 +45,7 @@ class Root(object):
           window.onbeforeunload = function(e) {
             $('#chat').val($('#chat').val() + 'Bye bye...\\n');
             ws.close(1000, '%(username)s left the room');
-                 
+
             if(!e) e = window.event;
             e.stopPropagation();
             e.preventDefault();
@@ -57,7 +57,7 @@ class Root(object):
              ws.send("%(username)s entered the room");
           };
           ws.onclose = function(evt) {
-             $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
+             $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');
           };
 
           $('#send').click(function() {
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     if args.ssl:
         cherrypy.config.update({'server.ssl_certificate': './server.crt',
                                 'server.ssl_private_key': './server.key'})
-                            
+
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 

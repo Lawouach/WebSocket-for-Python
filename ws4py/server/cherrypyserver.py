@@ -25,12 +25,12 @@ Here are the various utilities provided by this module:
                   request's processing. Enable that tool at
                   any path you wish to handle as a WebSocket
                   handler.
-                  
+
  * WebSocketPlugin: The plugin tracks the instanciated web socket handlers.
                     It also cleans out websocket handler which connection
                     have been closed down. The websocket connection then
                     runs in its own thread that this plugin manages.
-             
+
 Simple usage example:
 
 .. code-block:: python
@@ -39,7 +39,7 @@ Simple usage example:
     import cherrypy
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
     from ws4py.websocket import EchoWebSocket
-    
+
     cherrypy.config.update({'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
@@ -52,7 +52,7 @@ Simple usage example:
         @cherrypy.expose
         def ws(self):
             pass
-        
+
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True,
                                                      'tools.websocket.handler_cls': EchoWebSocket}})
 
@@ -97,7 +97,8 @@ class WebSocketTool(Tool):
         hooks.attach('on_end_request', self.start_handler,
                      priority=70)
 
-    def upgrade(self, protocols=None, extensions=None, version=WS_VERSION, handler_cls=WebSocket):
+    def upgrade(self, protocols=None, extensions=None, version=WS_VERSION,
+                handler_cls=WebSocket, heartbeat_freq=None):
         """
         Performs the upgrade of the connection to the WebSocket
         protocol.
@@ -113,13 +114,13 @@ class WebSocketTool(Tool):
         """
         request = cherrypy.serving.request
         request.process_request_body = False
-        
+
         ws_protocols = None
         ws_location = None
         ws_version = version
         ws_key = None
         ws_extensions = []
-        
+
         if request.method != 'GET':
             raise HandshakeError('HTTP method must be a GET')
 
@@ -131,7 +132,7 @@ class WebSocketTool(Tool):
             if expected_value not in actual_value:
                 raise HandshakeError('Illegal value for header %s: %s' %
                                      (key, actual_value))
-            
+
         version = request.headers.get('Sec-WebSocket-Version')
         supported_versions = ', '.join([str(v) for v in ws_version])
         version_is_valid = False
@@ -139,17 +140,17 @@ class WebSocketTool(Tool):
             try: version = int(version)
             except: pass
             else: version_is_valid = version in ws_version
-            
+
         if not version_is_valid:
             cherrypy.response.headers['Sec-WebSocket-Version'] = supported_versions
             raise HandshakeError('Unhandled or missing WebSocket version')
-        
+
         key = request.headers.get('Sec-WebSocket-Key')
         if key:
             ws_key = base64.b64decode(enc(key))
             if len(ws_key) != 16:
                 raise HandshakeError("WebSocket key's length is invalid")
-        
+
         protocols = protocols or []
         subprotocols = request.headers.get('Sec-WebSocket-Protocol')
         if subprotocols:
@@ -166,7 +167,7 @@ class WebSocketTool(Tool):
                 ext = ext.strip()
                 if ext in exts:
                     ws_extensions.append(ext)
-        
+
         location = []
         include_port = False
         if request.scheme == "https":
@@ -199,8 +200,9 @@ class WebSocketTool(Tool):
         addr = (request.remote.ip, request.remote.port)
         ws_conn = get_connection(request.rfile.rfile)
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
-                                         request.wsgi_environ.copy())
-        
+                                         request.wsgi_environ.copy(),
+                                         heartbeat_freq=heartbeat_freq)
+
     def complete(self):
         """
         Sets some internal flags of CherryPy so that it
@@ -216,7 +218,7 @@ class WebSocketTool(Tool):
         response = cherrypy.response
         if not response.header_list:
             return
-        
+
         headers = response.header_list[:]
         for (k, v) in headers:
             if k[:7] == 'Sec-Web':
@@ -226,7 +228,7 @@ class WebSocketTool(Tool):
     def start_handler(self):
         """
         Runs at the end of the request processing by calling
-        the opened method of the handler. 
+        the opened method of the handler.
         """
         request = cherrypy.request
         if not hasattr(request, 'ws_handler'):
@@ -240,9 +242,9 @@ class WebSocketTool(Tool):
         # By doing this we detach the socket from
         # the CherryPy stack avoiding memory leaks
         detach_connection(request.rfile.rfile)
-        
+
         cherrypy.engine.publish('handle-websocket', ws_handler, addr)
-        
+
     def _set_internal_flags(self):
         """
         CherryPy has two internal flags that we are interested in
@@ -286,7 +288,7 @@ class WebSocketPlugin(plugins.SimplePlugin):
         self.bus.subscribe('stop', self.cleanup)
         self.bus.subscribe('handle-websocket', self.handle)
         self.bus.subscribe('websocket-broadcast', self.broadcast)
-        
+
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
         self.bus.unsubscribe('main', self.monitor)
@@ -316,7 +318,7 @@ class WebSocketPlugin(plugins.SimplePlugin):
             handlers = list(self.pool.keys())
         else:
             handlers = self.pool.keys()[:]
-            
+
         for handler in handlers:
             if handler.terminated:
                 th, addr = self.pool[handler]
@@ -350,14 +352,14 @@ class WebSocketPlugin(plugins.SimplePlugin):
                     ws_handler.send(message, binary)
             except:
                 cherrypy.log(traceback=True)
-            
+
 if __name__ == '__main__':
     import random
     cherrypy.config.update({'server.socket_host': '127.0.0.1',
                             'server.socket_port': 9000})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
-    
+
     class Root(object):
         @cherrypy.expose
         @cherrypy.tools.websocket(on=False)
@@ -369,13 +371,13 @@ if __name__ == '__main__':
             $(document).ready(function() {
               var ws = new WebSocket('ws://192.168.0.10:9000/');
               ws.onmessage = function (evt) {
-                 $('#chat').val($('#chat').val() + evt.data + '\\n');                  
+                 $('#chat').val($('#chat').val() + evt.data + '\\n');
               };
               ws.onopen = function() {
                  ws.send("Hello there");
               };
               ws.onclose = function(evt) {
-                $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
+                $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');
               };
               $('#chatform').submit(function() {
                  ws.send('%(username)s: ' + $('#message').val());
@@ -399,6 +401,6 @@ if __name__ == '__main__':
         @cherrypy.expose
         def index(self):
             cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
-        
+
     cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True,
                                                    'tools.websocket.handler_cls': EchoWebSocketHandler}})
