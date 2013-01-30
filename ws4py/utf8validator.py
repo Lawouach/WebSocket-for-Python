@@ -103,13 +103,15 @@ class Utf8Validator(object):
         When valid? == True, currentIndex will be len(ba) and totalIndex the
         total amount of consumed bytes.
         """
-        l = len(ba)
-        for i in range(0, l):
+        state = self.state
+        DFA = Utf8Validator.UTF8VALIDATOR_DFA
+        for i, b in enumerate(ba):
             ## optimized version of decode(), since we are not interested in actual code points
-            self.state = Utf8Validator.UTF8VALIDATOR_DFA[256 + (self.state << 4) + Utf8Validator.UTF8VALIDATOR_DFA[ba[i]]]
-            if self.state == Utf8Validator.UTF8_REJECT:
+            state = DFA[256 + (state << 4) + DFA[b]]
+            if state == Utf8Validator.UTF8_REJECT:
                 self.i += i
+                self.state = state
                 return False, False, i, self.i
-        self.i += l
-        return True, self.state == Utf8Validator.UTF8_ACCEPT, l, self.i
-
+        self.i += i
+        self.state = state
+        return True, state == Utf8Validator.UTF8_ACCEPT, i, self.i
