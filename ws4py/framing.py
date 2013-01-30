@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import array
-import os
 from struct import pack, unpack
 
 from ws4py.exc import FrameTooLargeException, ProtocolException
@@ -257,7 +255,7 @@ class Frame(object):
         Performs the masking or unmasking operation on data
         using the simple masking algorithm:
 
-        .. 
+        ..
            j                   = i MOD 4
            transformed-octet-i = original-octet-i XOR masking-key-octet-j
 
