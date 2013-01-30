@@ -20,14 +20,14 @@ if sys.version_info >= (3, 0):
     unicode = str
     basestring = (bytes, str)
     _ord = ord
-    
+
     def enc(b, encoding='utf-8'):
         if isinstance(b, str):
             return b.encode(encoding)
         elif isinstance(b, bytearray):
             return bytes(b)
         return b
-    
+
     def dec(b, encoding='utf-8'):
         if isinstance(b, (bytes, bytearray)):
             return b.decode(encoding)
@@ -50,14 +50,14 @@ else:
     unicode = unicode
     basestring = basestring
     ord = ord
-    
+
     def enc(b, encoding='utf-8'):
         if isinstance(b, unicode):
             return b.encode(encoding)
         elif isinstance(b, bytearray):
             return str(b)
         return b
-    
+
     def dec(b, encoding='utf-8'):
         if isinstance(b, (str, bytearray)):
             return b.decode(encoding)
@@ -68,4 +68,3 @@ else:
 
     def detach_connection(fileobj):
         fileobj._sock = None
-    

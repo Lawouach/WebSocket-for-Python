@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
-import base64
-import copy
-import errno
-import logging
 import socket
-from sys import exc_info
 import time
-import traceback
 import threading
 import types
 
@@ -53,7 +47,7 @@ class Heartbeat(threading.Thread):
             time.sleep(self.frequency)
             if self.websocket.terminated:
                 break
-            
+
             try:
                 self.websocket.send(PongControlMessage(data='beep'))
             except socket.error:
