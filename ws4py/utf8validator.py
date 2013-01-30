@@ -31,7 +31,7 @@
 
 from ws4py.compat import range
 
-class Utf8Validator:
+class Utf8Validator(object):
     """
     Incremental UTF-8 validator with constant memory consumption (minimal state).
 
