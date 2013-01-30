@@ -53,7 +53,7 @@ class Heartbeat(threading.Thread):
             time.sleep(self.frequency)
             if self.websocket.terminated:
                 break
-            
+
             try:
                 self.websocket.send(PongControlMessage(data='beep'))
             except socket.error:
