@@ -253,7 +253,7 @@ class Stream(object):
                             except TypeError:
                                 code = 1002
                                 reason = 'Invalid Closing Frame Code Type'
-                            except struct.error as sr:
+                            except struct.error:
                                 code = 1002
                                 reason = 'Failed at decoding closing code'
                             else:
