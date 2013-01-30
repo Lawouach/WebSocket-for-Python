@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 try:
-    from setuptools import setup
+    from setuptools import setup, Extension
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setup, Extension
+
+_c_utf8validator = Extension('ws4py.utf8validator_c', ['ws4py/utf8validator_c.c'])
 
 setup(name = "ws4py",
       version = '0.2.5',
@@ -12,6 +14,7 @@ setup(name = "ws4py",
       url = "https://github.com/Lawouach/WebSocket-for-Python",
       download_url = "http://www.defuze.org/oss/ws4py/",
       packages = ["ws4py", "ws4py.client", "ws4py.server", "ws4py.server.wsgi"],
+      ext_modules = [_c_utf8validator],
       tests_require=['unittest2', 'gevent', 'cherrypy'],
       test_suite='unittest2.collector',
       platforms = ["any"],
