@@ -16,7 +16,7 @@ VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 class Stream(object):
     def __init__(self, always_mask=False, expect_masking=True):
         """ Represents a websocket stream of bytes flowing in and out.
- 
+
         The stream doesn't know about the data provider itself and
         doesn't even know about sockets. Instead the stream simply
         yields for more bytes whenever it requires them. The stream owner
@@ -37,11 +37,11 @@ class Stream(object):
            <TextMessage ... >
 
         Set ``always_mask`` to mask all frames built.
-        
+
         Set ``expect_masking`` to indicate masking will be
         checked on all parsed frames.
         """
-        
+
         self.message = None
         """
         Parsed test or binary messages. Whenever the parser
@@ -54,25 +54,25 @@ class Stream(object):
         Parsed ping control messages. They are instances of
         :class:`ws4py.messaging.PingControlMessage`
         """
-        
+
         self.pongs = []
         """
         Parsed pong control messages. They are instances of
         :class:`ws4py.messaging.PongControlMessage`
         """
-        
+
         self.closing = None
         """
         Parsed close control messsage. Instance of
         :class:`ws4py.messaging.CloseControlMessage`
         """
-        
+
         self.errors = []
         """
         Detected errors while parsing. Instances of
         :class:`ws4py.messaging.CloseControlMessage`
         """
-        
+
         self._parser = None
         """
         Parser in charge to process bytes it is fed with.
@@ -88,7 +88,7 @@ class Stream(object):
             # Python generators must be initialized once.
             next(self.parser)
         return self._parser
-        
+
     def _cleanup(self):
         """
         Frees the stream's resources rendering it unusable.
@@ -101,7 +101,7 @@ class Stream(object):
         self.pings = None
         self.pongs = None
         self.closing = None
-        
+
     def text_message(self, text):
         """
         Returns a :class:`ws4py.messaging.TextMessage` instance
@@ -200,7 +200,7 @@ class Stream(object):
                             break
                         else:
                             bytes = bytearray(bytes)
-                        
+
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
                             # We got a text frame before we completed the previous one
@@ -229,13 +229,13 @@ class Stream(object):
                         if m is None:
                             self.errors.append(CloseControlMessage(code=1002, reason='Message not started yet'))
                             break
-                        
+
                         m.extend(bytes)
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
                             if bytes:
                                 is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
-                                
+
                                 if not is_valid or (m.completed and not end_on_code_point):
                                     self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                                     break
@@ -253,7 +253,7 @@ class Stream(object):
                             except TypeError:
                                 code = 1002
                                 reason = 'Invalid Closing Frame Code Type'
-                            except struct.error as sr:
+                            except struct.error:
                                 code = 1002
                                 reason = 'Failed at decoding closing code'
                             else:
@@ -263,24 +263,24 @@ class Stream(object):
                                     code = 1002
                                 elif frame.payload_length > 1:
                                     reason = bytes[2:] if frame.masking_key else bytearray(frame.body[2:])
-                                    
+
                                     is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
                                     if not is_valid or not end_on_code_point:
                                         self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                                         break
                             self.closing = CloseControlMessage(code=code, reason=reason)
-                        
+
                     elif frame.opcode == OPCODE_PING:
                         self.pings.append(PingControlMessage(bytes))
 
                     elif frame.opcode == OPCODE_PONG:
                         self.pongs.append(PongControlMessage(bytes))
-                    
+
                     else:
                         self.errors.append(CloseControlMessage(code=1003))
 
                     break
-                    
+
                 except ProtocolException:
                     self.errors.append(CloseControlMessage(code=1002))
                     break
@@ -293,7 +293,7 @@ class Stream(object):
 
             frame.body = None
             frame = None
-            
+
             if self.message is not None and self.message.completed:
                 utf8validator.reset()
 
@@ -301,7 +301,7 @@ class Stream(object):
             frame._cleanup()
             frame = None
 
-        utf8validator.reset()    
+        utf8validator.reset()
         utf8validator = None
 
         self._cleanup()
