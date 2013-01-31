@@ -2,7 +2,10 @@
 import struct
 from struct import unpack
 
-from ws4py.utf8validator import Utf8Validator
+try:
+    from ws4py.utf8validator_c import Utf8Validator
+except ImportError:
+    from ws4py.utf8validator import Utf8Validator
 from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
      PingControlMessage, PongControlMessage
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
