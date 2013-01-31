@@ -29,7 +29,6 @@
 ##
 ###############################################################################
 
-from ws4py.compat import range
 
 class Utf8Validator(object):
     """
