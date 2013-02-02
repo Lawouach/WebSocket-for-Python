@@ -13,9 +13,14 @@ from ws4py.compat import urlsplit, enc, dec
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
-    def __init__(self, url, protocols, extensions, heartbeat_freq=None):
+    def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        WebSocket.__init__(self, sock, protocols=protocols, extensions=extensions,
+        
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        WebSocket.__init__(self, sock, protocols=protocols,
+                           extensions=extensions,
                            heartbeat_freq=heartbeat_freq)
         self.stream.always_mask = True
         self.stream.expect_masking = False
@@ -70,7 +75,7 @@ class WebSocketBaseClient(WebSocket):
     def close(self, code=1000, reason=''):
         if not self.client_terminated:
             self.client_terminated = True
-            self.sender(self.stream.close(code=code, reason=reason).single(mask=True))
+            self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=True))
 
     def connect(self):
         #self.sock.settimeout(3)
@@ -81,7 +86,7 @@ class WebSocketBaseClient(WebSocket):
 
         self.sock.connect((self.host, int(self.port)))
 
-        self.sender(self.handshake_request)
+        self.sock.sendall(self.handshake_request)
 
         response = enc('')
         doubleCLRF = enc('\r\n\r\n')
