@@ -104,6 +104,7 @@ class Utf8Validator(object):
         """
         state = self.state
         DFA = Utf8Validator.UTF8VALIDATOR_DFA
+        i = 0  # make sure 'i' is set if when 'ba' is empty
         for i, b in enumerate(ba):
             ## optimized version of decode(), since we are not interested in actual code points
             state = DFA[256 + (state << 4) + DFA[b]]
