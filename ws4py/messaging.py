@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import struct
-import copy
 
 from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
@@ -33,7 +32,7 @@ class Message(object):
         self._completed = False
         self.encoding = encoding
         self.data = enc(data, encoding)
-        
+
     def single(self, mask=False):
         """
         Returns a frame bytes with the fin bit set and a random mask.
@@ -77,19 +76,19 @@ class Message(object):
         set by the stream's parser.
         """
         self._completed = state
-        
+
     def extend(self, data):
         """
         Add more ``data`` to the message.
         """
         self.data += enc(data, self.encoding)
-        
+
     def __len__(self):
         return len(self.__unicode__())
 
     def __str__(self):
         return self.data
-    
+
     def __unicode__(self):
         return dec(self.data, self.encoding)
 
@@ -124,21 +123,21 @@ class CloseControlMessage(Message):
             data += struct.pack("!H", code)
         if reason:
             data += enc(reason, 'utf-8')
-            
+
         Message.__init__(self, OPCODE_CLOSE, data, 'utf-8')
         self.code = code
         self.reason = enc(reason, self.encoding)
 
     def __str__(self):
         return self.reason
-    
+
     def __unicode__(self):
         return dec(self.reason, self.encoding)
 
 class PingControlMessage(Message):
     def __init__(self, data=None):
         Message.__init__(self, OPCODE_PING, data)
-        
+
 class PongControlMessage(Message):
     def __init__(self, data):
         Message.__init__(self, OPCODE_PONG, data)

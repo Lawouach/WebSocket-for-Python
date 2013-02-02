@@ -61,11 +61,9 @@ Note that you can set the handler class on per-path basis,
 meaning you could also dynamically change the class based
 on other envrionmental settings (is the user authenticated for ex).
 """
-import sys
 import base64
 from hashlib import sha1
 import inspect
-import socket
 import threading
 
 import cherrypy

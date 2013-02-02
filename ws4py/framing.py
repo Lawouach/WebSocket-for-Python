@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import array
-import os
 from struct import pack, unpack
 
 from ws4py.exc import FrameTooLargeException, ProtocolException
@@ -25,7 +23,7 @@ class Frame(object):
            :linenos:
 
            >>> test_mask = 'XXXXXX' # perhaps from os.urandom(4)
-           >>> f = Frame(OPCODE_TEXT, 'hello world', masking_key=test_mask, fin=1) 
+           >>> f = Frame(OPCODE_TEXT, 'hello world', masking_key=test_mask, fin=1)
            >>> bytes = f.build()
            >>> bytes.encode('hex')
            '818bbe04e66ad6618a06d1249105cc6882'
@@ -55,7 +53,7 @@ class Frame(object):
             # Python generators must be initialized once.
             next(self.parser)
         return self._parser
-        
+
     def _cleanup(self):
         if self._parser:
             self._parser.close()
@@ -73,7 +71,7 @@ class Frame(object):
 
         if 0x3 <= self.opcode <= 0x7 or 0xB <= self.opcode:
             raise ValueError('Opcode cannot be a reserved opcode')
-    
+
         ## +-+-+-+-+-------+
         ## |F|R|R|R| opcode|
         ## |I|S|S|S|  (4)  |
@@ -165,7 +163,7 @@ class Frame(object):
         # Yield until we get the second header's byte
         while not bytes:
             bytes = (yield 1)
- 
+
         second_byte = ord(bytes[0])
         mask = (second_byte >> 7) & 1
         self.payload_length = second_byte & 0x7f
@@ -217,7 +215,7 @@ class Frame(object):
             extended_payload_length = bytes
             self.payload_length = unpack(
                 '!H', extended_payload_length)[0]
-            
+
         if mask:
             if len(buf) < 4:
                 nxt_buf_size = 4 - len(buf)
@@ -248,7 +246,7 @@ class Frame(object):
                 bytes = buf
             else:
                 bytes = buf[:self.payload_length]
-                
+
         self.body = bytes
         yield
 
@@ -257,10 +255,10 @@ class Frame(object):
         Performs the masking or unmasking operation on data
         using the simple masking algorithm:
 
-        .. 
+        ..
            j                   = i MOD 4
            transformed-octet-i = original-octet-i XOR masking-key-octet-j
-           
+
         """
         masked = bytearray(data)
         if py3k: key = self.masking_key
