@@ -18,6 +18,8 @@ from ws4py.compat import basestring, unicode, dec
 
 DEFAULT_READING_SIZE = 2
 
+logger = logging.getLogger('ws4py')
+
 __all__ = ['WebSocket', 'EchoWebSocket']
 
 class Heartbeat(threading.Thread):
@@ -53,10 +55,11 @@ class Heartbeat(threading.Thread):
             time.sleep(self.frequency)
             if self.websocket.terminated:
                 break
-            
+
             try:
                 self.websocket.send(PongControlMessage(data='beep'))
             except socket.error:
+                logger.info("Heartbeat failed")
                 self.websocket.server_terminated = True
                 self.websocket.close_connection()
                 break
@@ -116,8 +119,6 @@ class WebSocket(object):
         Current connection reading buffer size.
         """
 
-        self.sender = self.sock.sendall
-
         self.environ = environ
         """
         WSGI environ dictionary.
@@ -128,6 +129,27 @@ class WebSocket(object):
         At which interval the heartbeat will be running.
         Set this to `0` or `None` to disable it entirely.
         """
+
+        self._local_address = None
+        self._peer_address = None
+
+    @property
+    def local_address(self):
+        """
+        Local endpoint address as a tuple
+        """
+        if not self._local_address:
+            self._local_address = self.sock.getsockname()
+        return self._local_address
+
+    @property
+    def peer_address(self):
+        """
+        Peer endpoint address as a tuple
+        """
+        if not self._peer_address:
+            self._peer_address = self.sock.getpeername()
+        return self._peer_address
 
     def opened(self):
         """
@@ -152,7 +174,7 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self.sender(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
 
     def closed(self, code, reason=None):
         """
@@ -171,6 +193,10 @@ class WebSocket(object):
         marked as terminated.
         """
         return self.client_terminated is True and self.server_terminated is True
+
+    @property
+    def connection(self):
+        return self.sock
 
     def close_connection(self):
         """
@@ -220,34 +246,24 @@ class WebSocket(object):
 
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
             m = message_sender(payload).single(mask=self.stream.always_mask)
-            self.sender(m)
+            self.sock.sendall(m)
 
         elif isinstance(payload, Message):
             data = payload.single(mask=self.stream.always_mask)
-            self.sender(data)
+            self.sock.sendall(data)
 
         elif type(payload) == types.GeneratorType:
             bytes = next(payload)
             first = True
             for chunk in payload:
-                self.sender(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
+                self.sock.sendall(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
                 bytes = chunk
                 first = False
 
-            self.sender(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            self.sock.sendall(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
 
         else:
             raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
-
-    def _cleanup(self):
-        """
-        Frees up resources used by the endpoint.
-        """
-        self.sender = None
-        self.sock = None
-        self.environ = None
-        self.stream._cleanup()
-        self.stream = None
 
     def run(self):
         """
@@ -278,30 +294,55 @@ class WebSocket(object):
 
             try:
                 self.opened()
-                sock = self.sock
-                fileno = sock.fileno()
-                process = self.process
-
                 while not self.terminated:
-                    try:
-                        bytes = sock.recv(self.reading_buffer_size)
-                    except socket.error:
+                    if not self.once():
                         break
-                    else:
-                        if not process(bytes):
-                            break
             finally:
-                self.client_terminated = self.server_terminated = True
+                self.terminate()
 
-                try:
-                    if not s.closing:
-                        self.closed(1006, "Going away")
-                    else:
-                        self.closed(s.closing.code, s.closing.reason)
-                finally:
-                    s = sock = fileno = process = None
-                    self.close_connection()
-                    self._cleanup()
+    def once(self):
+        """
+        Performs the operation of reading from the underlying
+        connection in order to feed the stream of bytes.
+
+        We start with a small size of two bytes to be read
+        from the connection so that we can quickly parse an
+        incoming frame header. Then the stream indicates
+        whatever size must be read from the connection since
+        it knows the frame payload length.
+        """
+        s = self.stream
+        sock = self.sock
+        process = self.process
+
+        try:
+            b = sock.recv(self.reading_buffer_size)
+        except socket.error:
+            logger.exception("Failed to receive data")
+            return False
+        else:
+            if not process(b):
+                return False
+
+        return True
+
+    def terminate(self):
+        s = self.stream
+
+        self.client_terminated = self.server_terminated = True
+
+        try:
+            if not s.closing:
+                self.closed(1006, "Going away")
+            else:
+                self.closed(s.closing.code, s.closing.reason)
+        finally:
+            self.close_connection()
+
+            # Cleaning up resources
+            s._cleanup()
+            self.stream = None
+            self.environ = None
 
     def process(self, bytes):
         """ Takes some bytes and process them through the
@@ -325,6 +366,7 @@ class WebSocket(object):
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
+            logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
             if not self.server_terminated:
                 self.close(s.closing.code, s.closing.reason)
             else:
@@ -334,6 +376,7 @@ class WebSocket(object):
 
         if s.errors:
             for error in s.errors:
+                logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
                 self.close(error.code, error.reason)
             s.errors = []
             s = None
@@ -348,7 +391,7 @@ class WebSocket(object):
 
         if s.pings:
             for ping in s.pings:
-                self.sender(s.pong(ping.data))
+                self.sock.sendall(s.pong(ping.data))
             s.pings = []
 
         if s.pongs:

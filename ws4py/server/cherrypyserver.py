@@ -77,6 +77,7 @@ from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
 from ws4py.compat import py3k, enc, dec, get_connection, detach_connection
+from ws4py.manager import WebSocketManager
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
 
@@ -280,18 +281,17 @@ class WebSocketTool(Tool):
 class WebSocketPlugin(plugins.SimplePlugin):
     def __init__(self, bus):
         plugins.SimplePlugin.__init__(self, bus)
-        self.pool = {}
+        self.manager = WebSocketManager()
 
     def start(self):
         cherrypy.log("Starting WebSocket processing")
-        self.bus.subscribe('main', self.monitor)
         self.bus.subscribe('stop', self.cleanup)
         self.bus.subscribe('handle-websocket', self.handle)
         self.bus.subscribe('websocket-broadcast', self.broadcast)
+        self.manager.start()
 
     def stop(self):
         cherrypy.log("Terminating WebSocket processing")
-        self.bus.unsubscribe('main', self.monitor)
         self.bus.unsubscribe('stop', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
         self.bus.unsubscribe('websocket-broadcast', self.broadcast)
@@ -303,39 +303,15 @@ class WebSocketPlugin(plugins.SimplePlugin):
         :param ws_handler: websocket handler instance
         :param peer_addr: remote peer address for tracing purpose
         """
-        cherrypy.log("Managing WebSocket connection from %s:%d" % (peer_addr[0], peer_addr[1]))
-        th = threading.Thread(target=ws_handler.run, name="WebSocket client at %s:%d" % (peer_addr[0], peer_addr[1]))
-        th.daemon = True
-        self.pool[ws_handler] = (th, peer_addr)
-        th.start()
-
-    def monitor(self):
-        """
-        Called within the engine's mainloop to drop connections
-        that have terminated since last iteration.
-        """
-        if py3k:
-            handlers = list(self.pool.keys())
-        else:
-            handlers = self.pool.keys()[:]
-
-        for handler in handlers:
-            if handler.terminated:
-                th, addr = self.pool[handler]
-                cherrypy.log("Removing WebSocket connection %s:%d" % (addr[0], addr[1]))
-                th.join()
-                del self.pool[handler]
+        self.manager.add(ws_handler)
 
     def cleanup(self):
         """
         Terminate all connections and clear the pool. Executed when the engine stops.
         """
-        cherrypy.log("Closing %d WebSocket connections" % len(self.pool))
-        for handler in self.pool:
-            handler.close(code=1001, reason='Server is shutting down')
-            th, addr = self.pool[handler]
-            th.join()
-        self.pool.clear()
+        self.manager.close_all()
+        self.manager.stop()
+        self.manager.join()
 
     def broadcast(self, message, binary=False):
         """
@@ -346,12 +322,7 @@ class WebSocketPlugin(plugins.SimplePlugin):
           of the connected handler.
         :param binary: whether or not the message is a binary one
         """
-        for ws_handler in self.pool:
-            try:
-                if not ws_handler.terminated:
-                    ws_handler.send(message, binary)
-            except:
-                cherrypy.log(traceback=True)
+        self.manager.broadcast(message, binary)
 
 if __name__ == '__main__':
     import random
