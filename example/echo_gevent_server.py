@@ -8,44 +8,38 @@ import os
 import gevent
 import gevent.pywsgi
 
-from ws4py.server.geventserver import UpgradableWSGIHandler
-from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
+from ws4py.server.geventserver import WebSocketWSGIApplication, \
+     WebSocketWSGIHandler, WSGIServer
 from ws4py.websocket import EchoWebSocket
 
 class BroadcastWebSocket(EchoWebSocket):
+    def opened(self):
+        app = self.environ['ws4py.app']
+        app.clients.append(self)
+
     def received_message(self, m):
         # self.clients is set from within the server
         # and holds the list of all connected servers
         # we can dispatch to
-        for client in self.clients:
+        app = self.environ['ws4py.app']
+        for client in app.clients:
             client.send(m)
 
     def closed(self, code, reason="A client left the room without a proper explanation."):
-        if self in self.clients:
-            self.clients.remove(self)
-            try:
-                for client in self.clients:
+        app = self.environ.pop('ws4py.app')
+        if self in app.clients:
+            app.clients.remove(self)
+            for client in app.clients:
+                try:
                     client.send(reason)
-            finally:
-                self.clients = None
-                delattr(self, 'clients')
+                except:
+                    pass
 
-class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
-    handler_class = UpgradableWSGIHandler
-    
+class EchoWebSocketApplication(object):
     def __init__(self, host, port):
-        gevent.pywsgi.WSGIServer.__init__(self, (host, port))
-        
         self.host = host
         self.port = port
-
-        self.application = self
-        
-        # let's use wrap the websocket handler with
-        # a middleware that'll perform the websocket
-        # handshake
-        self.ws = WebSocketUpgradeMiddleware(app=self.ws_app,
-                                             websocket_class=BroadcastWebSocket)
+        self.ws = WebSocketWSGIApplication(handler_cls=BroadcastWebSocket)
 
         # keep track of connected websocket clients
         # so that we can brodcasts messages sent by one
@@ -59,20 +53,12 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         """
         if environ['PATH_INFO'] == '/favicon.ico':
             return self.favicon(environ, start_response)
-        
-        if environ['PATH_INFO'] == '/ws':
-            return self.ws(environ, start_response)
-        
-        if environ['PATH_INFO'].startswith('/js'):
-            return self.static(environ, start_response)
-        
-        return self.webapp(environ, start_response)
 
-    def ws_app(self, websocket):
-        websocket.clients = self.clients
-        self.clients.append(websocket)
-        g = gevent.spawn(websocket.run)
-        g.join()
+        if environ['PATH_INFO'] == '/ws':
+            environ['ws4py.app'] = self
+            return self.ws(environ, start_response)
+
+        return self.webapp(environ, start_response)
 
     def favicon(self, environ, start_response):
         """
@@ -83,25 +69,6 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
         start_response(status, headers)
         return ""
 
-    def static(self, environ, start_response):
-        """
-        Not the sexiest static handler but does the job
-        for the demo
-        """
-        path = os.path.normpath(os.path.join(os.path.dirname(__file__),
-                                             './static/%s' % environ['PATH_INFO']))
-        if not os.path.exists(path):
-            status = '404 Not Found'
-            headers = [('Content-type', 'text/plain')]
-            return ""
-        
-        status = '200 OK'
-        headers = [('Content-type', 'text/javascript')]
-        
-        start_response(status, headers)
-        
-        return file(path).read()
-        
     def webapp(self, environ, start_response):
         """
         Our main webapp that'll display the chat form
@@ -113,7 +80,7 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
 
         return """<html>
         <head>
-          <script type='application/javascript' src='/js/jquery-1.6.2.min.js'></script>
+        <script type='application/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>
           <script type='application/javascript'>
             $(document).ready(function() {
 
@@ -132,7 +99,7 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
               window.onbeforeunload = function(e) {
                  $('#chat').val($('#chat').val() + 'Bye bye...\\n');
                  ws.close(1000, '%(username)s left the room');
-                 
+
                  if(!e) e = window.event;
                  e.stopPropagation();
                  e.preventDefault();
@@ -144,7 +111,7 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
                  ws.send("%(username)s entered the room");
               };
               ws.onclose = function(evt) {
-                 $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');  
+                 $('#chat').val($('#chat').val() + 'Connection closed by server: ' + evt.code + ' \"' + evt.reason + '\"\\n');
               };
 
               $('#send').click(function() {
@@ -170,11 +137,13 @@ class EchoWebSocketServer(gevent.pywsgi.WSGIServer):
                'port': self.port}
 
 if __name__ == '__main__':
+    from ws4py import configure_logger
+    configure_logger()
+
     parser = argparse.ArgumentParser(description='Echo gevent Server')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('-p', '--port', default=9000, type=int)
     args = parser.parse_args()
 
-    server = EchoWebSocketServer(args.host, args.port)
+    server = WSGIServer((args.host, args.port), EchoWebSocketApplication(args.host, args.port))
     server.serve_forever()
-    
