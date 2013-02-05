@@ -160,6 +160,16 @@ class WebSocketManager(threading.Thread):
     def __len__(self):
         return len(self.websockets)
 
+    def __iter__(self):
+        return self.websockets.itervalues()
+
+    def __contains__(self, ws):
+        fd = ws.sock.fileno()
+        # just in case the file descriptor was reused
+        # we actually check the instance (well, this might
+        # also have been reused...)
+        return self.websockets.get(fd) is ws
+
     def add(self, websocket):
         """
         Manage a new websocket.
@@ -186,7 +196,7 @@ class WebSocketManager(threading.Thread):
         logger.info("Removing websocket %s" % format_addresses(websocket))
         with self.lock:
             fd = websocket.sock.fileno()
-            self.websockets.pop(fd)
+            self.websockets.pop(fd, None)
             self.poller.unregister(fd)
 
     def stop(self):
@@ -235,7 +245,7 @@ class WebSocketManager(threading.Thread):
                     if not ws.terminated and not ws.once():
                         with self.lock:
                             fd = ws.sock.fileno()
-                            self.websockets.pop(fd)
+                            self.websockets.pop(fd, None)
                             self.poller.unregister(fd)
 
                         if not ws.terminated:
