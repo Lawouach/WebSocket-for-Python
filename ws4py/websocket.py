@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import socket
 import time
 import threading
@@ -259,41 +260,6 @@ class WebSocket(object):
         else:
             raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
 
-    def run(self):
-        """
-        Performs the operation of reading from the underlying
-        connection in order to feed the stream of bytes.
-
-        We start with a small size of two bytes to be read
-        from the connection so that we can quickly parse an
-        incoming frame header. Then the stream indicates
-        whatever size must be read from the connection since
-        it knows the frame payload length.
-
-        Note that we perform some automatic opererations:
-
-        * On a closing message, we respond with a closing
-          message and finally close the connection
-        * We respond to pings with pong messages.
-        * Whenever an error is raised by the stream parsing,
-          we initiate the closing of the connection with the
-          appropiate error code.
-
-        This method is blocking and should likely be run
-        in a thread.
-        """
-        self.sock.setblocking(True)
-        with Heartbeat(self, frequency=self.heartbeat_freq):
-            s = self.stream
-
-            try:
-                self.opened()
-                while not self.terminated:
-                    if not self.once():
-                        break
-            finally:
-                self.terminate()
-
     def once(self):
         """
         Performs the operation of reading from the underlying
@@ -395,6 +361,41 @@ class WebSocket(object):
 
         s = None
         return True
+
+    def run(self):
+        """
+        Performs the operation of reading from the underlying
+        connection in order to feed the stream of bytes.
+
+        We start with a small size of two bytes to be read
+        from the connection so that we can quickly parse an
+        incoming frame header. Then the stream indicates
+        whatever size must be read from the connection since
+        it knows the frame payload length.
+
+        Note that we perform some automatic opererations:
+
+        * On a closing message, we respond with a closing
+          message and finally close the connection
+        * We respond to pings with pong messages.
+        * Whenever an error is raised by the stream parsing,
+          we initiate the closing of the connection with the
+          appropiate error code.
+
+        This method is blocking and should likely be run
+        in a thread.
+        """
+        self.sock.setblocking(True)
+        with Heartbeat(self, frequency=self.heartbeat_freq):
+            s = self.stream
+
+            try:
+                self.opened()
+                while not self.terminated:
+                    if not self.once():
+                        break
+            finally:
+                self.terminate()
 
 class EchoWebSocket(WebSocket):
     def received_message(self, message):
