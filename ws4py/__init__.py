@@ -31,7 +31,7 @@ from ws4py.compat import enc
 
 __author__ = "Sylvain Hellegouarch"
 __version__ = "0.3.0"
-__all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger']
+__all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger', 'format_addresses']
 
 WS_KEY = enc("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 WS_VERSION = (8, 13)
@@ -55,3 +55,9 @@ def configure_logger(stdout=True, filepath=None, level=logging.INFO):
         logger.addHandler(h)
 
     return logger
+
+def format_addresses(ws):
+    me_ip, me_port = ws.local_address
+    peer_ip, peer_port = ws.peer_address
+    return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
+    

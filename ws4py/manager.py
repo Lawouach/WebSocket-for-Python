@@ -4,13 +4,10 @@ import select
 import threading
 import time
 
+from ws4py import format_addresses
+
 logger = logging.getLogger('ws4py')
 
-def format_addresses(ws):
-    me_ip, me_port = ws.local_address
-    peer_ip, peer_port = ws.peer_address
-    return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
-    
 class SelectPoller(object):
     def __init__(self, timeout=0.1):
         self._fds = []
