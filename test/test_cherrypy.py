@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import time
 import unittest
 
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import EchoWebSocket
-from ws4py.compat import py3k
 
 class FakeSocket(object):
     def settimeout(self, timeout):
@@ -27,6 +27,12 @@ class FakeSocket(object):
 
     def recv(self, bufsize=0):
         pass
+
+    def getsockname(self):
+        return '127.0.0.1', 0
+
+    def getpeername(self):
+        return '127.0.0.1', 8091
 
 class App(object):
     @cherrypy.expose
@@ -60,24 +66,20 @@ class CherryPyTest(unittest.TestCase):
         teardown_engine()
 
     def test_plugin(self):
-        self.assertEquals(len(cherrypy.engine.websocket.pool), 0)
+        manager = cherrypy.engine.websocket.manager
+        self.assertEquals(len(manager), 0)
 
         s = FakeSocket()
         h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
-        self.assertEquals(len(cherrypy.engine.websocket.pool), 1)
-        if py3k:
-            k = list(cherrypy.engine.websocket.pool.keys())[0]
-        else:
-            k = cherrypy.engine.websocket.pool.keys()[0]
-        self.assertTrue(k is h)
-        self.assertEquals(cherrypy.engine.websocket.pool[k][1], ('127.0.0.1', 0))
+        self.assertEquals(len(manager), 1)
+        self.assertIn(h, manager)
 
-        self.assertEquals(len(cherrypy.engine.websocket.pool), 1)
-        h.close() # shutdown server side of the websocket connection
+        h.close() # initiate closing handshake
         h.client_terminated = True # we aren't actually connected so pretend the client shutdown
-        cherrypy.engine.publish('main')
-        self.assertEquals(len(cherrypy.engine.websocket.pool), 0)
+
+        # TODO: Implement a fake poller so that works...
+        self.assertEquals(len(manager), 0)
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
