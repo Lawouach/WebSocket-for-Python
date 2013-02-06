@@ -45,6 +45,7 @@ import threading
 import time
 
 from ws4py import format_addresses
+from ws4py.compat import py3k
 
 logger = logging.getLogger('ws4py')
 
@@ -161,7 +162,10 @@ class WebSocketManager(threading.Thread):
         return len(self.websockets)
 
     def __iter__(self):
-        return self.websockets.itervalues()
+        if py3k:
+            return iter(self.websockets.values())
+        else:
+            return self.websockets.itervalues()
 
     def __contains__(self, ws):
         fd = ws.sock.fileno()
@@ -241,8 +245,8 @@ class WebSocketManager(threading.Thread):
 
                 ws = self.websockets.get(fd)
 
-                if ws:
-                    if not ws.terminated and not ws.once():
+                if ws and not ws.terminated:
+                    if not ws.once():
                         with self.lock:
                             fd = ws.sock.fileno()
                             self.websockets.pop(fd, None)
@@ -260,7 +264,7 @@ class WebSocketManager(threading.Thread):
         """
         with self.lock:
             logger.info("Closing all websockets with [%d] '%s'" % (code, message))
-            for ws in self.websockets.itervalues():
+            for ws in iter(self):
                 ws.close(code=1001, reason=message)
 
     def broadcast(self, message, binary=False):
@@ -274,10 +278,14 @@ class WebSocketManager(threading.Thread):
         """
         with self.lock:
             websockets = self.websockets.copy()
+            if py3k:
+                ws_iter = iter(websockets.values())
+            else:
+                ws_iter = websockets.itervalues()
 
-        for ws in websockets.itervalues():
+        for ws in ws_iter:
             if not ws.terminated:
                 try:
                     ws.send(message, binary)
-                except Exception, ex:
+                except:
                     pass
