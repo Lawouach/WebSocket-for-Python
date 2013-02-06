@@ -49,7 +49,7 @@ class WebSocketWSGIHandler(WSGIHandler):
                 if self.environ.get('REQUEST_METHOD') != 'GET':
                     raise HandshakeError('HTTP method must be a GET')
 
-                for key, expected_value in [('HTTP_UPGRADE', 'webscket'),
+                for key, expected_value in [('HTTP_UPGRADE', 'websocket'),
                                             ('HTTP_CONNECTION', 'upgrade')]:
                     actual_value = self.environ.get(key, '').lower()
                     if not actual_value:
