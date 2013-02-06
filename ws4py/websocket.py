@@ -237,6 +237,9 @@ class WebSocket(object):
 
         If ``binary`` is set, handles the payload as a binary message.
         """
+        if self.terminated:
+            raise RuntimeError("Cannot send on a terminated websocket")
+
         message_sender = self.stream.binary_message if binary else self.stream.text_message
 
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
@@ -271,6 +274,10 @@ class WebSocket(object):
         whatever size must be read from the connection since
         it knows the frame payload length.
         """
+        if self.terminated:
+            logger.debug("WebSocket is already terminated")
+            return False
+
         s = self.stream
         sock = self.sock
         process = self.process
