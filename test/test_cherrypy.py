@@ -34,6 +34,24 @@ class FakeSocket(object):
     def getpeername(self):
         return '127.0.0.1', 8091
 
+class FakePoller(object):
+    def __init__(self, timeout=0.1):
+        self._fds = []
+
+    def release(self):
+        self._fds = []
+
+    def register(self, fd):
+        if fd not in self._fds:
+            self._fds.append(fd)
+
+    def unregister(self, fd):
+        if fd in self._fds:
+            self._fds.remove(fd)
+
+    def poll(self):
+        return self._fds
+
 class App(object):
     @cherrypy.expose
     def ws(self):
@@ -47,6 +65,8 @@ def setup_engine():
 
     cherrypy.engine.websocket = WebSocketPlugin(cherrypy.engine)
     cherrypy.engine.websocket.subscribe()
+
+    cherrypy.engine.websocket.manager.poller = FakePoller()
 
     cherrypy.tools.websocket = WebSocketTool()
 
@@ -75,8 +95,10 @@ class CherryPyTest(unittest.TestCase):
         self.assertEquals(len(manager), 1)
         self.assertIn(h, manager)
 
-        h.close() # initiate closing handshake
-        h.client_terminated = True # we aren't actually connected so pretend the client shutdown
+        h.close()
+        
+        # the poller runs a thread, give it time to get there
+        time.sleep(0.5)
 
         # TODO: Implement a fake poller so that works...
         self.assertEquals(len(manager), 0)
