@@ -107,6 +107,7 @@ ws4py implements the server side through:
 
  * CherryPy (works with CPython 2.6+ and 3.2+ as well as PyPy)
  * gevent (works with CPython 2.6+)
+ * wsgiref
 
 Tornado already offers its own implementation.
 
