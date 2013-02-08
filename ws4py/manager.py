@@ -5,35 +5,37 @@ handle websocket's execution.
 
 Initially the rationale was to:
 
-- Externalize the way the CherryP server had been setup
-as it's websocket management was too tightly coupled with
-the plugin implementation.
+- Externalize the way the CherryPy server had been setup
+  as its websocket management was too tightly coupled with
+  the plugin implementation.
 - Offer a management that could be used by other
-server or client implementations.
+  server or client implementations.
 - Move away from the threaded model to the event-based
-model by relying on `select` or `epoll` (when available).
+  model by relying on `select` or `epoll` (when available).
 
 
 A simple usage for handling websocket clients:
 
-    >>> from ws4py.client import WebSocketBaseClient
-    >>> from ws4py.manager import WebSocketManager
+.. code-block:: python
 
-    >>> m = WebSocketManager()
+    from ws4py.client import WebSocketBaseClient
+    from ws4py.manager import WebSocketManager
 
-    >>> class EchoClient(WebSocketBaseClient):
-    >>>     def handshake_ok(self):
-    >>>         m.add(self)  # register the client once the handshake is done
+    m = WebSocketManager()
 
-    >>>     def received_message(self, msg):
-    >>>         print str(msg)
+    class EchoClient(WebSocketBaseClient):
+        def handshake_ok(self):
+            m.add(self)  # register the client once the handshake is done
 
-    >>> m.start()
+        def received_message(self, msg):
+            print str(msg)
 
-    >>> client = EchoClient('ws://localhost:9000/ws')
-    >>> client.connect()
+    m.start()
 
-    >>> m.join()  # blocks forever
+    client = EchoClient('ws://localhost:9000/ws')
+    client.connect()
+
+    m.join()  # blocks forever
 
 Managers are not compulsory but hopefully will help your
 workflow. For clients, you can still rely on threaded, gevent or
@@ -93,7 +95,7 @@ class SelectPoller(object):
 class EPollPoller(object):
     def __init__(self, timeout=0.1):
         """
-        An epoll poller that uses the `epoll`
+        An epoll poller that uses the ``epoll``
         implementation to determines which
         file descriptors have data available to read.
 
@@ -145,18 +147,22 @@ class WebSocketManager(threading.Thread):
         be the blocking mainloop of your application.
 
         The poller's implementation is automatically chosen
-        with epoll if available else select.
+        with ``epoll`` if available else ``select`` unless you
+        provide your own ``poller``.
         """
         threading.Thread.__init__(self)
         self.lock = threading.Lock()
         self.websockets = {}
 
-        if hasattr(select, "epoll"):
-            self.poller = EPollPoller()
-            logger.info("Using epoll")
+        if poller:
+            self.poller = poller
         else:
-            self.poller = SelectPoller()
-            logger.info("Using select as epoll is not available")
+            if hasattr(select, "epoll"):
+                self.poller = EPollPoller()
+                logger.info("Using epoll")
+            else:
+                self.poller = SelectPoller()
+                logger.info("Using select as epoll is not available")
 
     def __len__(self):
         return len(self.websockets)
@@ -178,8 +184,8 @@ class WebSocketManager(threading.Thread):
         """
         Manage a new websocket.
 
-        First calls its `opened` method and
-        register its socket against the poller
+        First calls its :meth:`opened() <ws4py.websocket.WebSocket.opened>`
+        method and register its socket against the poller
         for reading events.
         """
         logger.info("Managing websocket %s" % format_addresses(websocket))
@@ -191,10 +197,10 @@ class WebSocketManager(threading.Thread):
 
     def remove(self, websocket):
         """
-        Remove the given `websocket` from the manager.
+        Remove the given ``websocket`` from the manager.
 
-        This does not call its `closed` method as
-        it's out-of-band by your application
+        This does not call its :meth:`closed() <ws4py.websocket.WebSocket.closed>`
+        method as it's out-of-band by your application
         or from within the manager's run loop.
         """
         logger.info("Removing websocket %s" % format_addresses(websocket))
@@ -221,10 +227,10 @@ class WebSocketManager(threading.Thread):
         call related websockets' `once` method to
         read and process the incoming data.
 
-        If the `once` method returns a `False` value,
-        its `terminate` method is also applied to
-        properly close the websocket and its socket
-        is unregistered from the poller.
+        If the :meth:`once() <ws4py.websocket.WebSocket.once>`
+        method returns a `False` value, its :meth:`terminate() <ws4py.websocket.WebSocket.terminate>`
+        method is also applied to properly close
+        the websocket and its socket is unregistered from the poller.
 
         Note that websocket shouldn't take long to process
         their data or they will block the remaining
@@ -258,9 +264,9 @@ class WebSocketManager(threading.Thread):
 
     def close_all(self, code=1001, message='Server is shutting down'):
         """
-        Execute the `close` method of each registered websockets
-        to initiate the closing handshake. It doesn't wait for
-        the handshake to complete properly.
+        Execute the :meth:`close() <ws4py.websocket.WebSocket.close>`
+        method of each registered websockets to initiate the closing handshake.
+        It doesn't wait for the handshake to complete properly.
         """
         with self.lock:
             logger.info("Closing all websockets with [%d] '%s'" % (code, message))

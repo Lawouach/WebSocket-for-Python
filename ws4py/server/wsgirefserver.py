@@ -9,7 +9,7 @@ Mostly, this module overrides bits and pieces of
 the built-in classes so that it supports the WebSocket
 workflow.
 
-.. code-block: python
+.. code-block:: python
 
     from wsgiref.simple_server import make_server
     from ws4py.websocket import EchoWebSocket
@@ -57,9 +57,9 @@ class WebSocketWSGIHandler(SimpleHandler):
         Completes the response and performs the following tasks:
 
         - Remove the `'ws4py.socket'` and `'ws4py.websocket'`
-        environ keys.
+          environ keys.
         - Attach the returned websocket, if any, to the WSGI server
-        using its ``link_websocket_to_server`` method.
+          using its ``link_websocket_to_server`` method.
         """
         ws = None
         if self.environ:

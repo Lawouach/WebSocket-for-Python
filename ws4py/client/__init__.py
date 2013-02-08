@@ -14,8 +14,26 @@ __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
     def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None):
+        """
+        A websocket client that implements :rfc:`6455` and provides a simple
+        interface to communicate with a websocket server.
+
+        This class works on its own but will block if not run in
+        its own thread.
+
+        When an instance of this class is created, a :py:mod:`socket`
+        is created with the nagle's algorithm disabled and with
+        the capacity to reuse a port that was just used.
+
+        The address of the server will be extracted from the given
+        websocket url.
+
+        The websocket key is randomly generated, reset the
+        `key` attribute if you want to provide yours.
+
+        """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        
+
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -73,16 +91,21 @@ class WebSocketBaseClient(WebSocket):
         self.resource = resource
 
     def close(self, code=1000, reason=''):
+        """
+        Initiate the closing handshake with the server.
+        """
         if not self.client_terminated:
             self.client_terminated = True
             self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=True))
 
     def connect(self):
-        #self.sock.settimeout(3)
+        """
+        Connects this websocket and starts the upgrade handshake
+        with the remote endpoint.
+        """
         if self.scheme == "wss":
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock)
-            self.sender = self.sock.sendall
 
         self.sock.connect((self.host, int(self.port)))
 
@@ -118,6 +141,10 @@ class WebSocketBaseClient(WebSocket):
 
     @property
     def handshake_headers(self):
+        """
+        List of headers appropriate for the upgrade
+        handshake.
+        """
         headers = [
             ('Host', self.host),
             ('Connection', 'Upgrade'),
@@ -134,6 +161,9 @@ class WebSocketBaseClient(WebSocket):
 
     @property
     def handshake_request(self):
+        """
+        Prepare the request to be sent for the upgrade handshake.
+        """
         headers = self.handshake_headers
         request = ["GET %s HTTP/1.1" % self.resource]
         for header, value in headers:
@@ -143,11 +173,19 @@ class WebSocketBaseClient(WebSocket):
         return enc('\r\n'.join(request))
 
     def process_response_line(self, response_line):
+        """
+        Ensure that we received a HTTP `101` status code in
+        response to our request and if not raises :exc:`HandshakeError`.
+        """
         protocol, code, status = response_line.split(enc(' '), 2)
         if code != enc('101'):
             raise HandshakeError("Invalid response status: %s %s" % (code, status))
 
     def process_handshake_header(self, headers):
+        """
+        Read the upgrade handshake's response headers and
+        validate them against :rfc:`6455`.
+        """
         protocols = []
         extensions = []
 
