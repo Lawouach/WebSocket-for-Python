@@ -15,7 +15,7 @@ DEFAULT_READING_SIZE = 2
 
 logger = logging.getLogger('ws4py')
 
-__all__ = ['WebSocket', 'EchoWebSocket']
+__all__ = ['WebSocket', 'EchoWebSocket', 'Heartbeat']
 
 class Heartbeat(threading.Thread):
     def __init__(self, websocket, frequency=2.0):
@@ -273,6 +273,10 @@ class WebSocket(object):
         incoming frame header. Then the stream indicates
         whatever size must be read from the connection since
         it knows the frame payload length.
+
+        It returns `False` if an error occurred at the
+        socket level or during the bytes processing. Otherwise,
+        it returns `True`.
         """
         if self.terminated:
             logger.debug("WebSocket is already terminated")
@@ -294,6 +298,16 @@ class WebSocket(object):
         return True
 
     def terminate(self):
+        """
+        Completes the websocket by calling the `closed`
+        method either using the received closing code
+        and reason, or when none was received, using
+        the special `1006` code.
+
+        Finally close the underlying connection for
+        good and cleanup resources by unsetting
+        the `environ` and `stream` attributes.
+        """
         s = self.stream
 
         self.client_terminated = self.server_terminated = True
