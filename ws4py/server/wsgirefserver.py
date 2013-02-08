@@ -21,6 +21,9 @@ workflow.
                          app=WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     server.initialize_websockets_manager()
     server.serve_forever()
+
+.. note::
+   For some reason this server may fail against autobahntestsuite.
 """
 import logging
 import sys
@@ -127,6 +130,9 @@ class WSGIServer(_WSGIServer):
         _WSGIServer.server_close(self)
 
 if __name__ == '__main__':
+    from ws4py import configure_logger
+    configure_logger()
+
     from wsgiref.simple_server import make_server
     from ws4py.websocket import EchoWebSocket
 
