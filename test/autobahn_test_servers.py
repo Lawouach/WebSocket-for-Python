@@ -36,7 +36,7 @@ def run_gevent_server(host="127.0.0.1", port=9001):
     from gevent import monkey; monkey.patch_all()
     from ws4py.websocket import EchoWebSocket
     from ws4py.server.geventserver import WebSocketWSGIApplication, WSGIServer
-     
+
     server = WSGIServer((host, port), WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     logger = logging.getLogger('autobahn_testsuite')
     logger.warning("Serving gevent server on %s:%s" % (host, port))
