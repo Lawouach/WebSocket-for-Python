@@ -147,7 +147,7 @@ or even:
 Documentation
 -------------
 
-Online documentation can be found at: http://www.defuze.org/oss/ws4py/docs/
+Online documentation can be found at: https://ws4py.readthedocs.org/en/latest/
 
 Continuous Build
 ----------------
