@@ -10,7 +10,7 @@ if sys.version_info < (3, 0):
     test_require.append('gevent')
 
 setup(name = "ws4py",
-      version = '0.3.0',
+      version = '0.3.0-beta',
       description = "WebSocket library for Python",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",

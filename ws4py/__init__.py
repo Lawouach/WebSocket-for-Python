@@ -30,7 +30,7 @@ import logging
 from ws4py.compat import enc
 
 __author__ = "Sylvain Hellegouarch"
-__version__ = "0.3.0"
+__version__ = "0.3.0-beta"
 __all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger', 'format_addresses']
 
 WS_KEY = enc("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
