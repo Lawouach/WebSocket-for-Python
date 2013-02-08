@@ -8,6 +8,8 @@ Overview
 
 The latest stable release is 0.2.4.
 
+The current development version is 0.3.0-beta.
+
 ws4py does not support older version of the protocol like Hixie-76.
 
 
