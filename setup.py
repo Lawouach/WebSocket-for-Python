@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import sys
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
+
+test_require = ['unittest2', 'cherrypy']
+if sys.version_info < (3, 0):
+    test_require.append('gevent')
 
 setup(name = "ws4py",
       version = '0.3.0',
@@ -12,7 +17,7 @@ setup(name = "ws4py",
       url = "https://github.com/Lawouach/WebSocket-for-Python",
       download_url = "http://www.defuze.org/oss/ws4py/",
       packages = ["ws4py", "ws4py.client", "ws4py.server"],
-      tests_require=['unittest2', 'gevent', 'cherrypy'],
+      tests_require=test_require,
       test_suite='unittest2.collector',
       platforms = ["any"],
       license = 'BSD',
