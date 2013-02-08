@@ -94,7 +94,7 @@ class WebSocketClient(WebSocketBaseClient):
 
 if __name__ == '__main__':
 
-    ws = WebSocketClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
+    ws = WebSocketClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
 
     ws.send("Hello world")
@@ -107,8 +107,9 @@ if __name__ == '__main__':
         while True:
             m = ws.receive()
             if m is not None:
-                print((m, len(str(m))))
-                if len(str(m)) == 35:
+                m = str(m)
+                print((m, len(m)))
+                if len(m) == 35:
                     ws.close()
                     break
             else:

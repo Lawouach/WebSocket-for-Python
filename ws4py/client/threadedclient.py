@@ -57,3 +57,25 @@ class WebSocketClient(WebSocketBaseClient):
         """
         self._th.start()
         self._th.join(timeout=1.0)
+
+if __name__ == '__main__':
+    from ws4py.client.threadedclient import WebSocketClient
+
+    class EchoClient(WebSocketClient):
+        def opened(self):
+            for i in range(0, 200, 25):
+                self.send("*" * i)
+
+        def closed(self, code, reason):
+            print(("Closed down", code, reason))
+
+        def received_message(self, m):
+            print("=> %d %s" % (len(m), str(m)))
+            if len(m) == 175:
+                self.close(reason='bye bye')
+
+    try:
+        ws = EchoClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
+        ws.connect()
+    except KeyboardInterrupt:
+        ws.close()
