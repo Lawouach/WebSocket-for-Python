@@ -1,0 +1,6 @@
+CherryPy==3.2.3
+argparse==1.2.1
+gevent==1.0dev
+greenlet==0.4.0
+tornado==2.4.1
+wsgiref==0.1.2
