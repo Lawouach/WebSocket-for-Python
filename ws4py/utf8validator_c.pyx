@@ -98,7 +98,7 @@ cdef class Utf8Validator(object):
         total amount of consumed bytes.
         """
         cdef int state = self.state
-        cdef int i, b
+        cdef int i=0, b
         cdef char* buf
         cdef Py_ssize_t buf_len
         PyObject_AsReadBuffer(ba, <void**>&buf, &buf_len)
