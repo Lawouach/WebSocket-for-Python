@@ -49,12 +49,32 @@ gevent
     :linenos:
 
     from gevent import monkey; monkey.patch_all()
-    import gevent
-
-    from ws4py.server.geventserver import WebSocketServer
     from ws4py.websocket import EchoWebSocket
+    from ws4py.server.geventserver import WSGIServer
+    from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
-    server = WebSocketServer(('127.0.0.1', 9001), websocket_class=EchoWebSocket)
+    server = WSGIServer(('localhost', 9000), WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     server.serve_forever()
 
 First we patch all the standard modules so that the stdlib runs well with as gevent. Then we simply create a `WSGI <http://www.wsgi.org/en/latest/index.html>`_ server and specify the class which will be instanciated internally each time a connection is successful.
+
+wsgiref
+-------
+
+:py:mod:`wsgiref` is a built-in WSGI package that provides various classes and helpers to develop against WSGI. Mostly it provides a basic WSGI server that can be usedfor testing or simple demos. ws4py provides support for websocket on wsgiref for testing purpose as well. It's not meant to be used in production.
+
+.. code-block:: python
+    :linenos:
+
+
+
+    from wsgiref.simple_server import make_server
+    from ws4py.websocket import EchoWebSocket
+    from ws4py.server.wsgirefserver import WSGIServer, WebSocketWSGIRequestHandler
+    from ws4py.server.wsgiutils import WebSocketWSGIApplication
+
+    server = make_server('', 9000, server_class=WSGIServer,
+                         handler_class=WebSocketWSGIRequestHandler,
+                         app=WebSocketWSGIApplication(handler_cls=EchoWebSocket))
+    server.initialize_websockets_manager()
+    server.serve_forever()

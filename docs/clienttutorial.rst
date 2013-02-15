@@ -42,11 +42,14 @@ An example is better than any word so let's have a look at a basic client:
 
 This example demonstrates how to implement a client, here based on a thread-model, that is able to send and receive messages from a connected endpoint at ws://localhost:9000/.
 
-In this snippet, when the handshake is successful, the :func:`opened() <ws4py.websocket.WebSocket.opened>` method is called and within this method we immediatly send to the server a bunch of messages. First we demonstrate how you can use a generator to do so, then we simply send strings.
+In this snippet, when the handshake is successful, the :meth:`opened() <ws4py.websocket.WebSocket.opened>` method is called and within this method we immediatly send to the server a bunch of messages. First we demonstrate how you can use a generator to do so, then we simply send strings.
 
 Assuming the server echoes messages as they arrive, the :func:`received_message(message) <ws4py.websocket.WebSocket.received_message>` method will print out the messages returned by the server and simply closes the connection once it receives the last sent messages , which length is 175.
 
 Finally the :func:`closed(code, reason=None) <ws4py.websocket.WebSocket.closed>` method is called with the code and reason given by the server.
+
+.. seealso::
+   :ref:`manager`.
 
 Tornado
 -------

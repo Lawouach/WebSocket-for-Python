@@ -31,6 +31,7 @@ Tutorial
    basics
    clienttutorial
    servertutorial
+   managertutorial
 
 Packages
 --------

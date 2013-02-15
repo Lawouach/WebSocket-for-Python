@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import socket
 import time
 import threading
@@ -12,7 +13,9 @@ from ws4py.compat import basestring, unicode, dec
 
 DEFAULT_READING_SIZE = 2
 
-__all__ = ['WebSocket', 'EchoWebSocket']
+logger = logging.getLogger('ws4py')
+
+__all__ = ['WebSocket', 'EchoWebSocket', 'Heartbeat']
 
 class Heartbeat(threading.Thread):
     def __init__(self, websocket, frequency=2.0):
@@ -51,6 +54,7 @@ class Heartbeat(threading.Thread):
             try:
                 self.websocket.send(PongControlMessage(data='beep'))
             except socket.error:
+                logger.info("Heartbeat failed")
                 self.websocket.server_terminated = True
                 self.websocket.close_connection()
                 break
@@ -110,8 +114,6 @@ class WebSocket(object):
         Current connection reading buffer size.
         """
 
-        self.sender = self.sock.sendall
-
         self.environ = environ
         """
         WSGI environ dictionary.
@@ -122,6 +124,27 @@ class WebSocket(object):
         At which interval the heartbeat will be running.
         Set this to `0` or `None` to disable it entirely.
         """
+
+        self._local_address = None
+        self._peer_address = None
+
+    @property
+    def local_address(self):
+        """
+        Local endpoint address as a tuple
+        """
+        if not self._local_address:
+            self._local_address = self.sock.getsockname()
+        return self._local_address
+
+    @property
+    def peer_address(self):
+        """
+        Peer endpoint address as a tuple
+        """
+        if not self._peer_address:
+            self._peer_address = self.sock.getpeername()
+        return self._peer_address
 
     def opened(self):
         """
@@ -146,7 +169,7 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self.sender(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
 
     def closed(self, code, reason=None):
         """
@@ -165,6 +188,10 @@ class WebSocket(object):
         marked as terminated.
         """
         return self.client_terminated is True and self.server_terminated is True
+
+    @property
+    def connection(self):
+        return self.sock
 
     def close_connection(self):
         """
@@ -210,38 +237,151 @@ class WebSocket(object):
 
         If ``binary`` is set, handles the payload as a binary message.
         """
+        if self.terminated:
+            raise RuntimeError("Cannot send on a terminated websocket")
+
         message_sender = self.stream.binary_message if binary else self.stream.text_message
 
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
             m = message_sender(payload).single(mask=self.stream.always_mask)
-            self.sender(m)
+            self.sock.sendall(m)
 
         elif isinstance(payload, Message):
             data = payload.single(mask=self.stream.always_mask)
-            self.sender(data)
+            self.sock.sendall(data)
 
         elif type(payload) == types.GeneratorType:
             bytes = next(payload)
             first = True
             for chunk in payload:
-                self.sender(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
+                self.sock.sendall(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
                 bytes = chunk
                 first = False
 
-            self.sender(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            self.sock.sendall(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
 
         else:
             raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
 
-    def _cleanup(self):
+    def once(self):
         """
-        Frees up resources used by the endpoint.
+        Performs the operation of reading from the underlying
+        connection in order to feed the stream of bytes.
+
+        We start with a small size of two bytes to be read
+        from the connection so that we can quickly parse an
+        incoming frame header. Then the stream indicates
+        whatever size must be read from the connection since
+        it knows the frame payload length.
+
+        It returns `False` if an error occurred at the
+        socket level or during the bytes processing. Otherwise,
+        it returns `True`.
         """
-        self.sender = None
-        self.sock = None
-        self.environ = None
-        self.stream._cleanup()
-        self.stream = None
+        if self.terminated:
+            logger.debug("WebSocket is already terminated")
+            return False
+
+        s = self.stream
+        sock = self.sock
+        process = self.process
+
+        try:
+            b = sock.recv(self.reading_buffer_size)
+        except socket.error:
+            logger.exception("Failed to receive data")
+            return False
+        else:
+            if not process(b):
+                return False
+
+        return True
+
+    def terminate(self):
+        """
+        Completes the websocket by calling the `closed`
+        method either using the received closing code
+        and reason, or when none was received, using
+        the special `1006` code.
+
+        Finally close the underlying connection for
+        good and cleanup resources by unsetting
+        the `environ` and `stream` attributes.
+        """
+        s = self.stream
+
+        self.client_terminated = self.server_terminated = True
+
+        try:
+            if not s.closing:
+                self.closed(1006, "Going away")
+            else:
+                self.closed(s.closing.code, s.closing.reason)
+        finally:
+            self.close_connection()
+
+            # Cleaning up resources
+            s._cleanup()
+            self.stream = None
+            self.environ = None
+
+    def process(self, bytes):
+        """ Takes some bytes and process them through the
+        internal stream's parser. If a message of any kind is
+        found, performs one of these actions:
+
+        * A closing message will initiate the closing handshake
+        * Errors will initiate a closing handshake
+        * A message will be passed to the ``received_message`` method
+        * Pings will see pongs be sent automatically
+        * Pongs will be passed to the ``ponged`` method
+
+        The process should be terminated when this method
+        returns ``False``.
+        """
+        s = self.stream
+
+        if not bytes and self.reading_buffer_size > 0:
+            return False
+
+        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
+
+        if s.closing is not None:
+            logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
+            if not self.server_terminated:
+                self.close(s.closing.code, s.closing.reason)
+            else:
+                self.client_terminated = True
+            s = None
+            return False
+
+        if s.errors:
+            for error in s.errors:
+                logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
+                self.close(error.code, error.reason)
+            s.errors = []
+            s = None
+            return False
+
+        if s.has_message:
+            self.received_message(s.message)
+            s.message.data = None
+            s.message = None
+            s = None
+            return True
+
+        if s.pings:
+            for ping in s.pings:
+                self.sock.sendall(s.pong(ping.data))
+            s.pings = []
+
+        if s.pongs:
+            for pong in s.pongs:
+                self.ponged(pong)
+            s.pongs = []
+
+        s = None
+        return True
 
     def run(self):
         """
@@ -272,86 +412,11 @@ class WebSocket(object):
 
             try:
                 self.opened()
-                sock = self.sock
-                fileno = sock.fileno()
-                process = self.process
-
                 while not self.terminated:
-                    try:
-                        bytes = sock.recv(self.reading_buffer_size)
-                    except socket.error:
+                    if not self.once():
                         break
-                    else:
-                        if not process(bytes):
-                            break
             finally:
-                self.client_terminated = self.server_terminated = True
-
-                try:
-                    if not s.closing:
-                        self.closed(1006, "Going away")
-                    else:
-                        self.closed(s.closing.code, s.closing.reason)
-                finally:
-                    s = sock = fileno = process = None
-                    self.close_connection()
-                    self._cleanup()
-
-    def process(self, bytes):
-        """ Takes some bytes and process them through the
-        internal stream's parser. If a message of any kind is
-        found, performs one of these actions:
-
-        * A closing message will initiate the closing handshake
-        * Errors will initiate a closing handshake
-        * A message will be passed to the ``received_message`` method
-        * Pings will see pongs be sent automatically
-        * Pongs will be passed to the ``ponged`` method
-
-        The process should be terminated when this method
-        returns ``False``.
-        """
-        s = self.stream
-
-        if not bytes and self.reading_buffer_size > 0:
-            return False
-
-        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
-
-        if s.closing is not None:
-            if not self.server_terminated:
-                self.close(s.closing.code, s.closing.reason)
-            else:
-                self.client_terminated = True
-            s = None
-            return False
-
-        if s.errors:
-            for error in s.errors:
-                self.close(error.code, error.reason)
-            s.errors = []
-            s = None
-            return False
-
-        if s.has_message:
-            self.received_message(s.message)
-            s.message.data = None
-            s.message = None
-            s = None
-            return True
-
-        if s.pings:
-            for ping in s.pings:
-                self.sender(s.pong(ping.data))
-            s.pings = []
-
-        if s.pongs:
-            for pong in s.pongs:
-                self.ponged(pong)
-            s.pongs = []
-
-        s = None
-        return True
+                self.terminate()
 
 class EchoWebSocket(WebSocket):
     def received_message(self, message):

@@ -8,6 +8,8 @@ Overview
 
 The latest stable release is 0.2.4.
 
+The current development version is 0.3.0-beta.
+
 ws4py does not support older version of the protocol like Hixie-76.
 
 
@@ -105,6 +107,7 @@ ws4py implements the server side through:
 
  * CherryPy (works with CPython 2.6+ and 3.2+ as well as PyPy)
  * gevent (works with CPython 2.6+)
+ * wsgiref
 
 Tornado already offers its own implementation.
 
@@ -147,7 +150,7 @@ or even:
 Documentation
 -------------
 
-Online documentation can be found at: http://www.defuze.org/oss/ws4py/docs/
+Online documentation can be found at: https://ws4py.readthedocs.org/en/latest/
 
 Continuous Build
 ----------------

@@ -3,13 +3,13 @@ import logging
 
 def run_cherrypy_server(host="127.0.0.1", port=9000):
     import cherrypy
-    
+
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
     from ws4py.websocket import EchoWebSocket
-    
+
     cherrypy.config.update({'server.socket_host': host,
                             'server.socket_port': port,
-                            'engine.autoreload_on': False, 
+                            'engine.autoreload_on': False,
                             'log.screen': False})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
@@ -34,10 +34,10 @@ def run_cherrypy_server(host="127.0.0.1", port=9000):
 
 def run_gevent_server(host="127.0.0.1", port=9001):
     from gevent import monkey; monkey.patch_all()
-    from ws4py.server.geventserver import WebSocketServer
     from ws4py.websocket import EchoWebSocket
-    
-    server = WebSocketServer((host, port), websocket_class=EchoWebSocket)
+    from ws4py.server.geventserver import WebSocketWSGIApplication, WSGIServer
+
+    server = WSGIServer((host, port), WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     logger = logging.getLogger('autobahn_testsuite')
     logger.warning("Serving gevent server on %s:%s" % (host, port))
     server.serve_forever()
@@ -80,11 +80,11 @@ def run_autobahn_server(host="127.0.0.1", port=9003):
 if __name__ == '__main__':
     import argparse
     from multiprocessing import Process
-    
+
     logging.basicConfig(format='%(asctime)s %(message)s')
     logger = logging.getLogger('autobahn_testsuite')
     logger.setLevel(logging.WARNING)
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--run-all', dest='run_all', action='store_true',
                         help='Run all servers backend')
@@ -135,4 +135,4 @@ if __name__ == '__main__':
 
     for p in procs:
         p.join()
-    
+

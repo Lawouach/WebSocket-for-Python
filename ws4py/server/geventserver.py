@@ -1,124 +1,101 @@
 # -*- coding: utf-8 -*-
+__doc__ = """
+WSGI entities to support WebSocket from within gevent.
+
+Its usage is rather simple:
+
+.. code-block: python
+
+    from gevent import monkey; monkey.patch_all()
+    from ws4py.websocket import EchoWebSocket
+    from ws4py.server.geventserver import WSGIServer
+    from ws4py.server.wsgiutils import WebSocketWSGIApplication
+
+    server = WSGIServer(('localhost', 9000), WebSocketWSGIApplication(handler_cls=EchoWebSocket))
+    server.serve_forever()
+
+"""
+import logging
+import sys
+
 import gevent
-import gevent.pywsgi
-from gevent import version_info
-IS_GEVENT_V10 = version_info[0] == 1
-del version_info
+from gevent.pywsgi import WSGIHandler, WSGIServer as _WSGIServer
+from gevent.pool import Group
 
-from ws4py.server.wsgi.middleware import WebSocketUpgradeMiddleware
-from ws4py.websocket import WebSocket
+from ws4py import format_addresses
+from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
-class UpgradableWSGIHandler(gevent.pywsgi.WSGIHandler):
-    """Upgradable version of gevent.pywsgi.WSGIHandler class
+logger = logging.getLogger('ws4py')
 
-    This is a drop-in replacement for gevent.pywsgi.WSGIHandler that supports
-    protocol upgrades via WSGI environment. This means you can create upgraders
-    as WSGI apps or WSGI middleware.
+__all__ = ['WebSocketWSGIHandler', 'WSGIServer']
 
-    If an HTTP request comes in that includes the Upgrade header, it will add
-    to the environment two items:
-
-    ``upgrade.protocol``
-      The protocol to upgrade to. Checking for this lets you know the request
-      wants to be upgraded and the WSGI server supports this interface.
-
-    ``upgrade.socket``
-      The raw Python socket object for the connection. From this you can do any
-      upgrade negotiation and hand it off to the proper protocol handler.
-
-    The upgrade must be signalled by starting a response using the 101 status
-    code. This will inform the server to flush the headers and response status
-    immediately, not to expect the normal WSGI app return value, and not to
-    look for more HTTP requests on this connection.
-
-    To use this handler with gevent.pywsgi.WSGIServer, you can pass it to the
-    constructor:
-
-    .. code-block:: python
-       :linenos:
-
-       server = WSGIServer(('127.0.0.1', 80), app,
-                           handler_class=UpgradableWSGIHandler)
-
-    Alternatively, you can specify it as a class variable for a WSGIServer
-    subclass:
-
-    .. code-block:: python
-       :linenos:
-
-       class UpgradableWSGIServer(gevent.pywsgi.WSGIServer):
-             handler_class = UpgradableWSGIHandler
-
+class WebSocketWSGIHandler(WSGIHandler):
     """
+    A WSGI handler that will perform the :rfc:`6455`
+    upgrade and handshake before calling the WSGI application.
+
+    If the incoming request doesn't have a `'Upgrade'` header,
+    the handler will simply fallback to the gevent builtin's handler
+    and process it as per usual.
+    """
+
     def run_application(self):
         upgrade_header = self.environ.get('HTTP_UPGRADE', '').lower()
         if upgrade_header:
-            self.environ['upgrade.protocol'] = upgrade_header
-            self.environ['upgrade.socket'] = self.socket
-            def start_response_for_upgrade(status, headers, exc_info=None):
-                write = self.start_response(status, headers, exc_info)
-                if self.code == 101:
-                    # flushes headers now
-                    if IS_GEVENT_V10:
-                        self.headers_sent = True
-
-                        sline = '%s %s\r\n' % (self.request_version, self.status)
-                        write(sline)
-                        self.response_length += len(sline)
-
-                        for header in headers:
-                            hline = '%s: %s\r\n' % header
-                            write(hline)
-                            self.response_length += len(hline)
-
-                        write('\r\n')
-                        self.response_length += 2
-                    else:
-                        towrite = ['%s %s\r\n' % (self.request_version, self.status)]
-                        for header in headers:
-                            towrite.append('%s: %s\r\n' % header)
-                        towrite.append('\r\n')
-                        self.wfile.writelines(towrite)
-                        self.response_length += sum(len(x) for x in towrite)
-                return write
             try:
-                self.result = self.application(self.environ, start_response_for_upgrade)
-                if self.code != 101:
-                    self.process_result()
-            finally:
-                if hasattr(self, 'code') and self.code == 101:
-                    self.rfile.close() # makes sure we stop processing requests
+                # Build and start the HTTP response
+                self.environ['ws4py.socket'] = self.socket or self.environ['wsgi.input'].rfile._sock
+                self.result = self.application(self.environ, self.start_response) or []
+                self.process_result()
+            except:
+                raise
+            else:
+                del self.environ['ws4py.socket']
+                self.socket = None
+                self.rfile.close()
+
+                ws = self.environ.pop('ws4y.websocket')
+                if ws:
+                    self.server.link_websocket_to_server(ws)
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
 
-class WebSocketServer(gevent.pywsgi.WSGIServer):
-    handler_class = UpgradableWSGIHandler
+class WSGIServer(_WSGIServer):
+    handler_class = WebSocketWSGIHandler
 
-    def __init__(self, address, *args, **kwargs):
-        protocols = kwargs.pop('websocket_protocols', [])
-        extensions = kwargs.pop('websocket_extensions', [])
-        websocket = kwargs.pop('websocket_class', WebSocket)
+    def __init__(self, *args, **kwargs):
+        """
+        WSGI server that simply tracks websockets
+        and send them a proper closing handshake
+        when the server terminates.
 
-        gevent.pywsgi.WSGIServer.__init__(self, address, *args, **kwargs)
-        self.application = WebSocketUpgradeMiddleware(app=self.handler,
-                                                      protocols=protocols,
-                                                      extensions=extensions,
-                                                      websocket_class=websocket)
+        Other than that, the server is the same
+        as its :class:`gevent.pywsgi.WSGIServer`
+        base.
+        """
+        _WSGIServer.__init__(self, *args, **kwargs)
+        self._websockets = Group()
 
-    def handler(self, websocket):
-        g = gevent.spawn(websocket.run)
-        g.join()
-        return ['']
+    def link_websocket_to_server(self, websocket):
+        logger.info("Managing websocket %s" % format_addresses(websocket))
+        self._websockets.spawn(websocket.run)
+
+    def stop(self, *args, **kwargs):
+        logger.info("Terminating server and all connected websockets")
+        for greenlet in self._websockets:
+            try:
+                websocket = greenlet._run.im_self
+                if websocket:
+                    websocket.close(1001, 'Server is shutting down')
+            except:
+                pass
+        _WSGIServer.stop(self, *args, **kwargs)
 
 if __name__ == '__main__':
-    import logging
-    logging.basicConfig(format='%(asctime)s %(message)s')
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    h = logging.StreamHandler()
-    h.setLevel(logging.DEBUG)
-    logger.addHandler(h)
+    from ws4py import configure_logger
+    configure_logger()
 
     from ws4py.websocket import EchoWebSocket
-    server = WebSocketServer(('127.0.0.1', 9001), websocket_class=EchoWebSocket)
+    server = WSGIServer(('127.0.0.1', 9000),
+                        WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     server.serve_forever()

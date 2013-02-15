@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 try:
     from setuptools import setup, Extension
 except ImportError:
@@ -6,16 +7,20 @@ except ImportError:
 
 _c_utf8validator = Extension('ws4py.utf8validator_c', ['ws4py/utf8validator_c.c'])
 
+test_require = ['unittest2', 'cherrypy']
+if sys.version_info < (3, 0):
+    test_require.append('gevent')
+
 setup(name = "ws4py",
-      version = '0.2.5',
+      version = '0.3.0-beta',
       description = "WebSocket library for Python",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
       url = "https://github.com/Lawouach/WebSocket-for-Python",
       download_url = "http://www.defuze.org/oss/ws4py/",
-      packages = ["ws4py", "ws4py.client", "ws4py.server", "ws4py.server.wsgi"],
+      packages = ["ws4py", "ws4py.client", "ws4py.server"],
       ext_modules = [_c_utf8validator],
-      tests_require=['unittest2', 'gevent', 'cherrypy'],
+      tests_require=test_require,
       test_suite='unittest2.collector',
       platforms = ["any"],
       license = 'BSD',

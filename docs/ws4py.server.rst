@@ -17,10 +17,19 @@ server Package
     :undoc-members:
     :show-inheritance:
 
-Subpackages
------------
+:mod:`wsgirefserver` Module
+---------------------------
 
-.. toctree::
+.. automodule:: ws4py.server.wsgirefserver
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-    ws4py.server.wsgi
+:mod:`wsgitutils` Module
+------------------------
+
+.. automodule:: ws4py.server.wsgiutils
+    :members:
+    :undoc-members:
+    :show-inheritance:
 

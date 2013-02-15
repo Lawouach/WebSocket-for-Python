@@ -13,24 +13,75 @@ __all__ = ['WebSocketClient']
 
 class WebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None):
+        """
+        WebSocket client that executes the
+        :meth:`run() <ws4py.websocket.WebSocket.run>` into a gevent greenlet.
+
+        .. code-block:: python
+
+          ws = WebSocketClient('ws://localhost:9000/echo', protocols=['http-only', 'chat'])
+          ws.connect()
+
+          ws.send("Hello world")
+
+          def incoming():
+            while True:
+               m = ws.receive()
+               if m is not None:
+                  print str(m)
+               else:
+                  break
+
+          def outgoing():
+            for i in range(0, 40, 5):
+               ws.send("*" * i)
+
+          greenlets = [
+             gevent.spawn(incoming),
+             gevent.spawn(outgoing),
+          ]
+          gevent.joinall(greenlets)
+        """
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
         self._th = Greenlet(self.run)
 
         self.messages = Queue()
+        """
+        Queue that will hold received messages.
+        """
 
     def handshake_ok(self):
+        """
+        Called when the upgrade handshake has completed
+        successfully.
+
+        Starts the client's thread.
+        """
         self._th.start()
 
     def received_message(self, message):
+        """
+        Override the base class to store the incoming message
+        in the `messages` queue.
+        """
         self.messages.put(copy.deepcopy(message))
 
     def closed(self, code, reason=None):
+        """
+        Puts a :exc:`StopIteration` as a message into the
+        `messages` queue.
+        """
         # When the connection is closed, put a StopIteration
         # on the message queue to signal there's nothing left
         # to wait for
         self.messages.put(StopIteration)
 
     def receive(self):
+        """
+        Returns messages that were stored into the
+        `messages` queue and returns `None` when the
+        websocket is terminated or closed.
+        """
         # If the websocket was terminated and there are no messages
         # left in the queue, return None immediately otherwise the client
         # will block forever
@@ -43,7 +94,7 @@ class WebSocketClient(WebSocketBaseClient):
 
 if __name__ == '__main__':
 
-    ws = WebSocketClient('http://localhost:9000/ws', protocols=['http-only', 'chat'])
+    ws = WebSocketClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
 
     ws.send("Hello world")
@@ -56,8 +107,9 @@ if __name__ == '__main__':
         while True:
             m = ws.receive()
             if m is not None:
-                print((m, len(str(m))))
-                if len(str(m)) == 35:
+                m = str(m)
+                print((m, len(m)))
+                if len(m) == 35:
                     ws.close()
                     break
             else:

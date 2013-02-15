@@ -25,6 +25,14 @@ ws4py Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`manager` Module
+---------------------
+
+.. automodule:: ws4py.manager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`messaging` Module
 -----------------------
 

@@ -9,6 +9,27 @@ __all__ = ['TornadoWebSocketClient']
 
 class TornadoWebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None, io_loop=None):
+        """
+        .. code-block:: python
+
+            from tornado import ioloop
+
+            class MyClient(TornadoWebSocketClient):
+                def opened(self):
+                    for i in range(0, 200, 25):
+                        self.send("*" * i)
+
+                def received_message(self, m):
+                    print((m, len(str(m))))
+
+                def closed(self, code, reason=None):
+                    ioloop.IOLoop.instance().stop()
+
+            ws = MyClient('ws://localhost:9000/echo', protocols=['http-only', 'chat'])
+            ws.connect()
+
+            ioloop.IOLoop.instance().start()
+        """
         WebSocketBaseClient.__init__(self, url, protocols, extensions)
         if self.scheme == "wss":
             self.sock = ssl.wrap_socket(self.sock,
@@ -16,10 +37,12 @@ class TornadoWebSocketClient(WebSocketBaseClient):
             self.io = iostream.SSLIOStream(self.sock, io_loop)
         else:
             self.io = iostream.IOStream(self.sock, io_loop)
-        self.sender = self.io.write
         self.io_loop = io_loop
 
     def connect(self):
+        """
+        Connects the websocket and initiate the upgrade handshake.
+        """
         self.io.set_close_callback(self.__connection_refused)
         self.io.connect((self.host, int(self.port)), self.__send_handshake)
 
@@ -83,6 +106,9 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         self._cleanup()
 
     def close_connection(self):
+        """
+        Close the underlying connection
+        """
         self.io.close()
 
 if __name__ == '__main__':

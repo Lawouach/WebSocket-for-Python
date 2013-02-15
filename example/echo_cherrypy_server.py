@@ -85,6 +85,10 @@ class Root(object):
         cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
 
 if __name__ == '__main__':
+    import logging
+    from ws4py import configure_logger
+    configure_logger(level=logging.DEBUG)
+
     parser = argparse.ArgumentParser(description='Echo CherryPy Server')
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('-p', '--port', default=9000, type=int)
