@@ -63,6 +63,7 @@ The reason is that it was first designed to implement the protocol with simplici
 and clarity in mind. Future developments will look at performances.
 
 Note however that ws4py runs way faster with CherryPy on PyPy than it does on CPython.
+And [wsaccel](https://github.com/methane/wsaccel) replaces some bottleneck with Cython implementation for CPython.
 
 Client support
 --------------
