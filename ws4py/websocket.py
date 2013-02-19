@@ -365,8 +365,9 @@ class WebSocket(object):
 
         if s.has_message:
             self.received_message(s.message)
-            s.message.data = None
-            s.message = None
+            if s.message is not None:
+                s.message.data = None
+                s.message = None
             s = None
             return True
 
