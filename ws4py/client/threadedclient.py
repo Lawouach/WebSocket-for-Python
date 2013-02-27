@@ -56,7 +56,6 @@ class WebSocketClient(WebSocketBaseClient):
         Starts the client's thread.
         """
         self._th.start()
-        self._th.join(timeout=1.0)
 
 if __name__ == '__main__':
     from ws4py.client.threadedclient import WebSocketClient
