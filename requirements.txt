@@ -1,6 +1,10 @@
+-f http://download.cherrypy.org/CherryPy/3.2.2/
+-f http://download.cherrypy.org/CherryPy/3.2.3/
+-f https://bitbucket.org/cherrypy/cherrypy/downloads/ # 3.2.3dev
 CherryPy==3.2.3
 argparse==1.2.1
-gevent==1.0dev
+#gevent==1.0dev
+https://github.com/SiteSupport/gevent/archive/1.0rc2.zip
 greenlet==0.4.0
 tornado==2.4.1
 wsgiref==0.1.2
