@@ -87,21 +87,21 @@ class CherryPyTest(unittest.TestCase):
 
     def test_plugin(self):
         manager = cherrypy.engine.websocket.manager
-        self.assertEquals(len(manager), 0)
+        self.assertEqual(len(manager), 0)
 
         s = FakeSocket()
         h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
-        self.assertEquals(len(manager), 1)
-        self.assertIn(h, manager)
+        self.assertEqual(len(manager), 1)
+        self.assertTrue(h in manager)
 
         h.close()
-        
+
         # the poller runs a thread, give it time to get there
         time.sleep(0.5)
 
         # TODO: Implement a fake poller so that works...
-        self.assertEquals(len(manager), 0)
+        self.assertEqual(len(manager), 0)
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
