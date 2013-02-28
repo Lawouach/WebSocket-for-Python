@@ -5,7 +5,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-test_require = ['unittest2', 'cherrypy']
+tests_require = ['cherrypy', 'nose']
 if sys.version_info < (3, 0):
     tests_require.append('gevent')
 
