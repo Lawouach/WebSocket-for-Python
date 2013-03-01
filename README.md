@@ -1,6 +1,8 @@
 WebSocket for Python (ws4py)
 ============================
 
+[![Build Status](https://travis-ci.org/Lawouach/WebSocket-for-Python.png)](https://travis-ci.org/Lawouach/WebSocket-for-Python)
+
 Python library providing an implementation of the WebSocket protocol defined in RFC 6455 (http://tools.ietf.org/html/rfc6455).
 
 Overview
