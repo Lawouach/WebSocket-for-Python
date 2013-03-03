@@ -48,6 +48,13 @@ class WebSocketClient(WebSocketBaseClient):
         """
         self._th.daemon = flag
 
+    def run_forever(self):
+        """
+        Simply blocks the thread until the
+        websocket has terminated.
+        """
+        self._th.join()
+
     def handshake_ok(self):
         """
         Called when the upgrade handshake has completed
@@ -56,7 +63,6 @@ class WebSocketClient(WebSocketBaseClient):
         Starts the client's thread.
         """
         self._th.start()
-        self._th.join(timeout=1.0)
 
 if __name__ == '__main__':
     from ws4py.client.threadedclient import WebSocketClient
@@ -77,5 +83,6 @@ if __name__ == '__main__':
     try:
         ws = EchoClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
         ws.connect()
+        ws.run_forever()
     except KeyboardInterrupt:
         ws.close()
