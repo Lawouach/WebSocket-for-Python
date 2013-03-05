@@ -89,6 +89,9 @@ class SelectPoller(object):
         Polls once and returns a list of
         ready-to-be-read file descriptors.
         """
+        if len(self._fds) == 0:
+            return []
+
         r, w, x = select.select(self._fds, [], [], self.timeout)
         return r
 
