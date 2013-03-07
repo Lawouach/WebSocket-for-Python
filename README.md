@@ -212,6 +212,7 @@ ws4py comes with a few examples:
  * The ```droid_sensor_cherrypy_server``` broadcasts sensor metrics to clients. Point your browser to http://localhost:9000
    Then run the ```droid_sensor``` module from your Android device using SL4A.
    A screenshot of what this renders to: http://www.defuze.org/oss/ws4py/screenshots/droidsensors.png
+   You will find a lovely video of this demo in action at https://www.youtube.com/watch?v=baD-rShmZcM. Thanks to Mat Bettinson for this.
 
 Credits
 -------
