@@ -1,13 +1,16 @@
 ws4py - A WebSocket package for Python
 ======================================
 
-Release v\ |version|.
+:Author: `Sylvain Hellegouarch <http://www.defuze.org>`_
+:Release: |version|
+:License: `BSD <https://github.com/Lawouach/WebSocket-for-Python/blob/master/LICENSE>`_
+:Source code: https://github.com/Lawouach/WebSocket-for-Python
+
 
 ws4py is a Python package implementing the WebSocket protocol as defined in `RFC 6455 <http://tools.ietf.org/html/rfc6455>`_.
 
-It provides client and server implementations alike that using different techniques like threads, micro-threads or event loops.
-
-ws4py is released under a `BSD <https://github.com/Lawouach/WebSocket-for-Python/blob/master/LICENSE>`_ license.
+It comes with various server and client implementations and runs
+on CPython 2/3, PyPy and Android.
 
 Overview
 ========
