@@ -8,5 +8,7 @@ python:
 
 before_install:
   - sudo apt-get install python-dev libevent-dev
+  - pip install --use-mirrors Cython
 
 script: python setup.py test
+install: python setup.py install
