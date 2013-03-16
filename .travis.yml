@@ -9,12 +9,14 @@ python:
 before_install:
   - sudo apt-get install python-dev libevent-dev
   - pip install --use-mirrors Cython
-  - pip install --use-mirrors unittest2
 
 install:
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install --use-mirrors unittest2; pip install --use-mirrors -r requirements/py2kreqs.txt; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install --use-mirrors -r requirements/py2kreqs.txt; fi 
   - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install --use-mirrors -r requirements/py3kreqs.txt; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install --use-mirrors -r requirements/py2kreqs.txt; fi 
   - python setup.py install
 
 script: 
-  - unit2 discover test
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then unit2 discover test; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then python -m unittest discover; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then python -m unittest discover; fi
