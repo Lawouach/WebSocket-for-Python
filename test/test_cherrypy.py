@@ -93,7 +93,7 @@ class CherryPyTest(unittest.TestCase):
         h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
         self.assertEquals(len(manager), 1)
-        self.assertIn(h, manager)
+        self.assertTrue(h in manager)
 
         h.close()
         
