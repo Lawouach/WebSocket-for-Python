@@ -1,0 +1,2 @@
+https://bitbucket.org/cherrypy/cherrypy/downloads/CherryPy-3.2.3.tar.gz
+tornado==2.4.1
