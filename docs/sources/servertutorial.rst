@@ -1,6 +1,8 @@
 Server
 ======
 
+ws4py comes with a few server implementations built around the main :class:`WebSocket <ws4py.websocket.WebSocket>` class.
+
 CherryPy
 --------
 
@@ -65,8 +67,6 @@ wsgiref
 
 .. code-block:: python
     :linenos:
-
-
 
     from wsgiref.simple_server import make_server
     from ws4py.websocket import EchoWebSocket

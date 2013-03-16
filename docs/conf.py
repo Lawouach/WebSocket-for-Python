@@ -33,7 +33,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.coverage',
               'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx']
+              'sphinx.ext.intersphinx',
+              'sphinxcontrib.seqdiag']
 autoclass_content = 'init'
 autodoc_member_order = 'bysource'
 intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
@@ -103,7 +104,7 @@ highlight_language = 'python'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'nature'
+html_theme = 'sphinxdoc'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -260,7 +261,7 @@ texinfo_documents = [
 epub_title = u'ws4py'
 epub_author = u'Sylvain Hellegouarch'
 epub_publisher = u'Sylvain Hellegouarch'
-epub_copyright = u'2011 - 2012, Sylvain Hellegouarch'
+epub_copyright = u'2011 - 2013, Sylvain Hellegouarch'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.
