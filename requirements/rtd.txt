@@ -1,6 +1,5 @@
 https://bitbucket.org/cherrypy/cherrypy/downloads/CherryPy-3.2.3.tar.gz
 Sphinx==1.1.3
 funcparserlib==0.3.5
-blockdiag==1.2.4
-seqdiag==0.8.2
-sphinxcontrib-seqdiag==0.5.1
+sphinxcontrib-seqdiag
+sphinxcontrib-blockdiag
