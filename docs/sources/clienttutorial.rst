@@ -28,7 +28,7 @@ until the websocket is closed.
                 print i
             	self.send("*" * i)
 
-        def closed(self, code, reason):
+        def closed(self, code, reason=None):
             print "Closed down", code, reason
 
         def received_message(self, m):
