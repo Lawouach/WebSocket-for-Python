@@ -31,6 +31,13 @@ def run_cherrypy_server(host="127.0.0.1", port=9000):
     cherrypy.quickstart(Root(), '/', config)
 
 
+def run_cherrypy_server_with_python3(host="127.0.0.1", port=9004):
+    run_cherrypy_server(host, port)
+
+
+def run_cherrypy_server_with_pypy(host="127.0.0.1", port=9005):
+    run_cherrypy_server(host, port)
+
 
 def run_gevent_server(host="127.0.0.1", port=9001):
     from gevent import monkey; monkey.patch_all()
@@ -89,7 +96,11 @@ if __name__ == '__main__':
     parser.add_argument('--run-all', dest='run_all', action='store_true',
                         help='Run all servers backend')
     parser.add_argument('--run-cherrypy-server', dest='run_cherrypy', action='store_true',
-                        help='Run the CheryPy server backend')
+                        help='Run the CherryPy server backend')
+    parser.add_argument('--run-cherrypy-server-pypy', dest='run_cherrypy_pypy', action='store_true',
+                        help='Run the CherryPy server backend with PyPy')
+    parser.add_argument('--run-cherrypy-server-py3k', dest='run_cherrypy_py3k', action='store_true',
+                        help='Run the CherryPy server backend with Python 3')
     parser.add_argument('--run-gevent-server', dest='run_gevent', action='store_true',
                         help='Run the gevent server backend')
     parser.add_argument('--run-tornado-server', dest='run_tornado', action='store_true',
@@ -128,6 +139,18 @@ if __name__ == '__main__':
         p3 = Process(target=run_autobahn_server)
         p3.daemon = True
         procs.append(p3)
+
+    logger.warning("CherryPy server on PyPy: %s" % args.run_cherrypy_pypy)
+    if args.run_cherrypy_pypy:
+        p4 = Process(target=run_cherrypy_server_with_pypy)
+        p4.daemon = True
+        procs.append(p4)
+
+    logger.warning("CherryPy server on Python 3: %s" % args.run_cherrypy_py3k)
+    if args.run_cherrypy_py3k:
+        p5 = Process(target=run_cherrypy_server_with_python3)
+        p5.daemon = True
+        procs.append(p5)
 
     for p in procs:
         p.start()
