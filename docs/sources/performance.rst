@@ -1,7 +1,7 @@
 .. _perf:
 
-Perfomances
-===========
+Performances
+============
 
 ws4py doesn't perform too bad but it's far from being the fastest WebSocket lib under heavy load. 
 The reason is that it was first designed to implement the protocol with simplicity and clarity in mind. 
