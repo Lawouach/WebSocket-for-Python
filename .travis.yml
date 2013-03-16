@@ -10,5 +10,5 @@ before_install:
   - sudo apt-get install python-dev libevent-dev
   - pip install --use-mirrors Cython
 
-script: python setup.py test
+script: python -m unittest discover test
 install: python setup.py install
