@@ -104,7 +104,10 @@ highlight_language = 'python'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinxdoc'
+if os.environ.get('READTHEDOCS', None) == 'True':
+    html_theme = 'default'
+else:
+    html_theme = 'sphinxdoc'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
