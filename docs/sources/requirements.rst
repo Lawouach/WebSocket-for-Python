@@ -11,6 +11,7 @@ Tested environments:
 - Python 2.7+
 - Python 3.2+
 - PyPy 1.8+
+- Android 2.3 via `SL4A <http://code.google.com/p/android-scripting/>`_
 
 .. note::
 
