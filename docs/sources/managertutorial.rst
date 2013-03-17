@@ -33,3 +33,64 @@ so that the incoming bytes are processed.
 
 If the processing fails in anyway, the manager terminates the websocket and
 remove it from itself. 
+
+Client example
+--------------
+
+Below is a simple example on how to start 2000 clients against
+a single server.
+
+.. code-block:: python
+    :linenos:
+
+    from ws4py.client import WebSocketBaseClient
+    from ws4py.manager import WebSocketManager
+    from ws4py import format_addresses, configure_logger
+
+    logger = configure_logger()
+
+    m = WebSocketManager()
+
+    class EchoClient(WebSocketBaseClient):
+        def handshake_ok(self):
+            logger.info("Opening %s" % format_addresses(self))
+            m.add(self)
+
+    	def received_message(self, msg):
+            logger.info(str(msg))
+
+    if __name__ == '__main__':
+        import time
+    
+        try:
+            m.start()
+            for i in range(2000):
+                client = EchoClient('ws://localhost:9000/ws')
+                client.connect()
+
+            logger.info("%d clients are connected" % i)
+
+            while True:
+                for ws in m.websockets.itervalues():
+                    if not ws.terminated:
+                       break
+            	else:
+                    break
+            	time.sleep(3)
+    	except KeyboardInterrupt:
+            m.close_all()
+            m.stop()
+            m.join()
+
+Once those are created against the ``echo_cherrypy_server`` example for instance,
+point your browser to http://localhost:9000/ and enter a message. It will be
+broadcasted to all connected peers.
+
+When a peer is closed, its connection is automatically removed from the manager
+so you should never need to explicitely remove it.
+
+.. note::
+
+   The CherryPy and wsgiref servers internally use a manager to handle connected
+   websockets. The gevent server relies only on a greenlet 
+   `group <http://www.gevent.org/gevent.pool.html#gevent.pool.Group>`_ instead.
