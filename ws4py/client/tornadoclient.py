@@ -60,12 +60,12 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         self.closed(1006, 'Connection closed during handshake')
 
     def __handshake_sent(self):
-        self.io.read_until("\r\n\r\n", self.__handshake_completed)
+        self.io.read_until(b"\r\n\r\n", self.__handshake_completed)
 
     def __handshake_completed(self, data):
         self.io.set_close_callback(None)
         try:
-            response_line, _, headers = data.partition('\r\n')
+            response_line, _, headers = data.partition(b'\r\n')
             self.process_response_line(response_line)
             protocols, extensions = self.process_handshake_header(headers)
         except HandshakeError:
