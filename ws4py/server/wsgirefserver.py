@@ -64,7 +64,7 @@ class WebSocketWSGIHandler(SimpleHandler):
         ws = None
         if self.environ:
             self.environ.pop('ws4py.socket', None)
-            ws = self.environ.pop('ws4y.websocket', None)
+            ws = self.environ.pop('ws4py.websocket', None)
 
         try:
             SimpleHandler.finish_response(self)

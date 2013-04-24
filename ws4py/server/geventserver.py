@@ -54,7 +54,7 @@ class WebSocketWSGIHandler(WSGIHandler):
                 self.socket = None
                 self.rfile.close()
 
-                ws = self.environ.pop('ws4y.websocket')
+                ws = self.environ.pop('ws4py.websocket')
                 if ws:
                     self.server.link_websocket_to_server(ws)
         else:
