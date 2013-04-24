@@ -69,7 +69,7 @@ class WebSocketWSGIApplication(object):
 
         If the upgrade validates, the `handler_cls` class
         is instanciated and stored inside the WSGI `environ`
-        under the `'ws4y.websocket'` key to make it
+        under the `'ws4py.websocket'` key to make it
         available to the WSGI handler.
         """
         self.protocols = protocols
@@ -83,11 +83,11 @@ class WebSocketWSGIApplication(object):
         the `environ` and `sock`.
 
         Stores then the instance in the `environ` dict
-        under the `'ws4y.websocket'` key.
+        under the `'ws4py.websocket'` key.
         """
         websocket = self.handler_cls(sock, protocols, extensions,
                                      environ.copy())
-        environ['ws4y.websocket'] = websocket
+        environ['ws4py.websocket'] = websocket
         return websocket
 
     def __call__(self, environ, start_response):
