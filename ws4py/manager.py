@@ -90,6 +90,7 @@ class SelectPoller(object):
         ready-to-be-read file descriptors.
         """
         if not self._fds:
+            time.sleep(self.timeout)
             return []
 
         r, w, x = select.select(self._fds, [], [], self.timeout)
