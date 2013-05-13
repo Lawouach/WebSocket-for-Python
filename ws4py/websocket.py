@@ -135,6 +135,8 @@ class WebSocket(object):
         """
         if not self._local_address:
             self._local_address = self.sock.getsockname()
+            if len(self._local_address) == 4:
+                self._local_address = self._local_address[:2]
         return self._local_address
 
     @property
@@ -144,6 +146,8 @@ class WebSocket(object):
         """
         if not self._peer_address:
             self._peer_address = self.sock.getpeername()
+            if len(self._peer_address) == 4:
+                self._peer_address = self._peer_address[:2]
         return self._peer_address
 
     def opened(self):

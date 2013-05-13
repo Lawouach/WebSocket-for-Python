@@ -32,25 +32,48 @@ class WebSocketBaseClient(WebSocket):
         `key` attribute if you want to provide yours.
 
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        WebSocket.__init__(self, sock, protocols=protocols,
-                           extensions=extensions,
-                           heartbeat_freq=heartbeat_freq)
-        self.stream.always_mask = True
-        self.stream.expect_masking = False
-        self.key = b64encode(os.urandom(16))
         self.url = url
-
         self.host = None
         self.scheme = None
         self.port = None
         self.resource = None
 
         self._parse_url()
+
+        # Let's handle IPv4 and IPv6 addresses
+        # Simplified from CherryPy's code
+        try:
+            family, socktype, proto, canonname, sa = socket.getaddrinfo(self.host, self.port,
+                                                                        socket.AF_UNSPEC,
+                                                                        socket.SOCK_STREAM,
+                                                                        0, socket.AI_PASSIVE)[0]
+        except socket.gaierror:
+            family = socket.AF_INET
+            if self.host.startswith('::'):
+                family = socket.AF_INET6
+
+            socktype = socket.SOCK_STREAM
+            proto = 0
+            canonname = ""
+            sa = (self.host, self.port, 0, 0)
+
+        sock = socket.socket(family, socktype, proto)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, 'AF_INET6') and family == socket.AF_INET6 and \
+          self.host.startswith('::'):
+            try:
+                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            except (AttributeError, socket.error):
+                pass
+
+        WebSocket.__init__(self, sock, protocols=protocols,
+                           extensions=extensions,
+                           heartbeat_freq=heartbeat_freq)
+
+        self.stream.always_mask = True
+        self.stream.expect_masking = False
+        self.key = b64encode(os.urandom(16))
 
     # Adpated from: https://github.com/liris/websocket-client/blob/master/websocket.py#L105
     def _parse_url(self):
@@ -107,7 +130,7 @@ class WebSocketBaseClient(WebSocket):
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock)
 
-        self.sock.connect((self.host, int(self.port)))
+        self.sock.connect((self.host, self.port))
 
         self.sock.sendall(self.handshake_request)
 
