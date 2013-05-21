@@ -119,7 +119,7 @@ class WebSocketBaseClient(WebSocket):
         """
         if not self.client_terminated:
             self.client_terminated = True
-            self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=True))
+            self._write(self.stream.close(code=code, reason=reason).single(mask=True))
 
     def connect(self):
         """
@@ -132,7 +132,7 @@ class WebSocketBaseClient(WebSocket):
 
         self.sock.connect((self.host, self.port))
 
-        self.sock.sendall(self.handshake_request)
+        self._write(self.handshake_request)
 
         response = enc('')
         doubleCLRF = enc('\r\n\r\n')
