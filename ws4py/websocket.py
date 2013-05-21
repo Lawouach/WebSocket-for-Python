@@ -173,7 +173,7 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self.sock.sendall(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
 
     def closed(self, code, reason=None):
         """
@@ -229,6 +229,19 @@ class WebSocket(object):
         """
         pass
 
+    def _write(self, b):
+        """
+        Trying to prevent a write operation
+        on an already closed websocket stream.
+
+        This cannot be bullet proof but hopefully
+        will catch almost all use cases.
+        """
+        if self.terminated or self.sock is None:
+            raise RuntimeError("Cannot send on a terminated websocket")
+
+        self.sock.sendall(b)
+
     def send(self, payload, binary=False):
         """
         Sends the given ``payload`` out.
@@ -241,28 +254,25 @@ class WebSocket(object):
 
         If ``binary`` is set, handles the payload as a binary message.
         """
-        if self.terminated:
-            raise RuntimeError("Cannot send on a terminated websocket")
-
         message_sender = self.stream.binary_message if binary else self.stream.text_message
 
         if isinstance(payload, basestring) or isinstance(payload, bytearray):
             m = message_sender(payload).single(mask=self.stream.always_mask)
-            self.sock.sendall(m)
+            self._write(m)
 
         elif isinstance(payload, Message):
             data = payload.single(mask=self.stream.always_mask)
-            self.sock.sendall(data)
+            self._write(data)
 
         elif type(payload) == types.GeneratorType:
             bytes = next(payload)
             first = True
             for chunk in payload:
-                self.sock.sendall(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
+                self._write(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
                 bytes = chunk
                 first = False
 
-            self.sock.sendall(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            self._write(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
 
         else:
             raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
@@ -377,7 +387,7 @@ class WebSocket(object):
 
         if s.pings:
             for ping in s.pings:
-                self.sock.sendall(s.pong(ping.data))
+                self._write(s.pong(ping.data))
             s.pings = []
 
         if s.pongs:
