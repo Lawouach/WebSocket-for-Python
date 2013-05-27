@@ -8,7 +8,7 @@ Built-in
 --------
 
 The built-in client relies only on modules provided by the Python stdlib. The
-client's inner loop runs within a thread and teherfore holds the thread alive
+client's inner loop runs within a thread and therefore holds the thread alive
 until the websocket is closed.
 
 .. code-block:: python
@@ -44,7 +44,7 @@ until the websocket is closed.
         except KeyboardInterrupt:
             ws.close()
 
-In this snippet, when the handshake is successful, the :meth:`opened() <ws4py.websocket.WebSocket.opened>` method is called and within this method we immediatly send to the server a bunch of messages. First we demonstrate how you can use a generator to do so, then we simply send strings.
+In this snippet, when the handshake is successful, the :meth:`opened() <ws4py.websocket.WebSocket.opened>` method is called and within this method we immediately send a bunch of messages to the server. First we demonstrate how you can use a generator to do so, then we simply send strings.
 
 Assuming the server echoes messages as they arrive, the :func:`received_message(message) <ws4py.websocket.WebSocket.received_message>` method will print out the messages returned by the server and simply close the connection once it receives the last sent messages, which length is 175.
 
