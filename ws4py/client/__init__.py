@@ -13,7 +13,7 @@ from ws4py.compat import urlsplit, enc, dec
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
-    def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None):
+    def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None, ssl_options=None):
         """
         A websocket client that implements :rfc:`6455` and provides a simple
         interface to communicate with a websocket server.
@@ -37,6 +37,7 @@ class WebSocketBaseClient(WebSocket):
         self.scheme = None
         self.port = None
         self.resource = None
+        self.ssl_options = ssl_options or {}
 
         self._parse_url()
 
@@ -128,7 +129,7 @@ class WebSocketBaseClient(WebSocket):
         """
         if self.scheme == "wss":
             # default port is now 443; upgrade self.sender to send ssl
-            self.sock = ssl.wrap_socket(self.sock)
+            self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
 
         self.sock.connect((self.host, self.port))
 
