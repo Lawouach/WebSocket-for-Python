@@ -27,7 +27,8 @@ from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
 logger = logging.getLogger('ws4py')
 
-__all__ = ['WebSocketWSGIHandler', 'WSGIServer']
+__all__ = ['WebSocketWSGIHandler', 'WSGIServer',
+           'GEventWebSocketPool']
 
 class WebSocketWSGIHandler(WSGIHandler):
     """
@@ -56,10 +57,35 @@ class WebSocketWSGIHandler(WSGIHandler):
 
                 ws = self.environ.pop('ws4py.websocket')
                 if ws:
-                    self.server.link_websocket_to_server(ws)
+                    self.server.pool.track(ws)
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
 
+class GEventWebSocketPool(Group):
+    """
+    Simple pool of bound websockets.
+    Internally it uses a gevent group to track
+    the websockets. The server should call the ``clear``
+    method to initiate the closing handshake when the
+    server is shutdown.
+    """
+
+    def track(self, websocket):
+        logger.info("Managing websocket %s" % format_addresses(websocket))
+        return self.spawn(websocket.run)
+
+    def clear(self):
+        logger.info("Terminating server and all connected websockets")
+        for greenlet in self:
+            try:
+                websocket = greenlet._run.im_self
+                if websocket:
+                    websocket.close(1001, 'Server is shutting down')
+            except:
+                pass
+            finally:
+                self.discard(greenlet)
+                
 class WSGIServer(_WSGIServer):
     handler_class = WebSocketWSGIHandler
 
@@ -74,24 +100,15 @@ class WSGIServer(_WSGIServer):
         base.
         """
         _WSGIServer.__init__(self, *args, **kwargs)
-        self._websockets = Group()
-
-    def link_websocket_to_server(self, websocket):
-        logger.info("Managing websocket %s" % format_addresses(websocket))
-        self._websockets.spawn(websocket.run)
+        self.pool = GEventWebSocketPool()
 
     def stop(self, *args, **kwargs):
-        logger.info("Terminating server and all connected websockets")
-        for greenlet in self._websockets:
-            try:
-                websocket = greenlet._run.im_self
-                if websocket:
-                    websocket.close(1001, 'Server is shutting down')
-            except:
-                pass
+        self.pool.clear()
         _WSGIServer.stop(self, *args, **kwargs)
 
 if __name__ == '__main__':
+    import os
+
     from ws4py import configure_logger
     configure_logger()
 

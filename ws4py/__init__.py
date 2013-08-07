@@ -57,7 +57,11 @@ def configure_logger(stdout=True, filepath=None, level=logging.INFO):
     return logger
 
 def format_addresses(ws):
-    me_ip, me_port = ws.local_address
-    peer_ip, peer_port = ws.peer_address
-    return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
-    
+    me = ws.local_address
+    peer = ws.peer_address
+    if isinstance(me, tuple) and isinstance(peer, tuple):
+        me_ip, me_port = ws.local_address
+        peer_ip, peer_port = ws.peer_address
+        return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
+
+    return "[Bound to '%s']" % me
