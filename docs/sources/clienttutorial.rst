@@ -40,7 +40,7 @@ until the websocket is closed.
         try:
             ws = DummyClient('ws://localhost:9000/', protocols=['http-only', 'chat'])
             ws.connect()
-	    ws.join()
+            ws.run_forever()
         except KeyboardInterrupt:
             ws.close()
 
