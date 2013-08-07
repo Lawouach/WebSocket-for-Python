@@ -22,8 +22,8 @@ class WebSocketBaseClient(WebSocket):
         its own thread.
 
         When an instance of this class is created, a :py:mod:`socket`
-        is created with the nagle's algorithm disabled and with
-        the capacity to reuse a port that was just used.
+        is created. If the connection is a TCP socket,
+        the nagle's algorithm is disabled.
 
         The address of the server will be extracted from the given
         websocket url.
@@ -31,42 +31,80 @@ class WebSocketBaseClient(WebSocket):
         The websocket key is randomly generated, reset the
         `key` attribute if you want to provide yours.
 
+        For instance to create a TCP client:
+
+        .. code-block:: python
+
+           >>> from websocket.client import WebSocketBaseClient
+           >>> ws = WebSocketBaseClient('ws://localhost/ws')
+
+
+        Here is an example for a TCP client over SSL:
+
+        .. code-block:: python
+
+           >>> from websocket.client import WebSocketBaseClient
+           >>> ws = WebSocketBaseClient('wss://localhost/ws')
+
+
+        Finally an example of a Unix-domain connection:
+
+        .. code-block:: python
+
+           >>> from websocket.client import WebSocketBaseClient
+           >>> ws = WebSocketBaseClient('ws+unix:///tmp/my.sock')
+
+        Note that in this case, the initial Upgrade request
+        will be sent to ``/``. You may need to change this
+        by setting the resource explicitely before connecting:
+
+        .. code-block:: python
+
+           >>> from websocket.client import WebSocketBaseClient
+           >>> ws = WebSocketBaseClient('ws+unix:///tmp/my.sock')
+           >>> ws.resource = '/ws'
+           >>> ws.connect()
+
         """
         self.url = url
         self.host = None
         self.scheme = None
         self.port = None
+        self.unix_socket_path = None
         self.resource = None
         self.ssl_options = ssl_options or {}
 
         self._parse_url()
 
-        # Let's handle IPv4 and IPv6 addresses
-        # Simplified from CherryPy's code
-        try:
-            family, socktype, proto, canonname, sa = socket.getaddrinfo(self.host, self.port,
-                                                                        socket.AF_UNSPEC,
-                                                                        socket.SOCK_STREAM,
-                                                                        0, socket.AI_PASSIVE)[0]
-        except socket.gaierror:
-            family = socket.AF_INET
-            if self.host.startswith('::'):
-                family = socket.AF_INET6
-
-            socktype = socket.SOCK_STREAM
-            proto = 0
-            canonname = ""
-            sa = (self.host, self.port, 0, 0)
-
-        sock = socket.socket(family, socktype, proto)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if hasattr(socket, 'AF_INET6') and family == socket.AF_INET6 and \
-          self.host.startswith('::'):
+        if self.unix_socket_path:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+        else:
+            # Let's handle IPv4 and IPv6 addresses
+            # Simplified from CherryPy's code
             try:
-                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-            except (AttributeError, socket.error):
-                pass
+                family, socktype, proto, canonname, sa = socket.getaddrinfo(self.host, self.port,
+                                                                            socket.AF_UNSPEC,
+                                                                            socket.SOCK_STREAM,
+                                                                            0, socket.AI_PASSIVE)[0]
+            except socket.gaierror:
+                family = socket.AF_INET
+                if self.host.startswith('::'):
+                    family = socket.AF_INET6
+
+                socktype = socket.SOCK_STREAM
+                proto = 0
+                canonname = ""
+                sa = (self.host, self.port, 0, 0)
+
+            sock = socket.socket(family, socktype, proto)
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if hasattr(socket, 'AF_INET6') and family == socket.AF_INET6 and \
+              self.host.startswith('::'):
+                try:
+                    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                except (AttributeError, socket.error):
+                    pass
 
         WebSocket.__init__(self, sock, protocols=protocols,
                            extensions=extensions,
@@ -78,9 +116,24 @@ class WebSocketBaseClient(WebSocket):
 
     # Adpated from: https://github.com/liris/websocket-client/blob/master/websocket.py#L105
     def _parse_url(self):
-        if ":" not in self.url:
-            raise ValueError("Invalid URL: %s" % self.url)
+        """
+        Parses a URL which must have one of the following forms:
 
+        - ws://host[:port][path]
+        - wss://host[:port][path]
+        - ws+unix:///path/to/my.socket
+
+        In the first two cases, the ``host`` and ``port``
+        attributes will be set to the parsed values. If no port
+        is explicitely provided, it will be either 80 or 443
+        based on the scheme. Also, the ``resource`` attribute is
+        set to the path segment of the URL (alongside any querystring).
+
+        In addition, if the scheme is ``ws+unix``, the
+        ``unix_socket_path`` attribute is set to the path to
+        the Unix socket while the ``resource`` attribute is
+        set to ``/``.
+        """
         # Python 2.6.1 and below don't parse ws or wss urls properly. netloc is empty.
         # See: https://github.com/Lawouach/WebSocket-for-Python/issues/59
         scheme, url = self.url.split(":", 1)
@@ -88,6 +141,8 @@ class WebSocketBaseClient(WebSocket):
         parsed = urlsplit(url, scheme="http")
         if parsed.hostname:
             self.host = parsed.hostname
+        elif '+unix' in scheme:
+            self.host = 'localhost'
         else:
             raise ValueError("Invalid hostname from: %s", self.url)
 
@@ -100,6 +155,8 @@ class WebSocketBaseClient(WebSocket):
         elif scheme == "wss":
             if not self.port:
                 self.port = 443
+        elif scheme in ('ws+unix', 'wss+unix'):
+            pass
         else:
             raise ValueError("Invalid scheme: %s" % scheme)
 
@@ -108,11 +165,24 @@ class WebSocketBaseClient(WebSocket):
         else:
             resource = "/"
 
+        if '+unix' in scheme:
+            self.unix_socket_path = resource
+            resource = '/'
+
         if parsed.query:
             resource += "?" + parsed.query
 
         self.scheme = scheme
         self.resource = resource
+
+    @property
+    def bind_addr(self):
+        """
+        Returns the Unix socket path if or a tuple
+        ``(host, port)`` depending on the initial
+        URL's scheme.
+        """
+        return self.unix_socket_path or (self.host, self.port)
 
     def close(self, code=1000, reason=''):
         """
@@ -131,7 +201,7 @@ class WebSocketBaseClient(WebSocket):
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
 
-        self.sock.connect((self.host, self.port))
+        self.sock.connect(self.bind_addr)
 
         self._write(self.handshake_request)
 
@@ -202,8 +272,8 @@ class WebSocketBaseClient(WebSocket):
         response to our request and if not raises :exc:`HandshakeError`.
         """
         protocol, code, status = response_line.split(enc(' '), 2)
-        if code != enc('101'):
-            raise HandshakeError("Invalid response status: %s %s" % (code, status))
+        #if code != enc('101'):
+        #    raise HandshakeError("Invalid response status: %s %s" % (code, status))
 
     def process_handshake_header(self, headers):
         """
