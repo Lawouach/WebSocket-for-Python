@@ -114,10 +114,9 @@ class Frame(object):
         ## + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
         ## |                     Payload Data continued ...                |
         ## +---------------------------------------------------------------+
-        if not self.masking_key:
-            return header + enc(self.body)
-
-        return header + self.masking_key + self.mask(enc(self.body))
+        if self.masking_key:
+            header += pack('!BBBB', *map(ord, self.masking_key))
+        return header + pack('!' + 'B' * self.payload_length, *self.mask(enc(self.body)))
 
     def _parsing(self):
         """
