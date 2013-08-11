@@ -1,4 +1,5 @@
-https://bitbucket.org/cherrypy/cherrypy/downloads/CherryPy-3.2.3.tar.gz
-tornado==2.4.1
-greenlet==0.4.0
+CherryPy==3.2.4
+tornado==3.1
+greenlet==0.4.1
+mock==1.0.1
 -e git+git://github.com/SiteSupport/gevent.git#egg=Package
