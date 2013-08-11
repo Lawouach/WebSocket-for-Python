@@ -9,7 +9,7 @@ from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
 from ws4py.messaging import Message, PongControlMessage
-from ws4py.compat import basestring, unicode, dec
+from ws4py.compat import basestring, unicode
 
 DEFAULT_READING_SIZE = 2
 
@@ -296,17 +296,13 @@ class WebSocket(object):
             logger.debug("WebSocket is already terminated")
             return False
 
-        s = self.stream
-        sock = self.sock
-        process = self.process
-
         try:
-            b = sock.recv(self.reading_buffer_size)
+            b = self.sock.recv(self.reading_buffer_size)
         except socket.error:
             logger.exception("Failed to receive data")
             return False
         else:
-            if not process(b):
+            if not self.process(b):
                 return False
 
         return True

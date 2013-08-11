@@ -9,7 +9,7 @@ from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
 from ws4py.exc import FrameTooLargeException, ProtocolException, InvalidBytesError,\
      TextFrameEncodingException, UnsupportedFrameTypeException, StreamClosed
-from ws4py.compat import enc, dec, py3k
+from ws4py.compat import py3k
 
 VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
@@ -95,7 +95,8 @@ class Stream(object):
         """
         self.message = None
         if self._parser is not None:
-            self._parser.close()
+            if not self._parser.gi_running:
+                self._parser.close()
             self._parser = None
         self.errors = None
         self.pings = None
@@ -180,16 +181,19 @@ class Stream(object):
             frame = Frame()
             while 1:
                 try:
-                    bytes = (yield next(frame.parser))
-                    frame.parser.send(bytes)
+                    some_bytes = (yield next(frame.parser))
+                    frame.parser.send(some_bytes)
+                except GeneratorExit:
+                    running = False
+                    break
                 except StopIteration:
                     frame._cleanup()
-                    bytes = frame.body
+                    some_bytes = frame.body
 
                     # Let's avoid unmasking when there is no payload
-                    if bytes:
+                    if some_bytes:
                         if frame.masking_key and self.expect_masking:
-                            bytes = frame.unmask(bytes)
+                            some_bytes = frame.unmask(some_bytes)
                         elif not frame.masking_key and self.expect_masking:
                             msg = CloseControlMessage(code=1002, reason='Missing masking when expected')
                             self.errors.append(msg)
@@ -198,8 +202,6 @@ class Stream(object):
                             msg = CloseControlMessage(code=1002, reason='Masked when not expected')
                             self.errors.append(msg)
                             break
-                        else:
-                            bytes = bytearray(bytes)
 
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
@@ -208,19 +210,25 @@ class Stream(object):
                             self.errors.append(msg)
                             break
 
-                        m = TextMessage(bytes)
+                        m = TextMessage(some_bytes)
                         m.completed = (frame.fin == 1)
                         self.message = m
 
-                        if bytes:
-                            is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
+                        if some_bytes:
+                            is_valid, end_on_code_point, _, _ = utf8validator.validate(some_bytes)
 
                             if not is_valid or (m.completed and not end_on_code_point):
                                 self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                                 break
 
                     elif frame.opcode == OPCODE_BINARY:
-                        m = BinaryMessage(bytes)
+                        if self.message and not self.message.completed:
+                            # We got a text frame before we completed the previous one
+                            msg = CloseControlMessage(code=1002, reason='Received a new message before completing previous')
+                            self.errors.append(msg)
+                            break
+
+                        m = BinaryMessage(some_bytes)
                         m.completed = (frame.fin == 1)
                         self.message = m
 
@@ -230,11 +238,11 @@ class Stream(object):
                             self.errors.append(CloseControlMessage(code=1002, reason='Message not started yet'))
                             break
 
-                        m.extend(bytes)
+                        m.extend(some_bytes)
                         m.completed = (frame.fin == 1)
                         if m.opcode == OPCODE_TEXT:
-                            if bytes:
-                                is_valid, end_on_code_point, _, _ = utf8validator.validate(bytes)
+                            if some_bytes:
+                                is_valid, end_on_code_point, _, _ = utf8validator.validate(some_bytes)
 
                                 if not is_valid or (m.completed and not end_on_code_point):
                                     self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
@@ -249,10 +257,9 @@ class Stream(object):
                             self.closing = CloseControlMessage(code=1002, reason='Payload has invalid length')
                         else:
                             try:
-                                code = int(unpack("!H", enc(bytes[0:2]))[0])
-                            except TypeError:
-                                code = 1002
-                                reason = 'Invalid Closing Frame Code Type'
+                                # at this stage, some_bytes have been unmasked
+                                # so actually are held in a bytearray
+                                code = int(unpack("!H", bytes(some_bytes[0:2]))[0])
                             except struct.error:
                                 code = 1002
                                 reason = 'Failed at decoding closing code'
@@ -262,19 +269,20 @@ class Stream(object):
                                     reason = 'Invalid Closing Frame Code: %d' % code
                                     code = 1002
                                 elif frame.payload_length > 1:
-                                    reason = bytes[2:] if frame.masking_key else bytearray(frame.body[2:])
+                                    reason = some_bytes[2:] if frame.masking_key else frame.body[2:]
 
                                     is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
                                     if not is_valid or not end_on_code_point:
                                         self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))
                                         break
+                                    reason = bytes(reason)
                             self.closing = CloseControlMessage(code=code, reason=reason)
 
                     elif frame.opcode == OPCODE_PING:
-                        self.pings.append(PingControlMessage(bytes))
+                        self.pings.append(PingControlMessage(some_bytes))
 
                     elif frame.opcode == OPCODE_PONG:
-                        self.pongs.append(PongControlMessage(bytes))
+                        self.pongs.append(PongControlMessage(some_bytes))
 
                     else:
                         self.errors.append(CloseControlMessage(code=1003))
@@ -287,19 +295,13 @@ class Stream(object):
                 except FrameTooLargeException:
                     self.errors.append(CloseControlMessage(code=1002, reason="Frame was too large"))
                     break
-                except StreamClosed:
-                    running = False
-                    break
 
+            frame._cleanup()
             frame.body = None
             frame = None
 
             if self.message is not None and self.message.completed:
                 utf8validator.reset()
-
-        if frame:
-            frame._cleanup()
-            frame = None
 
         utf8validator.reset()
         utf8validator = None

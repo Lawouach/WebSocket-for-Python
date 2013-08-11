@@ -74,7 +74,7 @@ from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
-from ws4py.compat import py3k, enc, dec, get_connection, detach_connection
+from ws4py.compat import py3k, get_connection, detach_connection
 from ws4py.manager import WebSocketManager
 
 __all__ = ['WebSocketTool', 'WebSocketPlugin']
@@ -146,7 +146,7 @@ class WebSocketTool(Tool):
 
         key = request.headers.get('Sec-WebSocket-Key')
         if key:
-            ws_key = base64.b64decode(enc(key))
+            ws_key = base64.b64decode(key.encode('utf-8'))
             if len(ws_key) != 16:
                 raise HandshakeError("WebSocket key's length is invalid")
 
@@ -190,7 +190,7 @@ class WebSocketTool(Tool):
         response.headers['Upgrade'] = 'websocket'
         response.headers['Connection'] = 'Upgrade'
         response.headers['Sec-WebSocket-Version'] = str(version)
-        response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(enc(key) + WS_KEY).digest())
+        response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())
         if ws_protocols:
             response.headers['Sec-WebSocket-Protocol'] = ', '.join(ws_protocols)
         if ws_extensions:

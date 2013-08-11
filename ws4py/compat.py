@@ -21,18 +21,6 @@ if sys.version_info >= (3, 0):
     basestring = (bytes, str)
     _ord = ord
 
-    def enc(b, encoding='utf-8'):
-        if isinstance(b, str):
-            return b.encode(encoding)
-        elif isinstance(b, bytearray):
-            return bytes(b)
-        return b
-
-    def dec(b, encoding='utf-8'):
-        if isinstance(b, (bytes, bytearray)):
-            return b.decode(encoding)
-        return b
-
     def get_connection(fileobj):
         return fileobj.raw._sock
 
@@ -50,18 +38,6 @@ else:
     unicode = unicode
     basestring = basestring
     ord = ord
-
-    def enc(b, encoding='utf-8'):
-        if isinstance(b, unicode):
-            return b.encode(encoding)
-        elif isinstance(b, bytearray):
-            return str(b)
-        return b
-
-    def dec(b, encoding='utf-8'):
-        if isinstance(b, (str, bytearray)):
-            return b.decode(encoding)
-        return b
 
     def get_connection(fileobj):
         return fileobj._sock

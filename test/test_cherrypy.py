@@ -1,38 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import time
 import unittest
+
+from mock import MagicMock, call
 
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import EchoWebSocket
-
-class FakeSocket(object):
-    def settimeout(self, timeout):
-        pass
-
-    def shutdown(self, flag):
-        pass
-
-    def close(self):
-        pass
-
-    def sendall(self, bytes):
-        return len(bytes)
-
-    def setblocking(self, flag):
-        pass
-
-    def fileno(self):
-        return 1
-
-    def recv(self, bufsize=0):
-        pass
-
-    def getsockname(self):
-        return '127.0.0.1', 0
-
-    def getpeername(self):
-        return '127.0.0.1', 8091
+from ws4py.framing import Frame, OPCODE_TEXT, OPCODE_CLOSE
 
 class FakePoller(object):
     def __init__(self, timeout=0.1):
@@ -87,21 +63,33 @@ class CherryPyTest(unittest.TestCase):
 
     def test_plugin(self):
         manager = cherrypy.engine.websocket.manager
-        self.assertEquals(len(manager), 0)
+        self.assertEqual(len(manager), 0)
 
-        s = FakeSocket()
+        s = MagicMock()
+        s.recv.return_value = Frame(opcode=OPCODE_TEXT, body=b'hello',
+                                    fin=1, masking_key=os.urandom(4)).build()
         h = EchoWebSocket(s, [], [])
         cherrypy.engine.publish('handle-websocket', h, ('127.0.0.1', 0))
-        self.assertEquals(len(manager), 1)
+        self.assertEqual(len(manager), 1)
         self.assertTrue(h in manager)
 
+        # the following call to .close() on the
+        # websocket object will initiate
+        # the closing handshake
+        # This next line mocks the response
+        # from the client to actually
+        # complete the handshake.
+        # The manager will then remove the websocket
+        # from its pool
+        s.recv.return_value = Frame(opcode=OPCODE_CLOSE, body=b"ok we're done",
+                                    fin=1, masking_key=os.urandom(4)).build()
         h.close()
-        
+
         # the poller runs a thread, give it time to get there
-        time.sleep(0.5)
+        time.sleep(1)
 
         # TODO: Implement a fake poller so that works...
-        self.assertEquals(len(manager), 0)
+        self.assertEqual(len(manager), 0)
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()

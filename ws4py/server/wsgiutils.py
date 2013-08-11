@@ -53,7 +53,7 @@ import sys
 
 from ws4py.websocket import WebSocket
 from ws4py.exc import HandshakeError
-from ws4py.compat import enc, unicode
+from ws4py.compat import unicode
 from ws4py import WS_VERSION, WS_KEY, format_addresses
 
 logger = logging.getLogger('ws4py')
@@ -105,12 +105,12 @@ class WebSocketWSGIApplication(object):
 
         key = environ.get('HTTP_SEC_WEBSOCKET_KEY')
         if key:
-            ws_key = base64.b64decode(enc(key))
+            ws_key = base64.b64decode(key.encode('utf-8'))
             if len(ws_key) != 16:
                 raise HandshakeError("WebSocket key's length is invalid")
 
         version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
-        supported_versions = enc(', '.join([unicode(v) for v in WS_VERSION]))
+        supported_versions = b', '.join([unicode(v) for v in WS_VERSION])
         version_is_valid = False
         if version:
             try: version = int(version)
@@ -118,7 +118,7 @@ class WebSocketWSGIApplication(object):
             else: version_is_valid = version in WS_VERSION
 
         if not version_is_valid:
-            environ['websocket.version'] = enc(unicode(version))
+            environ['websocket.version'] = unicode(version).encode('utf-8')
             raise HandshakeError('Unhandled or missing WebSocket version')
 
         ws_protocols = []
@@ -142,8 +142,8 @@ class WebSocketWSGIApplication(object):
         upgrade_headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
-            ('Sec-WebSocket-Version', enc(version)),
-            ('Sec-WebSocket-Accept', base64.b64encode(sha1(enc(key) + WS_KEY).digest())),
+            ('Sec-WebSocket-Version', version),
+            ('Sec-WebSocket-Accept', base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())),
             ]
         if ws_protocols:
             upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
