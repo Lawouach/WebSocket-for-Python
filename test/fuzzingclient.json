@@ -4,15 +4,19 @@
  
    "servers": [
                 
-                {"agent": "ws4py (CherryPy 3.2.3) for Python 2.x",
+                {"agent": "ws4py (CherryPy 3.2.4) for Python 2.7.3",
                  "url": "ws://127.0.0.1:9000",
                  "options": {"version": 18}},
 
-                {"agent": "ws4py (CherryPy 3.2.3) for Python 3.x",
+                {"agent": "ws4py (CherryPy 3.2.4)/wsaccel for Python 2.7.3",
+                 "url": "ws://127.0.0.1:9006",
+                 "options": {"version": 18}},
+
+                {"agent": "ws4py (CherryPy 3.2.4) for Python 3.3.2",
                  "url": "ws://127.0.0.1:9004",
                  "options": {"version": 18}},
 
-                {"agent": "ws4py (CherryPy 3.2.3) for PyPy 1.9",
+                {"agent": "ws4py (CherryPy 3.2.4) for PyPy 2.0",
                  "url": "ws://127.0.0.1:9005",
                  "options": {"version": 18}},
 
@@ -20,11 +24,11 @@
                  "url": "ws://127.0.0.1:9001",
                  "options": {"version": 18}},
                 
-                {"agent": "Tornado 2.4.1",
-                 "url": "ws://127.0.0.1:9002",
+                {"agent": "Tornado 3.0.1",
+                 "url": "ws://127.0.0.1:9007",
                  "options": {"version": 18}},
                 
-                {"agent": "Autobahn 0.5.9",
+                {"agent": "Autobahn 0.5.14",
                  "url": "ws://127.0.0.1:9003",
                  "options": {"version": 18}}
 

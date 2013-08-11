@@ -2,6 +2,9 @@
 import logging
 
 def run_cherrypy_server(host="127.0.0.1", port=9000):
+    """
+    Runs a CherryPy server on Python 2.x.
+    """
     import cherrypy
 
     from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
@@ -30,16 +33,34 @@ def run_cherrypy_server(host="127.0.0.1", port=9000):
 
     cherrypy.quickstart(Root(), '/', config)
 
+def run_cherrypy_server_with_wsaccel(host="127.0.0.1", port=9006):
+    """
+    Runs a CherryPy server on Python 2.x with
+    a cython driver for some internal operations.
+    """
+    import wsaccel
+    wsaccel.patch_ws4py()
+    run_cherrypy_server(host, port)
+
 
 def run_cherrypy_server_with_python3(host="127.0.0.1", port=9004):
+    """
+    Runs a CherryPy server on Python 3.x
+    """
     run_cherrypy_server(host, port)
 
 
 def run_cherrypy_server_with_pypy(host="127.0.0.1", port=9005):
+    """
+    Runs a CherryPy server on PyPy
+    """
     run_cherrypy_server(host, port)
 
 
 def run_gevent_server(host="127.0.0.1", port=9001):
+    """
+    Runs a gevent server on Python 2.x
+    """
     from gevent import monkey; monkey.patch_all()
     from ws4py.websocket import EchoWebSocket
     from ws4py.server.geventserver import WebSocketWSGIApplication, WSGIServer
@@ -51,7 +72,10 @@ def run_gevent_server(host="127.0.0.1", port=9001):
 
 
 
-def run_tornado_server(host="127.0.0.1", port=9002):
+def run_tornado_server(host="127.0.0.1", port=9007):
+    """
+    Runs a Tornado server on Python 2.x
+    """
     from tornado import ioloop, web, websocket
     class EchoWebSocket(websocket.WebSocketHandler):
         def on_message(self, message):
@@ -64,6 +88,9 @@ def run_tornado_server(host="127.0.0.1", port=9002):
     ioloop.IOLoop.instance().start()
 
 def run_autobahn_server(host="127.0.0.1", port=9003):
+    """
+    Runs a Autobahn server on Python 2.x
+    """
     from autobahntestsuite import choosereactor
     import autobahn
     from autobahn.websocket import listenWS
@@ -97,6 +124,8 @@ if __name__ == '__main__':
                         help='Run all servers backend')
     parser.add_argument('--run-cherrypy-server', dest='run_cherrypy', action='store_true',
                         help='Run the CherryPy server backend')
+    parser.add_argument('--run-cherrypy-server-wsaccel', dest='run_cherrypy_wsaccel', action='store_true',
+                        help='Run the CherryPy server backend and wsaccel driver')
     parser.add_argument('--run-cherrypy-server-pypy', dest='run_cherrypy_pypy', action='store_true',
                         help='Run the CherryPy server backend with PyPy')
     parser.add_argument('--run-cherrypy-server-py3k', dest='run_cherrypy_py3k', action='store_true',
@@ -111,6 +140,7 @@ if __name__ == '__main__':
 
     if args.run_all:
         args.run_cherrypy = True
+        args.run_cherrypy_wsaccel = True
         args.run_gevent = True
         args.run_tornado = True
         args.run_autobahn = True
@@ -151,6 +181,12 @@ if __name__ == '__main__':
         p5 = Process(target=run_cherrypy_server_with_python3)
         p5.daemon = True
         procs.append(p5)
+
+    logger.warning("CherryPy server on Python 2/wsaccel: %s" % args.run_cherrypy_wsaccel)
+    if args.run_cherrypy_wsaccel:
+        p6 = Process(target=run_cherrypy_server_with_wsaccel)
+        p6.daemon = True
+        procs.append(p6)
 
     for p in procs:
         p.start()
