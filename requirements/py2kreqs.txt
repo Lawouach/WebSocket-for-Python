@@ -2,4 +2,5 @@ CherryPy==3.2.4
 tornado==3.1
 greenlet==0.4.1
 mock==1.0.1
--e git+git://github.com/SiteSupport/gevent.git#egg=Package
+Cython==0.19.1
+-e git+git://github.com/surfly/gevent.git#egg=Package
