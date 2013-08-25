@@ -243,7 +243,7 @@ class WebSocketBaseClient(WebSocket):
             ('Host', self.host),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
-            ('Sec-WebSocket-Key', dec(self.key)),
+            ('Sec-WebSocket-Key', self.key.decode('utf-8')),
             ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
@@ -297,7 +297,7 @@ class WebSocketBaseClient(WebSocket):
                 raise HandshakeError("Invalid Connection header: %s" % value)
 
             elif header == 'sec-websocket-accept':
-                match = b64encode(sha1(enc(self.key + WS_KEY)).digest())
+                match = b64encode(sha1(self.key.encode('utf-8') + WS_KEY).digest())
                 if value != match.lower():
                     raise HandshakeError("Invalid challenge response: %s" % value)
 
