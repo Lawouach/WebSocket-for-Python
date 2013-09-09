@@ -142,7 +142,7 @@ class WebSocketWSGIApplication(object):
         upgrade_headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
-            ('Sec-WebSocket-Version', version),
+            ('Sec-WebSocket-Version', '%s' % version),
             ('Sec-WebSocket-Accept', base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())),
             ]
         if ws_protocols:
