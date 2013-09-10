@@ -53,7 +53,7 @@ import sys
 
 from ws4py.websocket import WebSocket
 from ws4py.exc import HandshakeError
-from ws4py.compat import unicode
+from ws4py.compat import unicode, py3k
 from ws4py import WS_VERSION, WS_KEY, format_addresses
 
 logger = logging.getLogger('ws4py')
@@ -110,7 +110,7 @@ class WebSocketWSGIApplication(object):
                 raise HandshakeError("WebSocket key's length is invalid")
 
         version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
-        supported_versions = b', '.join([unicode(v) for v in WS_VERSION])
+        supported_versions = b', '.join([unicode(v).encode('utf-8') for v in WS_VERSION])
         version_is_valid = False
         if version:
             try: version = int(version)
@@ -139,11 +139,13 @@ class WebSocketWSGIApplication(object):
                 if ext in exts:
                     ws_extensions.append(ext)
 
+        accept_value = base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())
+        if py3k: accept_value = accept_value.decode('utf-8')
         upgrade_headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
             ('Sec-WebSocket-Version', '%s' % version),
-            ('Sec-WebSocket-Accept', base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())),
+            ('Sec-WebSocket-Accept', accept_value),
             ]
         if ws_protocols:
             upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))

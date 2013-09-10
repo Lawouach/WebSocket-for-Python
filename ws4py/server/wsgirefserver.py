@@ -36,6 +36,7 @@ util._hoppish = {}.__contains__
 from ws4py.manager import WebSocketManager
 from ws4py import format_addresses
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
+from ws4py.compat import get_connection
 
 __all__ = ['WebSocketWSGIHandler', 'WebSocketWSGIRequestHandler',
            'WSGIServer']
@@ -50,7 +51,7 @@ class WebSocketWSGIHandler(SimpleHandler):
         is the real socket underlying socket.
         """
         SimpleHandler.setup_environ(self)
-        self.environ['ws4py.socket'] = self.environ['wsgi.input']._sock
+        self.environ['ws4py.socket'] = get_connection(self.environ['wsgi.input'])
 
     def finish_response(self):
         """
