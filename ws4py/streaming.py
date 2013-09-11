@@ -202,6 +202,16 @@ class Stream(object):
                             msg = CloseControlMessage(code=1002, reason='Masked when not expected')
                             self.errors.append(msg)
                             break
+                        else:
+                            # If we reach this stage, it's because
+                            # the frame wasn't masked and we didn't expect
+                            # it anyway. Therefore, on py2k, the bytes
+                            # are actually a str object and can't be used
+                            # in the utf8 validator as we need integers
+                            # when we get each byte one by one.
+                            # Our only solution here is to convert our
+                            # string to a bytearray.
+                            some_bytes = bytearray(some_bytes)
 
                     if frame.opcode == OPCODE_TEXT:
                         if self.message and not self.message.completed:
@@ -271,6 +281,7 @@ class Stream(object):
                                 elif frame.payload_length > 1:
                                     reason = some_bytes[2:] if frame.masking_key else frame.body[2:]
 
+                                    if not py3k: reason = bytearray(reason)
                                     is_valid, end_on_code_point, _, _ = utf8validator.validate(reason)
                                     if not is_valid or not end_on_code_point:
                                         self.errors.append(CloseControlMessage(code=1007, reason='Invalid UTF-8 bytes'))

@@ -353,7 +353,7 @@ class WebSocket(object):
 
         if not bytes and self.reading_buffer_size > 0:
             return False
-
+        
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:

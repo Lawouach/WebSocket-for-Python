@@ -107,7 +107,7 @@ class Frame(object):
             header += pack('!B', (mask_bit | 127)) + pack('!Q', length)
         else:
             raise FrameTooLargeException()
-
+        
         ## + - - - - - - - - - - - - - - - +-------------------------------+
         ## |                               |Masking-key, if MASK set to 1  |
         ## +-------------------------------+-------------------------------+
