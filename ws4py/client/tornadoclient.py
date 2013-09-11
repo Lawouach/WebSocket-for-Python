@@ -8,7 +8,8 @@ from ws4py.exc import HandshakeError
 __all__ = ['TornadoWebSocketClient']
 
 class TornadoWebSocketClient(WebSocketBaseClient):
-    def __init__(self, url, protocols=None, extensions=None, io_loop=None, ssl_options=None):
+    def __init__(self, url, protocols=None, extensions=None,
+                 io_loop=None, ssl_options=None, headers=None):
         """
         .. code-block:: python
 
@@ -30,7 +31,8 @@ class TornadoWebSocketClient(WebSocketBaseClient):
 
             ioloop.IOLoop.instance().start()
         """
-        WebSocketBaseClient.__init__(self, url, protocols, extensions, ssl_options=ssl_options)
+        WebSocketBaseClient.__init__(self, url, protocols, extensions,
+                                     ssl_options=ssl_options, headers=headers)
         self.ssl_options["do_handshake_on_connect"] = False
         if self.scheme == "wss":
             self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)

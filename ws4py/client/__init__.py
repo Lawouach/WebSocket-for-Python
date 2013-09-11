@@ -13,7 +13,8 @@ from ws4py.compat import urlsplit
 __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
-    def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None, ssl_options=None):
+    def __init__(self, url, protocols=None, extensions=None,
+                 heartbeat_freq=None, ssl_options=None, headers=None):
         """
         A websocket client that implements :rfc:`6455` and provides a simple
         interface to communicate with a websocket server.
@@ -65,6 +66,9 @@ class WebSocketBaseClient(WebSocket):
            >>> ws.resource = '/ws'
            >>> ws.connect()
 
+        You may provide extra headers by passing a list of tuples
+        which must be unicode objects.
+
         """
         self.url = url
         self.host = None
@@ -73,6 +77,7 @@ class WebSocketBaseClient(WebSocket):
         self.unix_socket_path = None
         self.resource = None
         self.ssl_options = ssl_options or {}
+        self.extra_headers = headers or []
 
         self._parse_url()
 
@@ -247,9 +252,12 @@ class WebSocketBaseClient(WebSocket):
             ('Origin', self.url),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
-
+        
         if self.protocols:
             headers.append(('Sec-WebSocket-Protocol', ','.join(self.protocols)))
+
+        if self.extra_headers:
+            headers.extend(self.extra_headers)
 
         return headers
 
