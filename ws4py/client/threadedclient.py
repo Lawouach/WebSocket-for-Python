@@ -69,6 +69,12 @@ if __name__ == '__main__':
 
     class EchoClient(WebSocketClient):
         def opened(self):
+            def data_provider():
+                for i in range(0, 200, 25):
+                    yield "#" * i
+
+            self.send(data_provider())
+
             for i in range(0, 200, 25):
                 self.send("*" * i)
 
@@ -76,7 +82,7 @@ if __name__ == '__main__':
             print(("Closed down", code, reason))
 
         def received_message(self, m):
-            print("=> %d %s" % (len(m), str(m)))
+            print("#%d" % len(m))
             if len(m) == 175:
                 self.close(reason='bye bye')
 

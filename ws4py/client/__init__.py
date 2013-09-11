@@ -259,9 +259,9 @@ class WebSocketBaseClient(WebSocket):
         Prepare the request to be sent for the upgrade handshake.
         """
         headers = self.handshake_headers
-        request = [b"GET %s HTTP/1.1" % self.resource]
+        request = [("GET %s HTTP/1.1" % self.resource).encode('utf-8')]
         for header, value in headers:
-            request.append(b"%s: %s" % (header, value))
+            request.append(("%s: %s" % (header, value)).encode('utf-8'))
         request.append(b'\r\n')
 
         return b'\r\n'.join(request)
