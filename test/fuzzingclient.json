@@ -24,7 +24,7 @@
                  "url": "ws://127.0.0.1:9001",
                  "options": {"version": 18}},
                 
-                {"agent": "Tornado 3.0.1",
+                {"agent": "Tornado 3.1.1",
                  "url": "ws://127.0.0.1:9007",
                  "options": {"version": 18}},
                 
