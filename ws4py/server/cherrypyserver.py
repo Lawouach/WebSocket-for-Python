@@ -282,14 +282,14 @@ class WebSocketPlugin(plugins.SimplePlugin):
         self.manager = WebSocketManager()
 
     def start(self):
-        cherrypy.log("Starting WebSocket processing")
+        self.bus.log("Starting WebSocket processing")
         self.bus.subscribe('stop', self.cleanup)
         self.bus.subscribe('handle-websocket', self.handle)
         self.bus.subscribe('websocket-broadcast', self.broadcast)
         self.manager.start()
 
     def stop(self):
-        cherrypy.log("Terminating WebSocket processing")
+        self.bus.log("Terminating WebSocket processing")
         self.bus.unsubscribe('stop', self.cleanup)
         self.bus.unsubscribe('handle-websocket', self.handle)
         self.bus.unsubscribe('websocket-broadcast', self.broadcast)
