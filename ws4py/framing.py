@@ -181,6 +181,7 @@ class Frame(object):
             some_bytes = b''
 
         if self.payload_length == 127:
+            # This will compute the actual application data size
             if len(buf) < 8:
                 nxt_buf_size = 8 - len(buf)
                 some_bytes = (yield nxt_buf_size)
@@ -191,6 +192,7 @@ class Frame(object):
                         some_bytes = some_bytes + b
                 if len(some_bytes) > 8:
                     buf = some_bytes[8:]
+                    some_bytes = some_bytes[:8]
             else:
                 some_bytes = buf[:8]
                 buf = buf[8:]
@@ -210,6 +212,7 @@ class Frame(object):
                         some_bytes = some_bytes + b
                 if len(some_bytes) > 2:
                     buf = some_bytes[2:]
+                    some_bytes = some_bytes[:2]
             else:
                 some_bytes = buf[:2]
                 buf = buf[2:]

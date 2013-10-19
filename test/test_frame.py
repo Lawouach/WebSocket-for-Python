@@ -185,14 +185,93 @@ class WSFrameParserTest(unittest.TestCase):
         f = Frame()
         self.assertRaises(ProtocolException, f.parser.send, b'0x9')
 
-    def test_frame_sized_below_127(self):
-        bytes = Frame(opcode=OPCODE_TEXT, body=b'*'*65536, fin=1).build()
+    def test_fragmented_control_frame_is_too_large(self):
+        bytes = Frame(opcode=OPCODE_PING, body=b'*'*65536, fin=1).build()
+        f = Frame()
+        self.assertRaises(FrameTooLargeException, f.parser.send, bytes)
+
+    def test_frame_sized_127(self):
+        body = b'*'*65536
+        bytes = Frame(opcode=OPCODE_TEXT, body=body, fin=1).build()
 
         f = Frame()
+        # determine how the size is stored
         f.parser.send(bytes[:3])
         self.assertTrue(f.masking_key is None)
+        # that's a large frame indeed
         self.assertEqual(f.payload_length, 127)
 
+        # this will compute the actual application data size
+        # it will also read the first byte of data
+        # indeed the length is found from byte 3 to 10
+        f.parser.send(bytes[3:11])
+        self.assertEqual(f.payload_length, 65536)
+        
+        # parse the rest of our data
+        f.parser.send(bytes[11:])
+        self.assertEqual(f.body, body)
+
+        
+        # The same but this time we provide enough
+        # bytes so that the application's data length
+        # can be computed from the first generator's send call
+        f = Frame()
+        f.parser.send(bytes[:10])
+        self.assertTrue(f.masking_key is None)
+        self.assertEqual(f.payload_length, 65536)
+        
+        # parse the rest of our data
+        f.parser.send(bytes[10:])
+        self.assertEqual(f.body, body)
+        
+        
+        # The same with masking given out gradually
+        mask = os.urandom(4)
+        bytes = Frame(opcode=OPCODE_TEXT, body=body, fin=1, masking_key=mask).build()
+        f = Frame()
+        f.parser.send(bytes[:10])
+        self.assertTrue(f.masking_key is None)
+        self.assertEqual(f.payload_length, 65536)
+        
+        # parse the mask gradually
+        f.parser.send(bytes[10:12])
+        f.parser.send(bytes[12:])
+        self.assertEqual(f.unmask(f.body), body)
+        
+    def test_frame_sized_126(self):
+        body = b'*'*256
+        bytes = Frame(opcode=OPCODE_TEXT, body=body, fin=1).build()
+
+        f = Frame()
+        # determine how the size is stored
+        f.parser.send(bytes[:3])
+        self.assertTrue(f.masking_key is None)
+        # that's a large frame indeed
+        self.assertEqual(f.payload_length, 126)
+
+        # this will compute the actual application data size
+        # it will also read the first byte of data
+        # indeed the length is found from byte 3 to 10
+        f.parser.send(bytes[3:11])
+        self.assertEqual(f.payload_length, 256)
+        
+        # parse the rest of our data
+        f.parser.send(bytes[11:])
+        self.assertEqual(f.body, body)
+        
+        
+        # The same but this time we provide enough
+        # bytes so that the application's data length
+        # can be computed from the first generator's send call
+        f = Frame()
+        f.parser.send(bytes[:10])
+        self.assertTrue(f.masking_key is None)
+        self.assertEqual(f.payload_length, 256)
+        
+        # parse the rest of our data
+        f.parser.send(bytes[10:])
+        self.assertEqual(f.body, body)
+        
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
