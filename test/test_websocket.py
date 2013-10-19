@@ -64,7 +64,7 @@ class WSWebSocketTest(unittest.TestCase):
             self.assertTrue(ws.client_terminated)
             self.assertTrue(ws.server_terminated)
             self.assertTrue(ws.terminated)
-            c.assert_called_once_with(1000, 'test closing')
+            c.assert_called_once_with(1000, b'test closing')
             cc.assert_called_once_with()
             self.assertIsNone(ws.stream)
             self.assertIsNone(ws.environ)
@@ -167,7 +167,7 @@ class WSWebSocketTest(unittest.TestCase):
             ws.stream = s
             ws.stream.closing = CloseControlMessage(code=1000, reason='test closing')
             ws.process(b'unused for this test')
-            c.assert_called_once_with(1000, 'test closing')
+            c.assert_called_once_with(1000, b'test closing')
             
 
 if __name__ == '__main__':
