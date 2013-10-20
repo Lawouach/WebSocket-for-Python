@@ -140,6 +140,50 @@ class EPollPoller(object):
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
 
+class KQueuePoller(object):
+    def __init__(self, timeout=0.1):
+        """
+        An epoll poller that uses the ``epoll``
+        implementation to determines which
+        file descriptors have data available to read.
+
+        Available on Unix flavors mostly.
+        """
+        self.poller = select.epoll()
+        self.timeout = timeout
+
+    def release(self):
+        """
+        Cleanup resources.
+        """
+        self.poller.close()
+
+    def register(self, fd):
+        """
+        Register a new file descriptor to be
+        part of the select polling next time around.
+        """
+        try:
+            self.poller.register(fd, select.EPOLLIN | select.EPOLLPRI)
+        except IOError:
+            pass
+
+    def unregister(self, fd):
+        """
+        Unregister the given file descriptor.
+        """
+        self.poller.unregister(fd)
+
+    def poll(self):
+        """
+        Polls once and yields each ready-to-be-read
+        file-descriptor
+        """
+        events = self.poller.poll(timeout=self.timeout)
+        for fd, event in events:
+            if event | select.EPOLLIN | select.EPOLLPRI:
+                yield fd
+
 class WebSocketManager(threading.Thread):
     def __init__(self, poller=None):
         """
@@ -157,6 +201,7 @@ class WebSocketManager(threading.Thread):
         threading.Thread.__init__(self)
         self.lock = threading.Lock()
         self.websockets = {}
+        self.running = False
 
         if poller:
             self.poller = poller
@@ -192,6 +237,9 @@ class WebSocketManager(threading.Thread):
         method and register its socket against the poller
         for reading events.
         """
+        if websocket in self:
+            return
+        
         logger.info("Managing websocket %s" % format_addresses(websocket))
         websocket.opened()
         with self.lock:
@@ -207,6 +255,9 @@ class WebSocketManager(threading.Thread):
         method as it's out-of-band by your application
         or from within the manager's run loop.
         """
+        if websocket not in self:
+            return
+        
         logger.info("Removing websocket %s" % format_addresses(websocket))
         with self.lock:
             fd = websocket.sock.fileno()
@@ -252,9 +303,9 @@ class WebSocketManager(threading.Thread):
             for fd in polled:
                 if not self.running:
                     break
-
+                
                 ws = self.websockets.get(fd)
-
+                
                 if ws and not ws.terminated:
                     if not ws.once():
                         with self.lock:
@@ -275,7 +326,7 @@ class WebSocketManager(threading.Thread):
         with self.lock:
             logger.info("Closing all websockets with [%d] '%s'" % (code, message))
             for ws in iter(self):
-                ws.close(code=1001, reason=message)
+                ws.close(code=code, reason=message)
 
     def broadcast(self, message, binary=False):
         """
