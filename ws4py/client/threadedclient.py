@@ -55,7 +55,8 @@ class WebSocketClient(WebSocketBaseClient):
         Simply blocks the thread until the
         websocket has terminated.
         """
-        self._th.join()
+        while not self.terminated:
+            self._th.join(timeout=0.1)
 
     def handshake_ok(self):
         """
