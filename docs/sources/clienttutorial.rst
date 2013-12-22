@@ -61,7 +61,7 @@ If you are using a Tornado backend you may use the Tornado client that ws4py pro
 
 .. code-block:: python
 
-    from ws4py.client.tornadoclient import WebSocketClient
+    from ws4py.client.tornadoclient import TornadoWebSocketClient
     from tornado import ioloop
 
     class MyClient(TornadoWebSocketClient):
