@@ -20,7 +20,7 @@ import sys
 
 import gevent
 from gevent.pywsgi import WSGIHandler, WSGIServer as _WSGIServer
-from gevent.pool import Group
+from gevent.pool import Pool
 
 from ws4py import format_addresses
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
@@ -61,7 +61,7 @@ class WebSocketWSGIHandler(WSGIHandler):
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
 
-class GEventWebSocketPool(Group):
+class GEventWebSocketPool(Pool):
     """
     Simple pool of bound websockets.
     Internally it uses a gevent group to track
