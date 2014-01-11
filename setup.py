@@ -31,7 +31,7 @@ def gather_modules():
             if name.endswith('.py'):
                 mods.append(pjoin(root, name).replace('.py', ''))
 
-    if sys.version_info < (3, 0):
+    if sys.version_info < (3, 3):
         mods.remove(pjoin('ws4py', 'async_websocket.py').replace('.py', ''))
         mods.remove(pjoin('ws4py', 'server', 'tulipserver.py').replace('.py', ''))
 
