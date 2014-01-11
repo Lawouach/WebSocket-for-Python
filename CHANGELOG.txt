@@ -1,6 +1,12 @@
 ws4py changelog
 ===============
 
+Version 0.3.3
+-------------
+
+* Using `gevent.Pool` rather than `gevent.Group` so that the `stop` method can be called upon it.
+* Added initial support for asyncio and :pep:`3156`
+
 Version 0.3.2
 -------------
 
