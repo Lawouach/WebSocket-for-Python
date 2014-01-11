@@ -1,7 +1,7 @@
 Basics
 ======
 
-ws4py provides a high-level, yet simple, interface to provide your application with WebSocket support. It simples as:
+ws4py provides a high-level, yet simple, interface to provide your application with WebSocket support. It is simple as:
 
 .. code-block:: python
 
@@ -23,3 +23,18 @@ Other useful methods to implement are:
    * :func:`closed(code, reason=None) <ws4py.websocket.WebSocket.closed>` which is called whenever the WebSocket connection is terminated.
 
 You may want to know if the connection is currently usable or :attr:`terminated <ws4py.websocket.WebSocket.terminated>`.
+
+At that stage, the subclass is still not connected to any data source. The way ws4py is designed, you don't
+necessarily a connected socket, in fact, you don't even need a socket at all.
+
+
+.. code-block:: python
+
+    >>> from ws4py.templating import TextMessage    
+    >>> def data_source():
+    >>>     yield TextMessage(u'hello world')
+
+    >>> from mock import MagicMock
+    >>> source = MagicMock(side_effect=source)
+    >>> ws = EchoWebSocket(sock=source)
+    >>> ws.send(u'hello there')
