@@ -5,7 +5,7 @@
    "servers": [
                 
                 {"agent": "ws4py (CherryPy 3.2.4) for Python 2.7.3",
-                 "url": "ws://127.0.0.1:9000/",
+                 "url": "ws://127.0.0.1:9008/",
                  "options": {"version": 18}},
 
                 {"agent": "ws4py (CherryPy 3.2.4)/wsaccel for Python 2.7.3",
@@ -20,7 +20,7 @@
                  "url": "ws://127.0.0.1:9005/",
                  "options": {"version": 18}},
 
-                {"agent": "ws4py (gevent 1.0.0dev)",
+                {"agent": "ws4py (gevent 1.0.0)",
                  "url": "ws://127.0.0.1:9001/",
                  "options": {"version": 18}},
                 
@@ -33,7 +33,7 @@
                  "options": {"version": 18}},
 
                 {"agent": "ws4py (asyncio)",
-                 "url": "ws://127.0.0.1:9007/",
+                 "url": "ws://127.0.0.1:9009/",
                  "options": {"version": 18}}
 
               ],

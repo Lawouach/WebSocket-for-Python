@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-def run_cherrypy_server(host="127.0.0.1", port=9000):
+def run_cherrypy_server(host="127.0.0.1", port=9008):
     """
     Runs a CherryPy server on Python 2.x.
     """
@@ -71,7 +71,7 @@ def run_gevent_server(host="127.0.0.1", port=9001):
     server.serve_forever()
 
 
-def run_python3_asyncio(host="127.0.0.1", port=9007):
+def run_python3_asyncio(host="127.0.0.1", port=9009):
     """
     Runs a server using asyncio and Python 3.3+
     """
@@ -111,26 +111,23 @@ def run_autobahn_server(host="127.0.0.1", port=9003):
     """
     Runs a Autobahn server on Python 2.x
     """
-    from autobahntestsuite import choosereactor
-    import autobahn
-    from autobahn.websocket import listenWS
     from twisted.internet import reactor
-    from autobahn.websocket import WebSocketServerFactory, \
-         WebSocketServerProtocol
+    from autobahn.twisted.websocket import WebSocketServerProtocol, \
+        WebSocketServerFactory
+        
+    class MyServerProtocol(WebSocketServerProtocol):
+        def onMessage(self, payload, isBinary):
+            self.sendMessage(payload, isBinary)
 
-    class ServerProtocol(WebSocketServerProtocol):
-        def onMessage(self, msg, binary):
-            self.sendMessage(msg, binary)
-
-    class ServerFactory(WebSocketServerFactory):
-        protocol = ServerProtocol
-
-    factory = ServerFactory("ws://%s:%d" % (host, port))
-    factory.setProtocolOptions(failByDrop=False)
+    logger = logging.getLogger('autobahn_testsuite')
     logger.warning("Serving Autobahn server on %s:%s" % (host, port))
-    listenWS(factory, None)
-    reactor.run()
+    
+    factory = WebSocketServerFactory("ws://%s:%d" % (host, port))
+    factory.protocol = MyServerProtocol
 
+    reactor.listenTCP(port, factory)
+    reactor.run()
+   
 if __name__ == '__main__':
     import argparse
     from multiprocessing import Process
