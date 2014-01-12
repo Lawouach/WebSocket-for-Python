@@ -55,7 +55,6 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         if f.done() and not f.cancelled():
             ex = f.exception()
             if ex:
-                print(ex)
                 response = [b'HTTP/1.0 400 Bad Request']
                 response.append(b'Content-Length: 0')
                 response.append(b'Connection: close')
