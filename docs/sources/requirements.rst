@@ -34,7 +34,8 @@ ws4py comes with three server implementations:
 
 - Built-in: The server relies on the built-in :mod:`wsgiref` module.
 - CherryPy: The `CherryPy <http://www.cherrypy.org/CherryPy>`_ server requires 3.2.2+
-- gevent: The gevent server requires `gevent <http://www.gevent.org/>`_ 0.13.6 or 1.0.0-dev 
+- gevent: The gevent server requires `gevent <http://www.gevent.org/>`_ 1.0.0
+- asyncio: :pep:`3156` implementation for Python 3.3+
 
 Testing
 -------

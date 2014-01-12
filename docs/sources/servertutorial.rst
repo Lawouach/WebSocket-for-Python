@@ -78,3 +78,31 @@ wsgiref
                          app=WebSocketWSGIApplication(handler_cls=EchoWebSocket))
     server.initialize_websockets_manager()
     server.serve_forever()
+
+asyncio
+-------
+
+:py:mod:`asyncio` is the implementation of :pep:`3156`, the new asynchronous framework for concurrent
+applications.
+
+.. code-block:: python
+    :linenos:
+
+    from ws4py.async_websocket import EchoWebSocket
+    
+    loop = asyncio.get_event_loop()
+
+    def start_server():
+        proto_factory = lambda: WebSocketProtocol(EchoWebSocket)
+        return loop.create_server(proto_factory, '', 9007)
+
+    s = loop.run_until_complete(start_server())
+    print('serving on', s.sockets[0].getsockname())
+    loop.run_forever()
+
+.. warning::
+
+   The provided HTTP server used for the handshake is clearly not production ready. However,  
+   once the handshake is performed, the rest of the code runs the same stack as the other
+   server implementations. It should be easy to replace the HTTP interface with any
+   asyncio aware HTTP framework.
