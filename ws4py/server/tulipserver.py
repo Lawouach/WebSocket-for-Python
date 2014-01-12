@@ -17,10 +17,14 @@ EMPTY = b''
 
 __all__ = ['WebSocketProtocol']
 
-class WebSocketProtocol(asyncio.Protocol):
+class WebSocketProtocol(asyncio.StreamReaderProtocol):
     def __init__(self, handler_cls):
-        asyncio.Protocol.__init__(self)
+        asyncio.StreamReaderProtocol.__init__(self, asyncio.StreamReader(),
+                                              self._pseudo_connected)
         self.ws = handler_cls(self)
+
+    def _pseudo_connected(self, reader, writer):
+        pass
         
     def connection_made(self, transport):
         """
@@ -31,10 +35,34 @@ class WebSocketProtocol(asyncio.Protocol):
         and the transport is associated before the
         initial HTTP handshake is undertaken.
         """
-        self.transport = transport
-        self.stream = asyncio.StreamReader()
-        self.stream.set_transport(transport)
-        asyncio.async(self.handle_initial_handshake())
+        #self.transport = transport
+        #self.stream = asyncio.StreamReader()
+        #self.stream.set_transport(transport)
+        asyncio.StreamReaderProtocol.connection_made(self, transport)
+        # Let make it concurrent for others to tag along
+        f = asyncio.async(self.handle_initial_handshake())
+        f.add_done_callback(self.terminated)
+
+    @property
+    def writer(self):
+        return self._stream_writer
+        
+    @property
+    def reader(self):
+        return self._stream_reader
+        
+    def terminated(self, f):
+        if f.done() and not f.cancelled():
+            ex = f.exception()
+            if ex:
+                print(ex)
+                response = [b'HTTP/1.0 400 Bad Request']
+                response.append(b'Content-Length: 0')
+                response.append(b'Connection: close')
+                response.append(b'')
+                response.append(b'')
+                self.writer.write(CRLF.join(response))
+                self.ws.close_connection()
 
     def close(self):
         """
@@ -57,13 +85,11 @@ class WebSocketProtocol(asyncio.Protocol):
         be aware of it by calling its `closed`
         method.
         """
-        self.ws.close_connection()
-        if self.ws.started:
-            self.ws.closed(1002, "Peer connection was lost")
+        if exc is not None:
+            self.ws.close_connection()
+            if self.ws.started:
+                self.ws.closed(1002, "Peer connection was lost")
             
-    def data_received(self, data):
-        self.stream.feed_data(data)
-
     @asyncio.coroutine
     def handle_initial_handshake(self):
         """
@@ -81,6 +107,8 @@ class WebSocketProtocol(asyncio.Protocol):
             raise HandshakeError('HTTP method must be a GET')
         
         headers = yield from self.read_headers()
+        if req_protocol == b'HTTP/1.1' and 'Host' not in headers:
+            raise ValueError("Missing host header")
         
         for key, expected_value in [('Upgrade', 'websocket'),
                                      ('Connection', 'upgrade')]:
@@ -113,15 +141,16 @@ class WebSocketProtocol(asyncio.Protocol):
                 raise HandshakeError("WebSocket key's length is invalid")
 
         protocols = []
+        ws_protocols = []
         subprotocols = headers.get('Sec-WebSocket-Protocol')
         if subprotocols:
-            ws_protocols = []
             for s in subprotocols.split(','):
                 s = s.strip()
                 if s in protocols:
                     ws_protocols.append(s)
 
         exts = []
+        ws_extensions = []
         extensions = headers.get('Sec-WebSocket-Extensions')
         if extensions:
             for ext in extensions.split(','):
@@ -129,14 +158,20 @@ class WebSocketProtocol(asyncio.Protocol):
                 if ext in exts:
                     ws_extensions.append(ext)
 
-        self.transport.write(('%s 101 Switching Protocols\r\n' % req_protocol).encode('utf-8'))
-        self.transport.write(b'Upgrade: websocket\r\n')
-        self.transport.write(b'Content-Length: 0\r\n')
-        self.transport.write(b'Connection: Upgrade\r\n')
-        self.transport.write(b'Sec-WebSocket-Version:' + bytes(str(version), 'utf-8') + CRLF)
-        self.transport.write(b'Sec-WebSocket-Accept:' + base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest()) + CRLF)
-        self.transport.write(CRLF)
-
+        response = [req_protocol + b' 101 Switching Protocols']
+        response.append(b'Upgrade: websocket')
+        response.append(b'Content-Type: text/plain')
+        response.append(b'Content-Length: 0')
+        response.append(b'Connection: Upgrade')
+        response.append(b'Sec-WebSocket-Version:' + bytes(str(version), 'utf-8'))
+        response.append(b'Sec-WebSocket-Accept:' + base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest()))
+        if ws_protocols:
+            response.append(b'Sec-WebSocket-Protocol:' + b', '.join(ws_protocols))
+        if ws_extensions:
+            response.append(b'Sec-WebSocket-Extensions:' + b','.join(ws_extensions))
+        response.append(b'')
+        response.append(b'')
+        self.writer.write(CRLF.join(response))
         yield from self.handle_websocket()
 
     @asyncio.coroutine
@@ -167,19 +202,19 @@ class WebSocketProtocol(asyncio.Protocol):
         Reads data until \r\n is met and then return all read
         bytes. 
         """
-        line = yield from self.stream.readline()
+        line = yield from self.reader.readline()
         if not line.endswith(CRLF):
             raise ValueError("Missing mandatory trailing CRLF")
         return line
         
 if __name__ == '__main__':
-    from ws4py.websocket import AsyncEchoWebSocket
+    from ws4py.async_websocket import EchoWebSocket
     
     loop = asyncio.get_event_loop()
 
     def start_server():
-        proto_factory = lambda: WebSocketProtocol(AsyncEchoWebSocket)
-        return loop.create_server(proto_factory, '', 7002)
+        proto_factory = lambda: WebSocketProtocol(EchoWebSocket)
+        return loop.create_server(proto_factory, '', 9007)
 
     s = loop.run_until_complete(start_server())
     print('serving on', s.sockets[0].getsockname())
