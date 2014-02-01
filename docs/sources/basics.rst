@@ -12,11 +12,11 @@ The :class:`WebSocket <ws4py.websocket.WebSocket>` class should be sub-classed b
 For instance a straightforward echo application would look like this:
 
 .. code-block:: python
-    
+
     class EchoWebSocket(WebSocket):
         def received_message(self, message):
             self.send(message.data, message.is_binary)
-        
+
 Other useful methods to implement are:
 
    * :func:`opened() <ws4py.websocket.WebSocket.opened>` which is called whenever the WebSocket handshake is done.
@@ -30,11 +30,11 @@ necessarily a connected socket, in fact, you don't even need a socket at all.
 
 .. code-block:: python
 
-    >>> from ws4py.templating import TextMessage    
+    >>> from ws4py.messaging import TextMessage
     >>> def data_source():
     >>>     yield TextMessage(u'hello world')
 
     >>> from mock import MagicMock
-    >>> source = MagicMock(side_effect=source)
+    >>> source = MagicMock(side_effect=data_source)
     >>> ws = EchoWebSocket(sock=source)
     >>> ws.send(u'hello there')
