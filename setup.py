@@ -9,7 +9,7 @@ if sys.version_info >= (3,):
     extra['use_2to3'] = True
         
 setup(name = "ws4py",
-      version = '0.3.3',
+      version = '0.3.4',
       description = "WebSocket client and server library for Python 2 and 3 as well as PyPy",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
