@@ -49,7 +49,7 @@ setup(name = "ws4py",
       license = 'BSD',
       long_description = "WebSocket library for Python",
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Framework :: CherryPy',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: BSD License',
@@ -64,6 +64,7 @@ setup(name = "ws4py",
           'Programming Language :: Python :: Implementation :: PyPy',
           'Topic :: Communications',
           'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware',
+          'Topic :: Internet :: WWW/HTTP :: WSGI :: Server',
           'Topic :: Software Development :: Libraries :: Python Modules'
           ],
      )
