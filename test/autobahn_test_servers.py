@@ -12,7 +12,7 @@ def run_cherrypy_server(host="127.0.0.1", port=9008):
 
     cherrypy.config.update({'server.socket_host': host,
                             'server.socket_port': port,
-                            'engine.autoreload_on': False,
+                            'engine.autoreload.on': False,
                             'log.screen': False})
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
@@ -24,6 +24,7 @@ def run_cherrypy_server(host="127.0.0.1", port=9008):
 
     config = {
         '/': {
+            'tools.encode.on': False,
             'tools.websocket.on': True,
             'tools.websocket.handler_cls': EchoWebSocket
             }
