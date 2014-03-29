@@ -6,9 +6,6 @@ var initWebSocket = function() {
 	ws.close();
     });
 
-    ws.onopen = function (evt) {
-    };
-
     ws.onmessage = function (evt) {
 	console.log(evt.data.split(' '));
 	var sensors = evt.data.split(' ');
@@ -20,6 +17,22 @@ var initWebSocket = function() {
 	drawY(Math.abs(Math.floor(parseFloat(sensors[4]))));
 	drawZ(Math.abs(Math.floor(parseFloat(sensors[5]))));
     };
+};
+
+var initWebSocketAndSensors = function() { 
+    var ws = new WebSocket('ws://localhost:9000/ws');
+
+    $(window).unload(function() {
+	ws.close();
+    });
+   
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener("deviceorientation",
+	   function(event) {
+              ws.send(event.alpha + " " + event.beta + " " + event.gamma + " 0 0 0");
+           },
+        false);
+    }
 };
 
 var drawArc = function(pos, value, label) {

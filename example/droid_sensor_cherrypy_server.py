@@ -11,7 +11,7 @@ class BroadcastWebSocketHandler(WebSocket):
         
 class Root(object):
     @cherrypy.expose
-    def index(self):
+    def display(self):
         return """<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -19,8 +19,8 @@ class Root(object):
       <title>WebSocket example displaying Android device sensors</title>
       <link rel="stylesheet" href="/css/style.css" type="text/css" />
 
-      <script type="application/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"> </script>
-      <script type="application/javascript" src="https://raw.github.com/caleb531/jcanvas/master/jcanvas.min.js"> </script>
+      <script type='application/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js'></script>
+      <script type="application/javascript" src="http://calebevans.me/projects/jcanvas/resources/jcanvas/jcanvas.min.js"> </script>
       <script type="application/javascript" src="/js/droidsensor.js"> </script>
       <script type="application/javascript">
         $(document).ready(function() {
@@ -41,6 +41,27 @@ class Root(object):
     def ws(self):
         cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
 
+    @cherrypy.expose
+    def index(self):
+        return """<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>WebSocket example displaying Android device sensors</title>
+
+      <script type='application/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js'></script>
+      <script type="application/javascript" src="/js/droidsensor.js"> </script>
+      <script type="application/javascript">
+        $(document).ready(function() {
+          initWebSocketAndSensors();
+        });
+      </script>
+    </head>
+    <body>
+    </body>
+    </html>
+    """
+        
 if __name__ == '__main__':
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
