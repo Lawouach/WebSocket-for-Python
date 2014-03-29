@@ -39,7 +39,7 @@ def gather_modules():
 
 setup(name = "ws4py",
       version = '0.3.3',
-      description = "WebSocket library for Python",
+      description = "WebSocket client and server library for Python 2 and 3 as well as PyPy",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
       url = "https://github.com/Lawouach/WebSocket-for-Python",
@@ -47,7 +47,7 @@ setup(name = "ws4py",
       py_modules=gather_modules(),
       platforms = ["any"],
       license = 'BSD',
-      long_description = "WebSocket library for Python",
+      long_description = "WebSocket client and server library for Python 2 and 3 as well as PyPy",
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Framework :: CherryPy',
