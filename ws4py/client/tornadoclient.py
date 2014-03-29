@@ -118,7 +118,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         if self.stream.closing:
             code, reason = self.stream.closing.code, self.stream.closing.reason
         self.closed(code, reason)
-        self._cleanup()
+        self.stream._cleanup()
 
     def close_connection(self):
         """
