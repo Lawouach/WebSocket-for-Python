@@ -2,7 +2,7 @@
 from struct import pack, unpack
 
 from ws4py.exc import FrameTooLargeException, ProtocolException
-from ws4py.compat import py3k, ord
+from ws4py.compat import py3k, ord, range
 
 # Frame opcodes defined in the spec.
 OPCODE_CONTINUATION = 0x0
