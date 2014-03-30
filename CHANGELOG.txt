@@ -1,6 +1,11 @@
 ws4py changelog
 ===============
 
+Version 0.3.4
+-------------
+
+* Setup build was broken [#123]
+
 Version 0.3.3
 -------------
 
