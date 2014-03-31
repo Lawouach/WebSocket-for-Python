@@ -82,7 +82,7 @@ class WebSocket(_WebSocket):
         """
         @asyncio.coroutine
         def closeit():
-            yield from self.proto.writer.drain()
+            eval('yield from self.proto.writer.drain()')
             self.proto.writer.close()
         asyncio.async(closeit())
 
@@ -93,7 +93,7 @@ class WebSocket(_WebSocket):
         @asyncio.coroutine
         def sendit(data):
             self.proto.writer.write(data)
-            yield from self.proto.writer.drain()
+            eval('yield from self.proto.writer.drain()')
         asyncio.async(sendit(data))
 
     @asyncio.coroutine
@@ -109,7 +109,7 @@ class WebSocket(_WebSocket):
             self.opened()
             reader = self.proto.reader
             while True:
-                data = yield from reader.read(self.reading_buffer_size)
+                data = eval('yield from reader.read(self.reading_buffer_size)')
                 if not self.process(data):
                     return False
         finally:
