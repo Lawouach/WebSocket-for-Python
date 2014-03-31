@@ -1,5 +1,5 @@
-CherryPy==3.2.4
-tornado==3.1
+CherryPy==3.2.5
+tornado==3.2
 greenlet==0.4.1
 mock==1.0.1
 Cython==0.19.1
