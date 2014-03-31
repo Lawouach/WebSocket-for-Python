@@ -2,3 +2,4 @@ CherryPy==3.2.5
 tornado==3.2
 mock==1.0.1
 asyncio==0.4.1
+mock==1.0.1
