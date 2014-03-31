@@ -3,3 +3,4 @@ tornado==3.2
 mock==1.0.1
 asyncio==0.4.1
 mock==1.0.1
+Cython==0.20.1
