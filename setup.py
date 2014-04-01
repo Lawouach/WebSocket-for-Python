@@ -29,7 +29,7 @@ class buildfor2or3(build_py):
         return amended_modules
   
 setup(name = "ws4py",
-      version = '0.3.4',
+      version = '0.3.5',
       description = "WebSocket client and server library for Python 2 and 3 as well as PyPy",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
