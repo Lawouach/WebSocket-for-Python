@@ -52,6 +52,7 @@ class WebSocketWSGIHandler(SimpleHandler):
         """
         SimpleHandler.setup_environ(self)
         self.environ['ws4py.socket'] = get_connection(self.environ['wsgi.input'])
+        self.http_version = self.environ['SERVER_PROTOCOL'].rsplit('/')[-1]
 
     def finish_response(self):
         """
