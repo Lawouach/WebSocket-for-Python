@@ -253,8 +253,8 @@ if __name__ == '__main__':
         'log.error_file': os.path.join(cwd_dir, 'error.log'),
         'tools.staticfile.root': cwd_dir,
         'tools.staticdir.root': cwd_dir,
-        #'tools.proxy.on': True,
-        #'tools.proxy.base': 'http://yourhost',
+        'tools.proxy.on': True,
+        'tools.proxy.base': '%s://%s' % (url.scheme, url.netloc),
         'error_page.404': os.path.join(cwd_dir, "templates", "404.html")
     })
 
