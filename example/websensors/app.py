@@ -33,6 +33,12 @@ import tempfile
 import time
 import uuid
 
+try:
+    import wsaccel
+    wsaccel.patch_ws4py()
+except ImportError:
+    pass
+
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.websocket import WebSocket
 
