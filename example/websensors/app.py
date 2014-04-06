@@ -265,6 +265,11 @@ if __name__ == '__main__':
         '/': {
             'tools.encode.on': False,
             'tools.response_headers.on': True,
+            'tools.response_headers.headers': [
+                ('X-Frame-options', 'deny'),
+                ('X-XSS-Protection', '1; mode=block'),
+                ('X-Content-Type-Options', 'nosniff')
+            ]
         },
         '/robots.txt': {
             'tools.staticfile.on': True,
