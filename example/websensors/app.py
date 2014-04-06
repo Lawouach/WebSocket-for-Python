@@ -232,6 +232,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--baseurl', default='http://0.0.0.0:8080')
+    parser.add_argument('--host')
+    parser.add_argument('-p', '--port', type=int)
     args = parser.parse_args()
 
     BASE_URL = args.baseurl
@@ -242,8 +244,8 @@ if __name__ == '__main__':
     bus.websockets.subscribe()
 
     cherrypy.config.update({
-        'server.socket_host': url.hostname,
-        'server.socket_port': url.port,
+        'server.socket_host': args.host or url.hostname,
+        'server.socket_port': args.port or url.port,
         'server.thread_pool': 30,
         #'log.screen': False,
         'log.access_file': os.path.join(cwd_dir, 'access.log'),
