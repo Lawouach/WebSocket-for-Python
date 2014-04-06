@@ -234,6 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--baseurl', default='http://0.0.0.0:8080')
     parser.add_argument('--host')
     parser.add_argument('-p', '--port', type=int)
+    parser.add_argument('--verbose', action="store_true")
     args = parser.parse_args()
 
     BASE_URL = args.baseurl
@@ -247,7 +248,7 @@ if __name__ == '__main__':
         'server.socket_host': args.host or url.hostname,
         'server.socket_port': args.port or url.port,
         'server.thread_pool': 30,
-        #'log.screen': False,
+        'log.screen': args.verbose,
         'log.access_file': os.path.join(cwd_dir, 'access.log'),
         'log.error_file': os.path.join(cwd_dir, 'error.log'),
         'tools.staticfile.root': cwd_dir,
