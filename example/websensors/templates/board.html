@@ -35,7 +35,7 @@
         <script type="application/javascript" src="/static/demos/drawing/js/drawingboard.js"></script>
         <script type="application/javascript">
 	   $(document).ready(function() {
-	      $.board({board: "${boardid}", participant: "${participantid}"});
+	      $.board({url: "${basewsurl}", board: "${boardid}", participant: "${participantid}"});
 	   });
         </script>
     </body>

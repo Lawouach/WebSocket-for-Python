@@ -46,7 +46,9 @@ import cherrypy
 from cherrypy.process import plugins
 from mako.lookup import TemplateLookup
 from mako.template import Template
- 
+
+BASE_URL = None
+
 cwd_dir = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
 bus = cherrypy.engine
 lookup = TemplateLookup(directories=os.path.join(cwd_dir, 'templates'),
@@ -54,7 +56,7 @@ lookup = TemplateLookup(directories=os.path.join(cwd_dir, 'templates'),
                         input_encoding='utf-8',
                         output_encoding='utf-8',
                         collection_size=20)
-    
+
 class DrawingBoardWebSocketHandler(WebSocket):
     """
     WebSocket handler that will dispatch drawing events
@@ -198,23 +200,23 @@ def render_template(template):
 cherrypy.tools.render = cherrypy.Tool('before_finalize', render_template)
 cherrypy.tools.websocket = WebSocketTool()
 
-
-
-
         
 # Web Application
 class SharedDrawingBoardApp(object):
     @cherrypy.expose
     @cherrypy.tools.render(template='index.html')
     def index(self):
-        return {'boardid': str(uuid.uuid4())[:4]}
+        return {'boardid': str(uuid.uuid4())[:4],
+                'baseurl': BASE_URL}
 
     @cherrypy.expose
     @cherrypy.tools.render(template='board.html')
     def board(self, board_id):
         bus.websockets.register_board(board_id)
         return {'boardid': board_id,
-                'participantid': str(uuid.uuid4())[:6]}
+                'participantid': str(uuid.uuid4())[:6],
+                'baseurl': BASE_URL,
+                'basewsurl': BASE_URL.replace('http', 'ws')}
 
 # WebSocket endpoint
 class SharedDrawingBoarWebSocketApp(object):
@@ -225,11 +227,23 @@ class SharedDrawingBoarWebSocketApp(object):
                                             cherrypy.request.ws_handler)
         
 if __name__ == '__main__':
+    import argparse
+    from urlparse import urlparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--baseurl', default='http://0.0.0.0:8080')
+    args = parser.parse_args()
+
+    BASE_URL = args.baseurl
+    BASE_URL = BASE_URL.rstrip('/')
+    url = urlparse(BASE_URL)
+    
     bus.websockets = DrawingBoardWebSocketPlugin(bus)
     bus.websockets.subscribe()
 
     cherrypy.config.update({
-        'server.socket_host': '0.0.0.0',
+        'server.socket_host': url.hostname,
+        'server.socket_port': url.port,
         'server.thread_pool': 30,
         #'log.screen': False,
         'log.access_file': os.path.join(cwd_dir, 'access.log'),

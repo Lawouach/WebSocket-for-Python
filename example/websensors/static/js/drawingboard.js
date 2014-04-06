@@ -15,7 +15,7 @@
 	var color = "#ff1100";
 	
 	me.connect = function() {
-	    ws = new WebSocket('ws://192.168.1.13:8080/ws/?board_id='+board_id+"&participant_id="+participant_id);
+	    ws = new WebSocket(options.url+'/ws/?board_id='+board_id+"&participant_id="+participant_id);
 	    ws.onopen = function(e) {};
 	    ws.onclose = function(e) {
 		alert("Connection lost: " + e.reason);
