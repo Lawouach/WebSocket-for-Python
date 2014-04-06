@@ -231,7 +231,7 @@ if __name__ == '__main__':
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.thread_pool': 30,
-        'log.screen': False,
+        #'log.screen': False,
         'log.access_file': os.path.join(cwd_dir, 'access.log'),
         'log.error_file': os.path.join(cwd_dir, 'error.log'),
         'tools.staticfile.root': cwd_dir,
@@ -253,7 +253,7 @@ if __name__ == '__main__':
             'tools.staticfile.on': True,
             'tools.staticfile.filename': 'static/robots.txt'
         },
-        '/static': {
+        '/static/demos/drawing': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': 'static'
         }
