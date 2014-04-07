@@ -26,6 +26,16 @@ This demo uses:
 * jquery
 * HTML5boilerplate (via http://www.initializr.com/)
 
+Once you have installed those dependencies, simply run the
+application as follow:
+
+  $ python app.py --baseurl https://myhost/ --host 0.0.0.0 --port 8080
+
+You can specify the base url which will be used to build the
+URL to the board. For instance, a board's url will be:
+
+ https://myhost/board/c866
+
 """
 import json
 import os.path
