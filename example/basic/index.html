@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+      <style>
+        body { padding-top: 20px; background-color: #333; color: #fff; }
+        #chat { width: 100%%; height: 300px;  color: #333; }
+      </style>
+
+      <script type="application/javascript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+      <script type="application/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+      <script type="application/javascript">
+        $(document).ready(function() {
+          var ws = new WebSocket("%(ws_addr)s");
+
+          window.onbeforeunload = function(e) {
+            $("#chat").val($("#chat").val() + "Bye bye...\n");
+            ws.close(1000, "%(username)s left the room");
+
+            if(!e) e = window.event;
+            e.stopPropagation();
+            e.preventDefault();
+          };
+          ws.onmessage = function (evt) {
+             $("#chat").val($("#chat").val() + evt.data + "\n");
+          };
+          ws.onopen = function() {
+             ws.send("%(username)s entered the room");
+          };
+          ws.onclose = function(evt) {
+             $("#chat").val($("#chat").val() + "Connection closed by server: " + evt.code + " \'" + evt.reason + "\'\n");
+          };
+
+          $("#send").click(function() {
+             console.log($("#message").val());
+             ws.send("%(username)s: " + $("#message").val());
+             $("#message").val("");
+             return false;
+          });
+        });
+      </script>
+    </head>
+    <body>
+      <div class="container">
+        <div class="row">
+	  <textarea id="chat" readonly="readonly"></textarea>
+	</div>
+	
+        <div class="row">
+	<form action="#" id="chatform" method="get" class="form-horizontal" role="form">
+          <div class="form-group">
+	    <div class="col-sm-4">
+	      <input class="form-control input-sm" type="text" id="message" />
+	    </div>
+	    <div class="col-sm-1">
+	      <button id="send" type="submit" class="btn btn-default btn-sm">Send</button>
+	    </div>
+	  </div>
+	</form>
+	</div>
+      </div>
+    </body>
+</html>
