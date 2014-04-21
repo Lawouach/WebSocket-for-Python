@@ -114,7 +114,7 @@
 	};
 
 	me.motion = function(e) {
-	    var target = $(event.target);
+	    var target = $(e.target);
 	    if (e.type == "devicemotion") {
 		accel.x = accel.x * 0.9 + e.accelerationIncludingGravity.x * 1.5;
 		accel.y = accel.y * 0.9 + e.accelerationIncludingGravity.z * 1.5;
