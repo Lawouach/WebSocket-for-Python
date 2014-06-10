@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+import logging.handlers as handlers
 
 __author__ = "Sylvain Hellegouarch"
 __version__ = "0.3.5"
