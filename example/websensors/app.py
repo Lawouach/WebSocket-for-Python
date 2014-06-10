@@ -223,7 +223,7 @@ class SharedDrawingBoardApp(object):
     @cherrypy.tools.render(template='board.html')
     def board(self, board_id):
         bus.websockets.register_board(board_id)
-        return {'boardid': board_id,
+        return {'boardid': board_id.replace('"', ''),
                 'participantid': str(uuid.uuid4())[:6],
                 'baseurl': BASE_URL,
                 'basewsurl': BASE_URL.replace('http', 'ws')}
