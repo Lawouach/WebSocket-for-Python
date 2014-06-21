@@ -55,7 +55,7 @@ class WebSocketWSGIHandler(WSGIHandler):
                 self.socket = None
                 self.rfile.close()
 
-                ws = self.environ.pop('ws4py.websocket')
+                ws = self.environ.pop('ws4py.websocket', None)
                 if ws:
                     self.server.pool.track(ws)
         else:
