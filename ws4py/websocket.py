@@ -128,6 +128,11 @@ class WebSocket(object):
         self._local_address = None
         self._peer_address = None
 
+        """
+        Lock for protecting socket from concurrent writes
+        """
+        self._lock = threading.RLock()
+
     @property
     def local_address(self):
         """
@@ -254,28 +259,30 @@ class WebSocket(object):
 
         If ``binary`` is set, handles the payload as a binary message.
         """
-        message_sender = self.stream.binary_message if binary else self.stream.text_message
 
-        if isinstance(payload, basestring) or isinstance(payload, bytearray):
-            m = message_sender(payload).single(mask=self.stream.always_mask)
-            self._write(m)
+        with self._lock:
+            message_sender = self.stream.binary_message if binary else self.stream.text_message
 
-        elif isinstance(payload, Message):
-            data = payload.single(mask=self.stream.always_mask)
-            self._write(data)
+            if isinstance(payload, basestring) or isinstance(payload, bytearray):
+                m = message_sender(payload).single(mask=self.stream.always_mask)
+                self._write(m)
 
-        elif type(payload) == types.GeneratorType:
-            bytes = next(payload)
-            first = True
-            for chunk in payload:
-                self._write(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
-                bytes = chunk
-                first = False
+            elif isinstance(payload, Message):
+                data = payload.single(mask=self.stream.always_mask)
+                self._write(data)
 
-            self._write(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            elif type(payload) == types.GeneratorType:
+                bytes = next(payload)
+                first = True
+                for chunk in payload:
+                    self._write(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
+                    bytes = chunk
+                    first = False
 
-        else:
-            raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
+                self._write(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+
+            else:
+                raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
 
     def once(self):
         """
@@ -292,18 +299,20 @@ class WebSocket(object):
         socket level or during the bytes processing. Otherwise,
         it returns `True`.
         """
+
         if self.terminated:
             logger.debug("WebSocket is already terminated")
             return False
 
-        try:
-            b = self.sock.recv(self.reading_buffer_size)
-        except socket.error:
-            logger.exception("Failed to receive data")
-            return False
-        else:
-            if not self.process(b):
+        with self._lock:
+            try:
+                b = self.sock.recv(self.reading_buffer_size)
+            except socket.error:
+                logger.exception("Failed to receive data")
                 return False
+            else:
+                if not self.process(b):
+                    return False
 
         return True
 
