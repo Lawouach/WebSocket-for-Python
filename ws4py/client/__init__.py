@@ -245,7 +245,7 @@ class WebSocketBaseClient(WebSocket):
         handshake.
         """
         headers = [
-            ('Host', self.host),
+            ('Host', '%s:%s' % (self.host, self.port)),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
