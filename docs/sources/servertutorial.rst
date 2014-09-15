@@ -63,7 +63,7 @@ First we patch all the standard modules so that the stdlib runs well with as gev
 wsgiref
 -------
 
-:py:mod:`wsgiref` is a built-in WSGI package that provides various classes and helpers to develop against WSGI. Mostly it provides a basic WSGI server that can be usedfor testing or simple demos. ws4py provides support for websocket on wsgiref for testing purpose as well. It's not meant to be used in production.
+:py:mod:`wsgiref` is a built-in WSGI package that provides various classes and helpers to develop against WSGI. Mostly it provides a basic WSGI server that can be usedfor testing or simple demos. ws4py provides support for websocket on wsgiref for testing purpose as well. It's not meant to be used in production, since it can only initiate web socket connections one at a time, as a result of being single threaded. However, once accepted, ws4py takes over, which is multithreaded by default.
 
 .. code-block:: python
     :linenos:
