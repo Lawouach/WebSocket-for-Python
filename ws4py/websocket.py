@@ -323,7 +323,7 @@ class WebSocket(object):
         self.client_terminated = self.server_terminated = True
 
         try:
-            if not s.closing:
+            if s.closing is None:
                 self.closed(1006, "Going away")
             else:
                 self.closed(s.closing.code, s.closing.reason)
