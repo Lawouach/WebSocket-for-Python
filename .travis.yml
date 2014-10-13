@@ -10,8 +10,8 @@ before_install:
   - pip install --use-mirrors Cython
 
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install --use-mirrors -r requirements/py2kreqs.txt; fi 
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install --use-mirrors -r requirements/py3kreqs.txt; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -r requirements/py2kreqs.txt; fi 
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install -r requirements/py3kreqs.txt; fi
   - python setup.py install
 
 script: 
