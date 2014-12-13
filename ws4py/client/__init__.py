@@ -266,10 +266,10 @@ class WebSocketBaseClient(WebSocket):
                 self.host = parsed.hostname
             else:
                 self.host = 'localhost'
-            url = scheme + '://' + parsed.hostname
+            origin = scheme + '://' + parsed.hostname
             if parsed.port:
-                url = url + ':' + str(parsed.port)
-            headers.append(('Origin', url))
+                origin = origin + ':' + str(parsed.port)
+            headers.append(('Origin', origin))
 
         return headers
 
