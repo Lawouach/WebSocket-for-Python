@@ -16,7 +16,6 @@ Its usage is rather simple:
 
 """
 import logging
-import sys
 
 import gevent
 from gevent.pywsgi import WSGIHandler, WSGIServer as _WSGIServer
@@ -25,10 +24,12 @@ from gevent.pool import Pool
 from ws4py import format_addresses
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
+
 logger = logging.getLogger('ws4py')
 
 __all__ = ['WebSocketWSGIHandler', 'WSGIServer',
            'GEventWebSocketPool']
+
 
 class WebSocketWSGIHandler(WSGIHandler):
     """
@@ -43,23 +44,20 @@ class WebSocketWSGIHandler(WSGIHandler):
     def run_application(self):
         upgrade_header = self.environ.get('HTTP_UPGRADE', '').lower()
         if upgrade_header:
-            try:
-                # Build and start the HTTP response
-                self.environ['ws4py.socket'] = self.socket or self.environ['wsgi.input'].rfile._sock
-                self.result = self.application(self.environ, self.start_response) or []
-                self.process_result()
-            except:
-                raise
-            else:
-                del self.environ['ws4py.socket']
-                self.socket = None
-                self.rfile.close()
+            # Build and start the HTTP response
+            self.environ['ws4py.socket'] = self.socket or self.environ['wsgi.input'].rfile._sock
+            self.result = self.application(self.environ, self.start_response) or []
+            self.process_result()
+            del self.environ['ws4py.socket']
+            self.socket = None
+            self.rfile.close()
 
-                ws = self.environ.pop('ws4py.websocket', None)
-                if ws:
-                    self.server.pool.track(ws)
+            ws = self.environ.pop('ws4py.websocket', None)
+            if ws:
+                self.server.pool.track(ws)
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
+
 
 class GEventWebSocketPool(Pool):
     """
@@ -85,7 +83,8 @@ class GEventWebSocketPool(Pool):
                 pass
             finally:
                 self.discard(greenlet)
-                
+
+
 class WSGIServer(_WSGIServer):
     handler_class = WebSocketWSGIHandler
 
@@ -106,8 +105,8 @@ class WSGIServer(_WSGIServer):
         self.pool.clear()
         _WSGIServer.stop(self, *args, **kwargs)
 
+
 if __name__ == '__main__':
-    import os
 
     from ws4py import configure_logger
     configure_logger()
