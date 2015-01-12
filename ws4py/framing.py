@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from struct import pack, unpack
 
-from ws4py.exc import FrameTooLargeException, ProtocolException
-from ws4py.compat import py3k, ord, range
+from .exc import FrameTooLargeException, ProtocolException
+from .compat import py3k, ord, range
+
+
+__all__ = ['Frame']
 
 # Frame opcodes defined in the spec.
 OPCODE_CONTINUATION = 0x0
@@ -12,7 +15,6 @@ OPCODE_CLOSE = 0x8
 OPCODE_PING = 0x9
 OPCODE_PONG = 0xa
 
-__all__ = ['Frame']
 
 class Frame(object):
     def __init__(self, opcode=None, body=b'', masking_key=None, fin=0, rsv1=0, rsv2=0, rsv3=0):
@@ -95,8 +97,7 @@ class Frame(object):
         ## +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
         ## |     Extended payload length continued, if payload len == 127  |
         ## + - - - - - - - - - - - - - - - +-------------------------------+
-        if self.masking_key: mask_bit = 1 << 7
-        else: mask_bit = 0
+        mask_bit = 1 << 7 if self.masking_key else 0
 
         length = self.payload_length
         if length < 126:
@@ -264,10 +265,10 @@ class Frame(object):
            transformed-octet-i = original-octet-i XOR masking-key-octet-j
 
         """
+        key = self.masking_key if py3k else map(ord, self.masking_key)
         masked = bytearray(data)
-        if py3k: key = self.masking_key
-        else: key = map(ord, self.masking_key)
-        for i in range(len(data)):
-            masked[i] = masked[i] ^ key[i%4]
+        for i, byte in enumerate(masked):
+            masked[i] = byte ^ key[i % 4]
         return masked
+
     unmask = mask

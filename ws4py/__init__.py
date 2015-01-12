@@ -26,15 +26,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-import logging
-import logging.handlers as handlers
+import logging.handlers
+
 
 __author__ = "Sylvain Hellegouarch"
 __version__ = "0.3.5"
-__all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger', 'format_addresses']
+__all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger']
 
 WS_KEY = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 WS_VERSION = (8, 13)
+
 
 def configure_logger(stdout=True, filepath=None, level=logging.INFO):
     logger = logging.getLogger('ws4py')
@@ -42,7 +43,7 @@ def configure_logger(stdout=True, filepath=None, level=logging.INFO):
     logfmt = logging.Formatter("[%(asctime)s] %(levelname)s %(message)s")
 
     if filepath:
-        h = handlers.RotatingFileHandler(filepath, maxBytes=10485760, backupCount=3)
+        h = logging.handlers.RotatingFileHandler(filepath, maxBytes=10485760, backupCount=3)
         h.setLevel(level)
         h.setFormatter(logfmt)
         logger.addHandler(h)
@@ -55,13 +56,3 @@ def configure_logger(stdout=True, filepath=None, level=logging.INFO):
         logger.addHandler(h)
 
     return logger
-
-def format_addresses(ws):
-    me = ws.local_address
-    peer = ws.peer_address
-    if isinstance(me, tuple) and isinstance(peer, tuple):
-        me_ip, me_port = ws.local_address
-        peer_ip, peer_port = ws.peer_address
-        return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
-
-    return "[Bound to '%s']" % me

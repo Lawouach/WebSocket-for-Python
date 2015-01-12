@@ -4,15 +4,16 @@ import unittest
 import types
 import random
 
-from ws4py.framing import Frame, \
-     OPCODE_CONTINUATION, OPCODE_TEXT, \
-     OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
+from ws4py.framing import (
+    Frame, OPCODE_CONTINUATION, OPCODE_TEXT, OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG)
 from ws4py.exc import FrameTooLargeException, ProtocolException
 from ws4py.compat import *
+
 
 def map_on_bytes(f, bytes):
     for index, byte in enumerate(bytes):
         f(bytes[index:index+1])
+
 
 class WSFrameBuilderTest(unittest.TestCase):
     def test_7_bit_length(self):
@@ -101,6 +102,7 @@ class WSFrameBuilderTest(unittest.TestCase):
 
     def test_passing_unencoded_string_raises_type_error(self):
         self.assertRaises(TypeError, Frame, opcode=OPCODE_TEXT, body=u'\xe9', fin=1)
+
 
 class WSFrameParserTest(unittest.TestCase):
     def test_frame_parser_is_a_generator(self):
@@ -271,7 +273,8 @@ class WSFrameParserTest(unittest.TestCase):
         # parse the rest of our data
         f.parser.send(bytes[10:])
         self.assertEqual(f.body, body)
-        
+
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
