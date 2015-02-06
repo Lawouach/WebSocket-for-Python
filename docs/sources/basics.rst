@@ -25,7 +25,7 @@ Other useful methods to implement are:
 You may want to know if the connection is currently usable or :attr:`terminated <ws4py.websocket.WebSocket.terminated>`.
 
 At that stage, the subclass is still not connected to any data source. The way ws4py is designed, you don't
-necessarily a connected socket, in fact, you don't even need a socket at all.
+necessarily need a connected socket, in fact, you don't even need a socket at all.
 
 
 .. code-block:: python
