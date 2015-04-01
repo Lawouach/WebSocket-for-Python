@@ -49,16 +49,17 @@ should:
 import base64
 from hashlib import sha1
 import logging
-import sys
 
 from ws4py.websocket import WebSocket
 from ws4py.exc import HandshakeError
 from ws4py.compat import unicode, py3k
-from ws4py import WS_VERSION, WS_KEY, format_addresses
+from ws4py import WS_VERSION, WS_KEY
+
 
 logger = logging.getLogger('ws4py')
 
 __all__ = ['WebSocketWSGIApplication']
+
 
 class WebSocketWSGIApplication(object):
     def __init__(self, protocols=None, extensions=None, handler_cls=WebSocket):
@@ -94,8 +95,8 @@ class WebSocketWSGIApplication(object):
         if environ.get('REQUEST_METHOD') != 'GET':
             raise HandshakeError('HTTP method must be a GET')
 
-        for key, expected_value in [('HTTP_UPGRADE', 'websocket'),
-                                    ('HTTP_CONNECTION', 'upgrade')]:
+        for key, expected_value in (('HTTP_UPGRADE', 'websocket'),
+                                    ('HTTP_CONNECTION', 'upgrade')):
             actual_value = environ.get(key, '').lower()
             if not actual_value:
                 raise HandshakeError('Header %s is not defined' % key)
@@ -110,19 +111,18 @@ class WebSocketWSGIApplication(object):
                 raise HandshakeError("WebSocket key's length is invalid")
 
         version = environ.get('HTTP_SEC_WEBSOCKET_VERSION')
-        supported_versions = b', '.join([unicode(v).encode('utf-8') for v in WS_VERSION])
-        version_is_valid = False
         if version:
-            try: version = int(version)
-            except: pass
-            else: version_is_valid = version in WS_VERSION
+            try:
+                version = int(version)
+            except ValueError:
+                pass
 
-        if not version_is_valid:
+        if version not in WS_VERSION:
             environ['websocket.version'] = unicode(version).encode('utf-8')
             raise HandshakeError('Unhandled or missing WebSocket version')
 
         ws_protocols = []
-        protocols = self.protocols or []
+        protocols = self.protocols or ()
         subprotocols = environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL')
         if subprotocols:
             for s in subprotocols.split(','):
@@ -131,22 +131,22 @@ class WebSocketWSGIApplication(object):
                     ws_protocols.append(s)
 
         ws_extensions = []
-        exts = self.extensions or []
+        exts = self.extensions or ()
         extensions = environ.get('HTTP_SEC_WEBSOCKET_EXTENSIONS')
         if extensions:
             for ext in extensions.split(','):
-                ext = ext.strip()
-                if ext in exts:
+                if ext.strip() in exts:
                     ws_extensions.append(ext)
 
         accept_value = base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())
-        if py3k: accept_value = accept_value.decode('utf-8')
+        if py3k:
+            accept_value = accept_value.decode('utf-8')
         upgrade_headers = [
             ('Upgrade', 'websocket'),
             ('Connection', 'Upgrade'),
             ('Sec-WebSocket-Version', '%s' % version),
             ('Sec-WebSocket-Accept', accept_value),
-            ]
+        ]
         if ws_protocols:
             upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
         if ws_extensions:
@@ -159,4 +159,4 @@ class WebSocketWSGIApplication(object):
                             ws_extensions,
                             environ)
 
-        return []
+        return ()

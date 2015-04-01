@@ -5,17 +5,18 @@ import time
 import threading
 import types
 
-from ws4py import WS_KEY, WS_VERSION
-from ws4py.exc import HandshakeError, StreamClosed
-from ws4py.streaming import Stream
-from ws4py.messaging import Message, PongControlMessage
-from ws4py.compat import basestring, unicode
+from .streaming import Stream
+from .messaging import Message, PongControlMessage
+from .compat import basestring
+from .utils import cached_property
+
 
 DEFAULT_READING_SIZE = 2
 
 logger = logging.getLogger('ws4py')
 
 __all__ = ['WebSocket', 'EchoWebSocket', 'Heartbeat']
+
 
 class Heartbeat(threading.Thread):
     def __init__(self, websocket, frequency=2.0):
@@ -58,6 +59,7 @@ class Heartbeat(threading.Thread):
                 self.websocket.server_terminated = True
                 self.websocket.close_connection()
                 break
+
 
 class WebSocket(object):
     """ Represents a websocket endpoint and provides a high level interface to drive the endpoint. """
@@ -125,30 +127,35 @@ class WebSocket(object):
         Set this to `0` or `None` to disable it entirely.
         """
 
-        self._local_address = None
-        self._peer_address = None
+    def __str__(self):
+        me = self.local_address
+        peer = self.peer_address
+        if isinstance(me, tuple) and isinstance(peer, tuple):
+            me_ip, me_port = me
+            peer_ip, peer_port = peer
+            return "[Local => %s:%d | Remote => %s:%d]" % (me_ip, me_port, peer_ip, peer_port)
 
-    @property
+        return "[Bound to '%s']" % me
+
+    @cached_property
     def local_address(self):
         """
         Local endpoint address as a tuple
         """
-        if not self._local_address:
-            self._local_address = self.sock.getsockname()
-            if len(self._local_address) == 4:
-                self._local_address = self._local_address[:2]
-        return self._local_address
+        local_address = self.sock.getsockname()
+        if len(local_address) == 4:
+            local_address = local_address[:2]
+        return local_address
 
-    @property
+    @cached_property
     def peer_address(self):
         """
         Peer endpoint address as a tuple
         """
-        if not self._peer_address:
-            self._peer_address = self.sock.getpeername()
-            if len(self._peer_address) == 4:
-                self._peer_address = self._peer_address[:2]
-        return self._peer_address
+        peer_address = self.sock.getpeername()
+        if len(peer_address) == 4:
+            peer_address = peer_address[:2]
+        return peer_address
 
     def opened(self):
         """
@@ -191,7 +198,7 @@ class WebSocket(object):
         Returns ``True`` if both the client and server have been
         marked as terminated.
         """
-        return self.client_terminated is True and self.server_terminated is True
+        return self.client_terminated and self.server_terminated
 
     @property
     def connection(self):
@@ -256,7 +263,7 @@ class WebSocket(object):
         """
         message_sender = self.stream.binary_message if binary else self.stream.text_message
 
-        if isinstance(payload, basestring) or isinstance(payload, bytearray):
+        if isinstance(payload, (basestring, bytearray)):
             m = message_sender(payload).single(mask=self.stream.always_mask)
             self._write(m)
 
@@ -301,11 +308,8 @@ class WebSocket(object):
         except socket.error:
             logger.exception("Failed to receive data")
             return False
-        else:
-            if not self.process(b):
-                return False
 
-        return True
+        return bool(self.process(b))
 
     def terminate(self):
         """
@@ -349,15 +353,15 @@ class WebSocket(object):
         The process should be terminated when this method
         returns ``False``.
         """
-        s = self.stream
 
         if not bytes and self.reading_buffer_size > 0:
             return False
         
+        s = self.stream
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
-            logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
+            logger.debug("Closing message received (%d) '%s'", s.closing.code, s.closing.reason)
             if not self.server_terminated:
                 self.close(s.closing.code, s.closing.reason)
             else:
@@ -366,7 +370,7 @@ class WebSocket(object):
 
         if s.errors:
             for error in s.errors:
-                logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
+                logger.debug("Error message received (%d) '%s'", error.code, error.reason)
                 self.close(error.code, error.reason)
             s.errors = []
             return False
@@ -415,8 +419,6 @@ class WebSocket(object):
         """
         self.sock.setblocking(True)
         with Heartbeat(self, frequency=self.heartbeat_freq):
-            s = self.stream
-
             try:
                 self.opened()
                 while not self.terminated:
@@ -424,6 +426,7 @@ class WebSocket(object):
                         break
             finally:
                 self.terminate()
+
 
 class EchoWebSocket(WebSocket):
     def received_message(self, message):

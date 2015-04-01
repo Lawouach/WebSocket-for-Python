@@ -2,16 +2,17 @@
 import struct
 from struct import unpack
 
-from ws4py.utf8validator import Utf8Validator
-from ws4py.messaging import TextMessage, BinaryMessage, CloseControlMessage,\
-     PingControlMessage, PongControlMessage
-from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
-     OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
-from ws4py.exc import FrameTooLargeException, ProtocolException, InvalidBytesError,\
-     TextFrameEncodingException, UnsupportedFrameTypeException, StreamClosed
-from ws4py.compat import py3k
+from .utf8validator import Utf8Validator
+from .messaging import (
+    TextMessage, BinaryMessage, CloseControlMessage, PingControlMessage, PongControlMessage)
+from .framing import (
+    Frame, OPCODE_CONTINUATION, OPCODE_TEXT, OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG)
+from .exc import FrameTooLargeException, ProtocolException
+from .compat import py3k
+
 
 VALID_CLOSING_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
+
 
 class Stream(object):
     def __init__(self, always_mask=False, expect_masking=True):

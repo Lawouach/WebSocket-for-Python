@@ -26,7 +26,6 @@ workflow.
    For some reason this server may fail against autobahntestsuite.
 """
 import logging
-import sys
 from wsgiref.handlers import SimpleHandler
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer as _WSGIServer
 from wsgiref import util
@@ -34,14 +33,15 @@ from wsgiref import util
 util._hoppish = {}.__contains__
 
 from ws4py.manager import WebSocketManager
-from ws4py import format_addresses
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
 from ws4py.compat import get_connection
+
 
 __all__ = ['WebSocketWSGIHandler', 'WebSocketWSGIRequestHandler',
            'WSGIServer']
 
 logger = logging.getLogger('ws4py')
+
 
 class WebSocketWSGIHandler(SimpleHandler):
     def setup_environ(self):
@@ -78,6 +78,7 @@ class WebSocketWSGIHandler(SimpleHandler):
             if ws:
                 self.request_handler.server.link_websocket_to_server(ws)
 
+
 class WebSocketWSGIRequestHandler(WSGIRequestHandler):
     def handle(self):
         """
@@ -94,6 +95,7 @@ class WebSocketWSGIRequestHandler(WSGIRequestHandler):
         )
         handler.request_handler = self      # backpointer for logging
         handler.run(self.server.get_app())
+
 
 class WSGIServer(_WSGIServer):
     def initialize_websockets_manager(self):
@@ -130,6 +132,7 @@ class WSGIServer(_WSGIServer):
             self.manager.join()
             delattr(self, 'manager')
         _WSGIServer.server_close(self)
+
 
 if __name__ == '__main__':
     from ws4py import configure_logger

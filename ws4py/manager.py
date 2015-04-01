@@ -46,10 +46,10 @@ import select
 import threading
 import time
 
-from ws4py import format_addresses
 from ws4py.compat import py3k
 
 logger = logging.getLogger('ws4py')
+
 
 class SelectPoller(object):
     def __init__(self, timeout=0.1):
@@ -96,6 +96,7 @@ class SelectPoller(object):
         r, w, x = select.select(self._fds, [], [], self.timeout)
         return r
 
+
 class EPollPoller(object):
     def __init__(self, timeout=0.1):
         """
@@ -140,6 +141,7 @@ class EPollPoller(object):
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
 
+
 class KQueuePoller(object):
     def __init__(self, timeout=0.1):
         """
@@ -183,6 +185,7 @@ class KQueuePoller(object):
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
+
 
 class WebSocketManager(threading.Thread):
     def __init__(self, poller=None):
@@ -240,7 +243,7 @@ class WebSocketManager(threading.Thread):
         if websocket in self:
             return
         
-        logger.info("Managing websocket %s" % format_addresses(websocket))
+        logger.info("Managing websocket %s", websocket)
         websocket.opened()
         with self.lock:
             fd = websocket.sock.fileno()
@@ -258,7 +261,7 @@ class WebSocketManager(threading.Thread):
         if websocket not in self:
             return
         
-        logger.info("Removing websocket %s" % format_addresses(websocket))
+        logger.info("Removing websocket %s", websocket)
         with self.lock:
             fd = websocket.sock.fileno()
             self.websockets.pop(fd, None)
@@ -314,7 +317,7 @@ class WebSocketManager(threading.Thread):
                             self.poller.unregister(fd)
 
                         if not ws.terminated:
-                            logger.info("Terminating websocket %s" % format_addresses(ws))
+                            logger.info("Terminating websocket %s", ws)
                             ws.terminate()
 
     def close_all(self, code=1001, message='Server is shutting down'):
@@ -324,7 +327,7 @@ class WebSocketManager(threading.Thread):
         It doesn't wait for the handshake to complete properly.
         """
         with self.lock:
-            logger.info("Closing all websockets with [%d] '%s'" % (code, message))
+            logger.info("Closing all websockets with [%d] '%s'", code, message)
             for ws in iter(self):
                 ws.close(code=code, reason=message)
 

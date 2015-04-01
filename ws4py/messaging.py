@@ -6,8 +6,10 @@ from ws4py.framing import Frame, OPCODE_CONTINUATION, OPCODE_TEXT, \
      OPCODE_BINARY, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG
 from ws4py.compat import unicode, py3k
 
+
 __all__ = ['Message', 'TextMessage', 'BinaryMessage', 'CloseControlMessage',
            'PingControlMessage', 'PongControlMessage']
+
 
 class Message(object):
     def __init__(self, opcode, data=b'', encoding='utf-8'):
@@ -111,6 +113,7 @@ class Message(object):
     def __unicode__(self):
         return self.data.decode(self.encoding)
 
+
 class TextMessage(Message):
     def __init__(self, text=None):
         Message.__init__(self, OPCODE_TEXT, text)
@@ -122,6 +125,7 @@ class TextMessage(Message):
     @property
     def is_text(self):
         return True
+
 
 class BinaryMessage(Message):
     def __init__(self, bytes=None):
@@ -137,6 +141,7 @@ class BinaryMessage(Message):
 
     def __len__(self):
         return len(self.data)
+
 
 class CloseControlMessage(Message):
     def __init__(self, code=1000, reason=''):
@@ -160,9 +165,11 @@ class CloseControlMessage(Message):
     def __unicode__(self):
         return self.reason.decode(self.encoding)
 
+
 class PingControlMessage(Message):
     def __init__(self, data=None):
         Message.__init__(self, OPCODE_PING, data)
+
 
 class PongControlMessage(Message):
     def __init__(self, data):
