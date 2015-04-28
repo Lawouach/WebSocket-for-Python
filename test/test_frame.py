@@ -3,6 +3,7 @@ import os
 import unittest
 import types
 import random
+from struct import pack, unpack
 
 from ws4py.framing import Frame, \
      OPCODE_CONTINUATION, OPCODE_TEXT, \
@@ -238,6 +239,17 @@ class WSFrameParserTest(unittest.TestCase):
         f.parser.send(bytes[12:])
         self.assertEqual(f.unmask(f.body), body)
         
+    def test_frame_too_large_with_7_bit_length(self):
+        header = pack('!B', ((1 << 7)
+                             | (0 << 6)
+                             | (0 << 5)
+                             | (0 << 4)
+                             | OPCODE_TEXT))
+        header += pack('!B', 127) + pack('!Q', 1 << 63)
+        b = bytes(header + b'')
+        f = Frame()
+        self.assertRaises(FrameTooLargeException, f.parser.send, b)
+
     def test_frame_sized_126(self):
         body = b'*'*256
         bytes = Frame(opcode=OPCODE_TEXT, body=body, fin=1).build()
