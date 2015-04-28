@@ -250,6 +250,20 @@ class WSFrameParserTest(unittest.TestCase):
         f = Frame()
         self.assertRaises(FrameTooLargeException, f.parser.send, b)
 
+    def test_not_sensitive_to_overflow(self):
+        header = pack('!B', ((1 << 7)
+                             | (0 << 6)
+                             | (0 << 5)
+                             | (0 << 4)
+                             | OPCODE_TEXT))
+        header += pack('!B', 126) + pack('!H', 256)
+        b = bytes(header + b'*' * 512)
+        f = Frame()
+        f.parser.send(b)
+        # even though we tried to inject 512 bytes, we
+        # still only read 256
+        self.assertEqual(len(f.body), 256)
+        
     def test_frame_sized_126(self):
         body = b'*'*256
         bytes = Frame(opcode=OPCODE_TEXT, body=body, fin=1).build()
@@ -283,7 +297,7 @@ class WSFrameParserTest(unittest.TestCase):
         # parse the rest of our data
         f.parser.send(bytes[10:])
         self.assertEqual(f.body, body)
-        
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
