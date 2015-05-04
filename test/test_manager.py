@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import time
+import itertools
 import unittest
 
 from mock import MagicMock, call, patch
 
-from ws4py.manager import WebSocketManager
+from ws4py.manager import WebSocketManager, SelectPoller,\
+     EPollPoller
 from ws4py.websocket import WebSocket
 
 class WSManagerTest(unittest.TestCase):
@@ -135,11 +137,143 @@ class WSManagerTest(unittest.TestCase):
                 m.broadcast(b'hello there')
         except:
                 self.fail("Broadcasting shouldn't have failed")
-                
+
+class WSSelectPollerTest(unittest.TestCase):
+    @patch('ws4py.manager.select')
+    def test_release_poller(self, select):
+        poller = SelectPoller()
+        select.select.return_value = (poller._fds, None, None)
+        
+        poller.register(0)
+        poller.register(1)
+        fd = poller.poll()
+        self.assertEqual(fd, [0, 1])
+
+        poller.unregister(0)
+        fd = poller.poll()
+        self.assertEqual(fd, [1])
+        
+        poller.release()
+        fd = poller.poll()
+        self.assertEqual(fd, [])
+         
+    def test_timeout_when_no_registered_fds(self):
+        poller = SelectPoller(timeout=0.5)
+        a = time.time()
+        fd = poller.poll()
+        b = time.time()
+        self.assertEqual(fd, [])
+
+        d = b - a 
+        if not (0.48 < d < 0.52):
+            self.fail("Did not wait for the appropriate amount of time: %f" % d)
+
+    def test_register_twice_does_not_duplicate_fd(self):
+        poller = SelectPoller()
+        poller.register(0)
+        poller.register(0)
+        fd = poller.poll()
+        self.assertEqual(fd, [0])
+            
+    def test_unregister_twice_has_no_side_effect(self):
+        poller = SelectPoller()
+        poller.register(0)
+        poller.unregister(0)
+        try:
+            poller.unregister(0)
+        except Exception, ex:
+            self.fail("Shouldn't have failed: %s" % ex)
+            
+     
+class FakeEpoll(object):
+    def __init__(self):
+        self.fds = []
+
+    def close(self):
+        self.fds = []
+
+    def register(self, fd, mask):
+        if fd in self.fds:
+            raise IOError("Already registered")
+
+        self.fds.append(fd)
+
+    def unregister(self, fd):
+        # epoll's documentation doesn't say anything
+        # about removing fds that are not registered
+        # yet/any longer
+        if fd in self.fds:
+            self.fds.remove(fd)
+
+    def poll(self, timeout):
+        # this isn't really what's happening
+        # inside but we're not testing
+        # epoll afterall
+        if not self.fds:
+            time.sleep(timeout)
+            return []
+
+        # fake EPOLLIN
+        return itertools.izip_longest(self.fds, '',
+                                      fillvalue=1)
+        
+class WSEPollPollerTest(unittest.TestCase):
+    @patch('ws4py.manager.select')
+    def test_release_poller(self, select):
+        select.epoll.return_value = FakeEpoll()
+        poller = EPollPoller()
+        
+        poller.register(0)
+        poller.register(1)
+        fd = poller.poll()
+        self.assertEqual(list(fd), [0, 1])
+
+        poller.unregister(0)
+        fd = poller.poll()
+        self.assertEqual(list(fd), [1])
+        
+        poller.release()
+        fd = poller.poll()
+        self.assertEqual(list(fd), [])
+         
+    @patch('ws4py.manager.select')
+    def test_timeout_when_no_registered_fds(self, select):
+        select.epoll.return_value = FakeEpoll()
+        poller = EPollPoller(timeout=0.5)
+        
+        a = time.time()
+        fd = list(poller.poll())
+        b = time.time()
+        self.assertEqual(fd, [])
+
+        d = b - a 
+        if not (0.48 < d < 0.52):
+            self.fail("Did not wait for the appropriate amount of time: %f" % d)
+
+    @patch('ws4py.manager.select')
+    def test_register_twice_does_not_duplicate_fd(self, select):
+        select.epoll.return_value = FakeEpoll()
+        poller = EPollPoller()
+        poller.register(0)
+        poller.register(0)  # IOError is swallowed
+        fd = poller.poll()
+        self.assertEqual(list(fd), [0])
+            
+    @patch('ws4py.manager.select')
+    def test_unregister_twice_has_no_side_effect(self, select):
+        select.epoll.return_value = FakeEpoll()
+        poller = EPollPoller()
+        poller.register(0)
+        poller.unregister(0)
+        try:
+            poller.unregister(0)
+        except Exception, ex:
+            self.fail("Shouldn't have failed: %s" % ex)
+            
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
-    for testcase in [WSManagerTest]:
+    for testcase in [WSManagerTest, WSSelectPollerTest]:
         tests = loader.loadTestsFromTestCase(testcase)
         suite.addTests(tests)
     unittest.TextTestRunner(verbosity=2).run(suite)
