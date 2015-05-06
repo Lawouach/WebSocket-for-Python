@@ -229,6 +229,18 @@ class WebSocket(object):
         """
         pass
 
+    def error_handler(self, exception):
+        """
+        Called when an unhandled error occurs and before the websocket does any handling of its own.
+        Return False if the system should be notified of the error, or True if things should carry on
+        as nothing has happened,
+
+        Override this function when custom error handling is wanted.
+
+        .. note:: You should override this method in your subclass.
+        """
+        return False
+
     def _write(self, b):
         """
         Trying to prevent a write operation
@@ -292,20 +304,25 @@ class WebSocket(object):
         socket level or during the bytes processing. Otherwise,
         it returns `True`.
         """
-        if self.terminated:
-            logger.debug("WebSocket is already terminated")
-            return False
-
         try:
-            b = self.sock.recv(self.reading_buffer_size)
-        except socket.error:
-            logger.exception("Failed to receive data")
-            return False
-        else:
-            if not self.process(b):
+            if self.terminated:
+                logger.debug("WebSocket is already terminated")
                 return False
 
-        return True
+            try:
+                b = self.sock.recv(self.reading_buffer_size)
+            except socket.error:
+                logger.exception("Failed to receive data")
+                return False
+            else:
+                if not self.process(b):
+                    return False
+
+            return True
+        except Exception as e:
+            logger.error("An unhandled error occurred: " + str(e))
+            return self.error_handler(e)
+
 
     def terminate(self):
         """
@@ -353,7 +370,7 @@ class WebSocket(object):
 
         if not bytes and self.reading_buffer_size > 0:
             return False
-        
+
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
