@@ -232,8 +232,8 @@ class WebSocket(object):
     def error_handler(self, exception):
         """
         Called when an unhandled error occurs and before the websocket does any handling of its own.
-        Return False if the system should be notified of the error, or True if things should carry on
-        as nothing has happened,
+        Return False if the system should act on the error, or True if it should carry on
+        as if nothing has happened.
 
         Override this function when custom error handling is wanted.
 
