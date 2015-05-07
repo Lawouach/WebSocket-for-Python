@@ -229,7 +229,7 @@ class WebSocket(object):
         """
         pass
 
-    def error_handler(self, exception):
+    def unhandled_error(self, exception):
         """
         Called when an unhandled error occurs and before the websocket does any handling of its own.
         Return False if the system should act on the error, or True if it should carry on
@@ -319,9 +319,12 @@ class WebSocket(object):
                     return False
 
             return True
+        except BrokenPipeError as e:
+            logger.error("The client at " + str(self.peer_address[0]) + ":" + str(self.peer_address[1]) + " disconnected(" + str(e) + ")")
+            return self.unhandled_error(e)
         except Exception as e:
-            logger.error("An unhandled error occurred: " + str(e))
-            return self.error_handler(e)
+            logger.exception("An unhandled error occurred: " + str(e))
+            return self.unhandled_error(e)
 
 
     def terminate(self):
