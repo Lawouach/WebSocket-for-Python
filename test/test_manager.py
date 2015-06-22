@@ -181,7 +181,7 @@ class WSSelectPollerTest(unittest.TestCase):
         poller.unregister(0)
         try:
             poller.unregister(0)
-        except Exception, ex:
+        except Exception as ex:
             self.fail("Shouldn't have failed: %s" % ex)
             
      
@@ -267,7 +267,7 @@ class WSEPollPollerTest(unittest.TestCase):
         poller.unregister(0)
         try:
             poller.unregister(0)
-        except Exception, ex:
+        except Exception as ex:
             self.fail("Shouldn't have failed: %s" % ex)
             
 if __name__ == '__main__':
