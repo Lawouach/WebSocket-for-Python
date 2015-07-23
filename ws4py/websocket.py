@@ -8,7 +8,8 @@ import types
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError, StreamClosed
 from ws4py.streaming import Stream
-from ws4py.messaging import Message, PongControlMessage
+from ws4py.messaging import Message, PingControlMessage,\
+    PongControlMessage
 from ws4py.compat import basestring, unicode
 
 DEFAULT_READING_SIZE = 2
@@ -209,6 +210,13 @@ class WebSocket(object):
                 pass
             finally:
                 self.sock = None
+
+    def ping(self, message):
+        """
+        Send a ping message to the remote peer.
+        The given `message` must be a unicode string.
+        """
+        self.send(PingControlMessage(message))
 
     def ponged(self, pong):
         """

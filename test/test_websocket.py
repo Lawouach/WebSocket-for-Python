@@ -169,6 +169,14 @@ class WSWebSocketTest(unittest.TestCase):
             ws.process(b'unused for this test')
             c.assert_called_once_with(1000, b'test closing')
             
+    def test_sending_ping(self):
+        tm = PingControlMessage("hello").single(mask=False)
+        
+        m = MagicMock()
+        ws = WebSocket(sock=m)
+        ws.ping("hello")
+        m.sendall.assert_called_once_with(tm)
+
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
