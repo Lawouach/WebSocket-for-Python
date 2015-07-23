@@ -18,10 +18,10 @@ class WSManagerTest(unittest.TestCase):
         ws.sock.fileno.return_value = 1
         
         m.add(ws)
-        m.poller.register.assert_call_once_with(ws)
+        m.poller.register.assert_called_once_with(1)
 
         m.remove(ws)
-        m.poller.unregister.assert_call_once_with(ws)
+        m.poller.unregister.assert_called_once_with(1)
         
     @patch('ws4py.manager.SelectPoller')
     def test_cannot_add_websocket_more_than_once(self, MockSelectPoller):
@@ -51,7 +51,7 @@ class WSManagerTest(unittest.TestCase):
         self.assertEqual(len(m), 1)
         m.remove(ws)
         self.assertEqual(len(m), 0)
-        m.poller.unregister.assert_call_once_with(ws)
+        m.poller.unregister.assert_called_once_with(1)
         m.poller.reset_mock()
         
         m.remove(ws)
@@ -100,7 +100,7 @@ class WSManagerTest(unittest.TestCase):
         m.add(ws)
         m.start()
         
-        ws.terminate.assert_call_once_with()
+        ws.terminate.assert_called_once_with()
         
         m.stop()
     
@@ -111,7 +111,7 @@ class WSManagerTest(unittest.TestCase):
         ws = MagicMock()
         m.add(ws)
         m.close_all()
-        ws.terminate.assert_call_once_with(1001, 'Server is shutting down')
+        ws.close.assert_called_once_with(code=1001, reason='Server is shutting down')
         
     @patch('ws4py.manager.SelectPoller')
     def test_broadcast(self, MockSelectPoller):
@@ -122,7 +122,7 @@ class WSManagerTest(unittest.TestCase):
         m.add(ws)
 
         m.broadcast(b'hello there')
-        ws.send.assert_call_once_with(b'hello there')
+        ws.send.assert_called_once_with(b'hello there', False)
         
     @patch('ws4py.manager.SelectPoller')
     def test_broadcast_failure_must_not_break_caller(self, MockSelectPoller):
@@ -168,8 +168,10 @@ class WSSelectPollerTest(unittest.TestCase):
         if not (0.48 < d < 0.52):
             self.fail("Did not wait for the appropriate amount of time: %f" % d)
 
-    def test_register_twice_does_not_duplicate_fd(self):
+    @patch('ws4py.manager.select')
+    def test_register_twice_does_not_duplicate_fd(self, select):
         poller = SelectPoller()
+        select.select.return_value = (poller._fds, None, None)
         poller.register(0)
         poller.register(0)
         fd = poller.poll()
