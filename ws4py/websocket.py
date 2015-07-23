@@ -229,6 +229,22 @@ class WebSocket(object):
         """
         pass
 
+    def unhandled_error(self, error):
+        """
+        Called whenever a socket, or an OS, error is trapped
+        by ws4py but not managed by it. The given error is
+        an instance of `socket.error` or `OSError`. 
+
+        Note however that application exceptions will not go
+        through this handler. Instead, do make sure you
+        protect your code appropriately in `received_message`
+        or `send`.
+
+        The default behaviour of this handler is to log
+        the error with a message.
+        """
+        logger.exception("Failed to receive data")
+
     def _write(self, b):
         """
         Trying to prevent a write operation
@@ -298,8 +314,8 @@ class WebSocket(object):
 
         try:
             b = self.sock.recv(self.reading_buffer_size)
-        except socket.error:
-            logger.exception("Failed to receive data")
+        except (socket.error, OSError) as e:
+            self.unhandled_error(e)
             return False
         else:
             if not self.process(b):
