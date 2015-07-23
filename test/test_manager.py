@@ -104,6 +104,7 @@ class WSManagerTest(unittest.TestCase):
         
         m.add(ws)
         m.start()
+        time.sleep(0.2)
         
         ws.terminate.assert_called_once_with()
         
