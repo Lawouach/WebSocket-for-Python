@@ -157,6 +157,10 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
                 if ext in exts:
                     ws_extensions.append(ext)
 
+        self.ws.protocols = ws_protocols
+        self.ws.extensions = ws_extensions
+        self.ws.headers = headers
+                    
         response = [req_protocol + b' 101 Switching Protocols']
         response.append(b'Upgrade: websocket')
         response.append(b'Content-Type: text/plain')
