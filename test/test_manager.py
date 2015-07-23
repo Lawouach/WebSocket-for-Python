@@ -3,6 +3,11 @@ import time
 import itertools
 import unittest
 
+try:
+    from itertools import izip_longest as zip_longest
+except ImportError:
+    from itertools import zip_longest
+
 from mock import MagicMock, call, patch
 
 from ws4py.manager import WebSocketManager, SelectPoller,\
@@ -183,7 +188,7 @@ class WSSelectPollerTest(unittest.TestCase):
         poller.unregister(0)
         try:
             poller.unregister(0)
-        except Exception, ex:
+        except Exception as ex:
             self.fail("Shouldn't have failed: %s" % ex)
             
      
@@ -216,8 +221,7 @@ class FakeEpoll(object):
             return []
 
         # fake EPOLLIN
-        return itertools.izip_longest(self.fds, '',
-                                      fillvalue=1)
+        return zip_longest(self.fds, '', fillvalue=1)
         
 class WSEPollPollerTest(unittest.TestCase):
     @patch('ws4py.manager.select')
@@ -248,7 +252,7 @@ class WSEPollPollerTest(unittest.TestCase):
         b = time.time()
         self.assertEqual(fd, [])
 
-        d = b - a 
+        d = b - a
         if not (0.48 < d < 0.52):
             self.fail("Did not wait for the appropriate amount of time: %f" % d)
 
@@ -269,7 +273,7 @@ class WSEPollPollerTest(unittest.TestCase):
         poller.unregister(0)
         try:
             poller.unregister(0)
-        except Exception, ex:
+        except Exception as ex:
             self.fail("Shouldn't have failed: %s" % ex)
             
 if __name__ == '__main__':
