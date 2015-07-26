@@ -310,21 +310,24 @@ class WebSocketBaseClient(WebSocket):
             header = header.strip().lower()
             value = value.strip().lower()
 
-            if header == 'upgrade' and value != 'websocket':
+            if header == b'upgrade' and value != b'websocket':
                 raise HandshakeError("Invalid Upgrade header: %s" % value)
 
-            elif header == 'connection' and value != 'upgrade':
+            elif header == b'connection' and value != b'upgrade':
                 raise HandshakeError("Invalid Connection header: %s" % value)
 
-            elif header == 'sec-websocket-accept':
-                match = b64encode(sha1(self.key.encode('utf-8') + WS_KEY).digest())
+            elif header == b'sec-websocket-accept':
+                match = b64encode(sha1(self.key + WS_KEY).digest())
                 if value != match.lower():
                     raise HandshakeError("Invalid challenge response: %s" % value)
 
-            elif header == 'sec-websocket-protocol':
+            elif header == b'sec-websocket-protocol':
                 protocols = ','.join(value)
 
-            elif header == 'sec-websocket-extensions':
+            elif header == b'sec-websocket-extensions':
                 extensions = ','.join(value)
 
         return protocols, extensions
+
+    def handshake_ok(self):
+        self.opened()
