@@ -205,7 +205,8 @@ class WebSocketBaseClient(WebSocket):
         if self.scheme == "wss":
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
-
+            self._is_secure = True
+            
         self.sock.connect(self.bind_addr)
 
         self._write(self.handshake_request)
