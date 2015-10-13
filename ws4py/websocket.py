@@ -5,6 +5,7 @@ import ssl
 import time
 import threading
 import types
+import errno
 
 try:
     from OpenSSL.SSL import Error as pyOpenSSLError
@@ -372,23 +373,30 @@ class WebSocket(object):
         socket level or during the bytes processing. Otherwise,
         it returns `True`.
         """
-        if self.terminated:
-            logger.debug("WebSocket is already terminated")
-            return False
-
-        try:
-            b = self.sock.recv(self.reading_buffer_size)
-            # This will only make sense with secure sockets.
-            if self._is_secure:
-                b += self._get_from_pending()
-        except (socket.error, OSError, pyOpenSSLError) as e:
-            self.unhandled_error(e)
-            return False
-        else:
-            if not self.process(b):
+        # Retry if we catch 'EINTR' i.e. Interrupt System Call
+        for i in range(5):
+            if self.terminated:
+                logger.debug("WebSocket is already terminated")
                 return False
-
-        return True
+            try:
+                b = self.sock.recv(self.reading_buffer_size)
+                # This will only make sense with secure sockets.
+                if self._is_secure:
+                    b += self._get_from_pending()
+            except (socket.error, OSError, pyOpenSSLError) as e:
+                if e.errno == errno.EINTR:
+                    pass
+                else:
+                    self.unhandled_error(e)
+                    return False
+            else:
+                if not self.process(b):
+                    return False
+                else:
+                    return True
+        # If all the retries above are over and we have not yet returned
+        # with True/False, then we should probably return with False
+        return False
 
     def terminate(self):
         """
