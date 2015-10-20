@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import socket
-import ssl
 import time
 import threading
 import types
