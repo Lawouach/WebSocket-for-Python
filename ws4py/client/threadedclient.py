@@ -5,6 +5,7 @@ from ws4py.client import WebSocketBaseClient
 
 __all__ = ['WebSocketClient']
 
+
 class WebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None,
                  ssl_options=None, headers=None):
