@@ -321,7 +321,7 @@ class WebSocketManager(threading.Thread):
                     except Exception as e:
                         x=None
                         logger.error("Terminating websocket %s due to exception: %s in once method" % (format_addresses(ws), repr(e)) )
-                    if not ws.once():
+                    if not x:
                         with self.lock:
                             fd = ws.sock.fileno()
                             self.websockets.pop(fd, None)
