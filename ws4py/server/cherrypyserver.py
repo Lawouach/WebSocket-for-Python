@@ -69,7 +69,7 @@ import threading
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
-from cherrypy.wsgiserver import HTTPConnection, HTTPRequest
+from cherrypy.wsgiserver import HTTPConnection, HTTPRequest, KnownLengthRFile
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
@@ -197,7 +197,11 @@ class WebSocketTool(Tool):
             response.headers['Sec-WebSocket-Extensions'] = ','.join(ws_extensions)
 
         addr = (request.remote.ip, request.remote.port)
-        ws_conn = get_connection(request.rfile.rfile)
+        rfile = request.rfile.rfile
+        if isinstance(rfile, KnownLengthRFile):
+            rfile = rfile.rfile
+
+        ws_conn = get_connection(rfile)
         request.ws_handler = handler_cls(ws_conn, ws_protocols, ws_extensions,
                                          request.wsgi_environ.copy(),
                                          heartbeat_freq=heartbeat_freq)
