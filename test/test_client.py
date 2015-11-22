@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from base64 import b64encode
 from hashlib import sha1
+import os
 import socket
 import time
 import unittest
@@ -9,11 +10,12 @@ from mock import MagicMock, call, patch
 
 from ws4py.manager import WebSocketManager
 from ws4py.websocket import WebSocket
-from ws4py.client import WebSocketBaseClient
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError
-from ws4py.framing import Frame
+from ws4py.framing import Frame, OPCODE_TEXT, OPCODE_CLOSE
 from ws4py.messaging import CloseControlMessage
+from ws4py.client import WebSocketBaseClient
+from ws4py.client.threadedclient import WebSocketClient
 
 class BasicClientTest(unittest.TestCase):
     def test_invalid_hostname_in_url(self):
@@ -212,10 +214,54 @@ class BasicClientTest(unittest.TestCase):
             s.close.assert_called_once_with()
             sock.reset_mock()
         
+class ThreadedClientTest(unittest.TestCase):
+    @patch('ws4py.client.socket')
+    def test_thread_is_started_once_connected(self, sock):
+        s = MagicMock(spec=socket.socket)
+        sock.socket.return_value = s
+        sock.getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "",
+                                          ("127.0.0.1", 80, 0, 0))]
+ 
+        c = WebSocketClient(url="ws://127.0.0.1/")
+
+        def exchange1(*args, **kwargs):
+            yield b"\r\n".join([
+                    b"HTTP/1.1 101 Switching Protocols",
+                    b"Connection: Upgrade",
+                    b"Sec-Websocket-Version: 13",
+                    b"Content-Type: text/plain;charset=utf-8",
+                    b"Sec-Websocket-Accept: " + b64encode(sha1(c.key + WS_KEY).digest()),
+                    b"Upgrade: websocket",
+                    b"Date: Sun, 26 Jul 2015 12:32:55 GMT",
+                    b"Server: ws4py/test",
+                    b"\r\n"
+                ])
+
+            for i in range(100):
+                time.sleep(0.1)
+                yield Frame(opcode=OPCODE_TEXT, body=b'hello',
+                            fin=1).build()
+
+        s.recv.side_effect = exchange1()
+        self.assertFalse(c._th.is_alive())
+        
+        c.connect()
+        time.sleep(0.5)
+        self.assertTrue(c._th.is_alive())
+
+        def exchange2(*args, **kwargs):
+            yield Frame(opcode=OPCODE_CLOSE, body=b'',
+                        fin=1).build()
+        s.recv.side_effect = exchange2()
+        time.sleep(0.5)
+        self.assertFalse(c._th.is_alive())
+        
+    
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
-    for testcase in [BasicClientTest]:
+    for testcase in [BasicClientTest,
+                     ThreadedClientTest]:
         tests = loader.loadTestsFromTestCase(testcase)
         suite.addTests(tests)
     unittest.TextTestRunner(verbosity=2).run(suite)

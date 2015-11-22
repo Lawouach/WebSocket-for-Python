@@ -103,7 +103,7 @@ class WSWebSocketTest(unittest.TestCase):
         self.assertFalse(ws.once())
         
     def test_no_bytes_were_read(self):
-        m = MagicMock()
+        m = MagicMock(spec=socket.socket)
         m.recv.return_value = b''
         ws = WebSocket(sock=m)
         self.assertFalse(ws.once())

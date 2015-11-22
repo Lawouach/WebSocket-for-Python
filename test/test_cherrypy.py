@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import socket
 import time
 import unittest
 
@@ -65,7 +66,7 @@ class CherryPyTest(unittest.TestCase):
         manager = cherrypy.engine.websocket.manager
         self.assertEqual(len(manager), 0)
 
-        s = MagicMock()
+        s = MagicMock(spec=socket.socket)
         s.recv.return_value = Frame(opcode=OPCODE_TEXT, body=b'hello',
                                     fin=1, masking_key=os.urandom(4)).build()
         h = EchoWebSocket(s, [], [])
@@ -87,7 +88,7 @@ class CherryPyTest(unittest.TestCase):
 
         # the poller runs a thread, give it time to get there
         time.sleep(1)
-
+        
         # TODO: Implement a fake poller so that works...
         self.assertEqual(len(manager), 0)
 
