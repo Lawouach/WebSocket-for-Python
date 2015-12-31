@@ -166,7 +166,7 @@ class WebSocket(object):
     def opened(self):
         """
         Called by the server when the upgrade handshake
-        has succeeeded.
+        has succeeded.
         """
         pass
 
