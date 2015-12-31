@@ -18,6 +18,7 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
+        self.assertEqual(s.closing.code, 1005)
 
     def test_missing_masking_key_when_expected(self):
         f = Frame(opcode=OPCODE_TEXT, body=b'hello', fin=1, masking_key=None).build()
