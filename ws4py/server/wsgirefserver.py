@@ -79,6 +79,7 @@ class WebSocketWSGIHandler(SimpleHandler):
                 self.request_handler.server.link_websocket_to_server(ws)
 
 class WebSocketWSGIRequestHandler(WSGIRequestHandler):
+    WebSocketWSGIHandler = WebSocketWSGIHandler
     def handle(self):
         """
         Unfortunately the base class forces us
@@ -89,7 +90,7 @@ class WebSocketWSGIRequestHandler(WSGIRequestHandler):
             return
 
         # next line is where we'd have expect a configuration key somehow
-        handler = WebSocketWSGIHandler(
+        handler = self.WebSocketWSGIHandler(
             self.rfile, self.wfile, self.get_stderr(), self.get_environ()
         )
         handler.request_handler = self      # backpointer for logging
