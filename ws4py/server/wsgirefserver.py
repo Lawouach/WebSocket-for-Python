@@ -27,6 +27,8 @@ workflow.
 """
 import logging
 import sys
+import itertools
+import operator
 from wsgiref.handlers import SimpleHandler
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer as _WSGIServer
 from wsgiref import util
@@ -63,6 +65,12 @@ class WebSocketWSGIHandler(SimpleHandler):
         - Attach the returned websocket, if any, to the WSGI server
           using its ``link_websocket_to_server`` method.
         """
+        # force execution of the result iterator until first actual content
+        rest = iter(self.result)
+        first = list(itertools.islice(rest, 1))
+        self.result = itertools.chain(first, rest)
+
+        # now it's safe to look if environ was modified
         ws = None
         if self.environ:
             self.environ.pop('ws4py.socket', None)
