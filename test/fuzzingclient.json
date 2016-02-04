@@ -34,6 +34,14 @@
 
                 {"agent": "ws4py (asyncio)/wsaccel for Python 3.4.0",
                  "url": "ws://127.0.0.1:9009/",
+                 "options": {"version": 18}},
+
+                {"agent": "ws4py (wsgi) for Python 2.7",
+                 "url": "ws://127.0.0.1:9002/",
+                 "options": {"version": 18}},
+
+                {"agent": "ws4py (wsgi async) for Python 2.7",
+                 "url": "ws://127.0.0.1:9010/",
                  "options": {"version": 18}}
 
               ],
