@@ -54,7 +54,11 @@ class WebSocketWSGIHandler(WSGIHandler):
 
             ws = self.environ.pop('ws4py.websocket', None)
             if ws:
-                self.server.pool.track(ws)
+                ws_greenlet = self.server.pool.track(ws)
+                # issue #170
+                # in gevent 1.1 socket will be closed once application returns
+                # so let's wait for websocket handler to finish
+                ws_greenlet.join()
         else:
             gevent.pywsgi.WSGIHandler.run_application(self)
 
