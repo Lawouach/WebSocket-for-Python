@@ -14,6 +14,7 @@ OPCODE_PONG = 0xa
 
 __all__ = ['Frame']
 
+
 class Frame(object):
     def __init__(self, opcode=None, body=b'', masking_key=None, fin=0, rsv1=0, rsv2=0, rsv3=0):
         """
@@ -107,7 +108,7 @@ class Frame(object):
             header += pack('!B', (mask_bit | 127)) + pack('!Q', length)
         else:
             raise FrameTooLargeException()
-        
+
         ## + - - - - - - - - - - - - - - - +-------------------------------+
         ## |                               |Masking-key, if MASK set to 1  |
         ## +-------------------------------+-------------------------------+

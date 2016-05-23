@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import threading
+import signal
 
 from ws4py.client import WebSocketBaseClient
 
 __all__ = ['WebSocketClient']
+
 
 class WebSocketClient(WebSocketBaseClient):
     def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None,
@@ -35,6 +37,11 @@ class WebSocketClient(WebSocketBaseClient):
                                      ssl_options, headers=headers)
         self._th = threading.Thread(target=self.run, name='WebSocketClient')
         self._th.daemon = True
+
+    def run(self):
+        if hasattr(signal, 'pthread_sigmask'):
+            signal.pthread_sigmask(signal.SIG_BLOCK, range(1, signal.NSIG))
+        super(WebSocketClient, self).run()
 
     @property
     def daemon(self):

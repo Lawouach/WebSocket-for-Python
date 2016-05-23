@@ -23,6 +23,7 @@ from ws4py.messaging import Message
 
 __all__ = ['WebSocket', 'EchoWebSocket']
 
+
 class WebSocket(_WebSocket):
     def __init__(self, proto):
         """
@@ -116,6 +117,7 @@ class WebSocket(_WebSocket):
             self.terminate()
 
         return True
+
 
 class EchoWebSocket(WebSocket):
     def received_message(self, message):

@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 import logging
 import socket
-import ssl
 import time
 import threading
 import types
+import errno
 
 try:
     from OpenSSL.SSL import Error as pyOpenSSLError
 except ImportError:
     class pyOpenSSLError(Exception):
         pass
-    
-from ws4py import WS_KEY, WS_VERSION
-from ws4py.exc import HandshakeError, StreamClosed
+
 from ws4py.streaming import Stream
-from ws4py.messaging import Message, PingControlMessage,\
-    PongControlMessage
-from ws4py.compat import basestring, unicode
+from ws4py.messaging import (
+    Message, PingControlMessage, PongControlMessage
+)
+from ws4py.compat import basestring
 
 DEFAULT_READING_SIZE = 2
 
 logger = logging.getLogger('ws4py')
 
 __all__ = ['WebSocket', 'EchoWebSocket', 'Heartbeat']
+
 
 class Heartbeat(threading.Thread):
     def __init__(self, websocket, frequency=2.0):
@@ -67,8 +67,11 @@ class Heartbeat(threading.Thread):
                 self.websocket.close_connection()
                 break
 
+
 class WebSocket(object):
-    """ Represents a websocket endpoint and provides a high level interface to drive the endpoint. """
+    """
+    Represents a websocket endpoint and provides a high level interface to drive the endpoint.
+    """
 
     def __init__(self, sock, protocols=None, extensions=None, environ=None, heartbeat_freq=None):
         """ The ``sock`` is an opened connection
@@ -106,12 +109,12 @@ class WebSocket(object):
         """
         Underlying connection.
         """
-        
+
         self._is_secure = hasattr(sock, '_ssl') or hasattr(sock, '_sslobj')
         """
         Tell us if the socket is secure or not.
         """
-        
+
         self.client_terminated = False
         """
         Indicates if the client has been marked as terminated.
@@ -186,7 +189,9 @@ class WebSocket(object):
         """
         if not self.server_terminated:
             self.server_terminated = True
-            self._write(self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask))
+            self._write(
+                self.stream.close(code=code, reason=reason).single(mask=self.stream.always_mask)
+            )
 
     def closed(self, code, reason=None):
         """
@@ -253,7 +258,7 @@ class WebSocket(object):
         """
         Called whenever a socket, or an OS, error is trapped
         by ws4py but not managed by it. The given error is
-        an instance of `socket.error` or `OSError`. 
+        an instance of `socket.error` or `OSError`.
 
         Note however that application exceptions will not go
         through this handler. Instead, do make sure you
@@ -300,11 +305,13 @@ class WebSocket(object):
             data = payload.single(mask=self.stream.always_mask)
             self._write(data)
 
-        elif type(payload) == types.GeneratorType:
+        elif isinstance(payload, types.GeneratorType):
             bytes = next(payload)
             first = True
             for chunk in payload:
-                self._write(message_sender(bytes).fragment(first=first, mask=self.stream.always_mask))
+                self._write(
+                    message_sender(bytes).fragment(first=first, mask=self.stream.always_mask)
+                )
                 bytes = chunk
                 first = False
 
@@ -319,14 +326,14 @@ class WebSocket(object):
         as the socket interface but behaves differently.
 
         When data is sent over a SSL connection
-        more data may be read than was requested from by 
+        more data may be read than was requested from by
         the ws4py websocket object.
 
-        In that case, the data may have been indeed read 
-        from the underlying real socket, but not read by the 
-        application which will expect another trigger from the 
+        In that case, the data may have been indeed read
+        from the underlying real socket, but not read by the
+        application which will expect another trigger from the
         manager's polling mechanism as if more data was still on the
-        wire. This will happen only when new data is 
+        wire. This will happen only when new data is
         sent by the other peer which means there will be
         some delay before the initial read data is handled
         by the application.
@@ -335,7 +342,7 @@ class WebSocket(object):
         to query the internal SSL socket buffer if it has indeed
         more data pending in its buffer.
 
-        Now, some people in the Python community 
+        Now, some people in the Python community
         `discourage <https://bugs.python.org/issue21430>`_
         this usage of the ``pending()`` method because it's not
         the right way of dealing with such use case. They advise
@@ -344,10 +351,11 @@ class WebSocket(object):
         application can directly control the poller which is not
         the case with the WebSocket abstraction here.
 
-        We therefore rely on this `technic <http://stackoverflow.com/questions/3187565/select-and-ssl-in-python>`_
+        We therefore rely on this
+        `technic <http://stackoverflow.com/questions/3187565/select-and-ssl-in-python>`_
         which seems to be valid anyway.
 
-        This is a bit of a shame because we have to process 
+        This is a bit of a shame because we have to process
         more data than what wanted initially.
         """
         data = b""
@@ -356,7 +364,7 @@ class WebSocket(object):
             data += self.sock.recv(pending)
             pending = self.sock.pending()
         return data
-        
+
     def once(self):
         """
         Performs the operation of reading from the underlying
@@ -372,23 +380,30 @@ class WebSocket(object):
         socket level or during the bytes processing. Otherwise,
         it returns `True`.
         """
-        if self.terminated:
-            logger.debug("WebSocket is already terminated")
-            return False
-
-        try:
-            b = self.sock.recv(self.reading_buffer_size)
-            # This will only make sense with secure sockets.
-            if self._is_secure:
-                b += self._get_from_pending()
-        except (socket.error, OSError, pyOpenSSLError) as e:
-            self.unhandled_error(e)
-            return False
-        else:
-            if not self.process(b):
+        # Retry if we catch 'EINTR' i.e. Interrupt System Call
+        for i in range(5):
+            if self.terminated:
+                logger.debug("WebSocket is already terminated")
                 return False
-
-        return True
+            try:
+                b = self.sock.recv(self.reading_buffer_size)
+                # This will only make sense with secure sockets.
+                if self._is_secure:
+                    b += self._get_from_pending()
+            except (socket.error, OSError, pyOpenSSLError) as e:
+                if e.errno == errno.EINTR:
+                    pass
+                else:
+                    self.unhandled_error(e)
+                    return False
+            else:
+                if not self.process(b):
+                    return False
+                else:
+                    return True
+        # If all the retries above are over and we have not yet returned
+        # with True/False, then we should probably return with False
+        return False
 
     def terminate(self):
         """
@@ -436,7 +451,7 @@ class WebSocket(object):
 
         if not bytes and self.reading_buffer_size > 0:
             return False
-        
+
         self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
@@ -507,6 +522,7 @@ class WebSocket(object):
                         break
             finally:
                 self.terminate()
+
 
 class EchoWebSocket(WebSocket):
     def received_message(self, message):

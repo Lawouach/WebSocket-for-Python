@@ -51,6 +51,7 @@ from ws4py.compat import py3k
 
 logger = logging.getLogger('ws4py')
 
+
 class SelectPoller(object):
     def __init__(self, timeout=0.1):
         """
@@ -96,6 +97,7 @@ class SelectPoller(object):
         r, w, x = select.select(self._fds, [], [], self.timeout)
         return r
 
+
 class EPollPoller(object):
     def __init__(self, timeout=0.1):
         """
@@ -140,6 +142,7 @@ class EPollPoller(object):
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
 
+
 class KQueuePoller(object):
     def __init__(self, timeout=0.1):
         """
@@ -183,6 +186,7 @@ class KQueuePoller(object):
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
+
 
 class WebSocketManager(threading.Thread):
     def __init__(self, poller=None):
@@ -239,7 +243,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket in self:
             return
-        
+
         logger.info("Managing websocket %s" % format_addresses(websocket))
         websocket.opened()
         with self.lock:
@@ -257,7 +261,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket not in self:
             return
-        
+
         logger.info("Removing websocket %s" % format_addresses(websocket))
         with self.lock:
             fd = websocket.sock.fileno()
@@ -303,9 +307,9 @@ class WebSocketManager(threading.Thread):
             for fd in polled:
                 if not self.running:
                     break
-                
+
                 ws = self.websockets.get(fd)
-                
+
                 if ws and not ws.terminated:
                     if not ws.once():
                         with self.lock:

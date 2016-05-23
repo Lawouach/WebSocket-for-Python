@@ -11,9 +11,9 @@ free to provide patches.
 Note this has been tested against 2.7 and 3.3 only but
 should hopefully work fine with other versions too.
 """
-import sys
+from sys import version_info
 
-if sys.version_info >= (3, 0):
+if version_info >= (3, 0):
     py3k = True
     from urllib.parse import urlsplit
     range = range

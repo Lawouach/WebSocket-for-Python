@@ -12,6 +12,7 @@ from ws4py.compat import urlsplit
 
 __all__ = ['WebSocketBaseClient']
 
+
 class WebSocketBaseClient(WebSocket):
     def __init__(self, url, protocols=None, extensions=None,
                  heartbeat_freq=None, ssl_options=None, headers=None):
@@ -87,10 +88,14 @@ class WebSocketBaseClient(WebSocket):
             # Let's handle IPv4 and IPv6 addresses
             # Simplified from CherryPy's code
             try:
-                family, socktype, proto, canonname, sa = socket.getaddrinfo(self.host, self.port,
-                                                                            socket.AF_UNSPEC,
-                                                                            socket.SOCK_STREAM,
-                                                                            0, socket.AI_PASSIVE)[0]
+                family, socktype, proto, canonname, sa = socket.getaddrinfo(
+                    self.host,
+                    self.port,
+                    socket.AF_UNSPEC,
+                    socket.SOCK_STREAM,
+                    0,
+                    socket.AI_PASSIVE
+                )[0]
             except socket.gaierror:
                 family = socket.AF_INET
                 if self.host.startswith('::'):
@@ -104,8 +109,11 @@ class WebSocketBaseClient(WebSocket):
             sock = socket.socket(family, socktype, proto)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if hasattr(socket, 'AF_INET6') and family == socket.AF_INET6 and \
-              self.host.startswith('::'):
+            if (
+                hasattr(socket, 'AF_INET6') and
+                family == socket.AF_INET6 and
+                self.host.startswith('::')
+               ):
                 try:
                     sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
                 except (AttributeError, socket.error):
@@ -206,7 +214,7 @@ class WebSocketBaseClient(WebSocket):
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
             self._is_secure = True
-            
+
         self.sock.connect(self.bind_addr)
 
         self._write(self.handshake_request)
@@ -252,7 +260,7 @@ class WebSocketBaseClient(WebSocket):
             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
-        
+
         if self.protocols:
             headers.append(('Sec-WebSocket-Protocol', ','.join(self.protocols)))
 
