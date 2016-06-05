@@ -53,7 +53,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ws4py'
-copyright = u'2011 - 2014, Sylvain Hellegouarch'
+copyright = u'2011 - 2016, Sylvain Hellegouarch'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
