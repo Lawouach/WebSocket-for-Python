@@ -10,4 +10,4 @@ In order to validate this conformance, each release is run against the
 coverage of various aspects of the protocol.
 
 Online test reports can be found at: 
-`http://www.defuze.org/oss/ws4py/testreports/servers/|version|`_.
+`http://www.defuze.org/oss/ws4py/testreports/servers/0.3.5`_.
