@@ -79,47 +79,11 @@ class WebSocketBaseClient(WebSocket):
         self.resource = None
         self.ssl_options = ssl_options or {}
         self.extra_headers = headers or []
+        self.sa = None
 
         self._parse_url()
 
-        if self.unix_socket_path:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
-        else:
-            # Let's handle IPv4 and IPv6 addresses
-            # Simplified from CherryPy's code
-            try:
-                family, socktype, proto, canonname, sa = socket.getaddrinfo(
-                    self.host,
-                    self.port,
-                    socket.AF_UNSPEC,
-                    socket.SOCK_STREAM,
-                    0,
-                    socket.AI_PASSIVE
-                )[0]
-            except socket.gaierror:
-                family = socket.AF_INET
-                if self.host.startswith('::'):
-                    family = socket.AF_INET6
-
-                socktype = socket.SOCK_STREAM
-                proto = 0
-                canonname = ""
-                sa = (self.host, self.port, 0, 0)
-
-            sock = socket.socket(family, socktype, proto)
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if (
-                hasattr(socket, 'AF_INET6') and
-                family == socket.AF_INET6 and
-                self.host.startswith('::')
-               ):
-                try:
-                    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-                except (AttributeError, socket.error):
-                    pass
-
-        WebSocket.__init__(self, sock, protocols=protocols,
+        WebSocket.__init__(self, None, protocols=protocols,
                            extensions=extensions,
                            heartbeat_freq=heartbeat_freq)
 
@@ -195,7 +159,7 @@ class WebSocketBaseClient(WebSocket):
         ``(host, port)`` depending on the initial
         URL's scheme.
         """
-        return self.unix_socket_path or (self.host, self.port)
+        return self.unix_socket_path or self.sa or (self.host, self.port)
 
     def close(self, code=1000, reason=''):
         """
@@ -210,12 +174,61 @@ class WebSocketBaseClient(WebSocket):
         Connects this websocket and starts the upgrade handshake
         with the remote endpoint.
         """
-        if self.scheme == "wss":
-            # default port is now 443; upgrade self.sender to send ssl
-            self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
-            self._is_secure = True
+        if self.unix_socket_path:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM, 0)
+            sock.connect(self.bind_addr)
+            self._is_secure = hasattr(sock, '_ssl') or hasattr(sock, '_sslobj')
+            if self.scheme == "wss":
+                # default port is now 443; upgrade self.sender to send ssl
+                sock = ssl.wrap_socket(sock, **self.ssl_options)
+                self._is_secure = True
+        else:
+            # Let's handle IPv4 and IPv6 addresses
+            # Simplified from CherryPy's code
+            try:
+                addrinfo = socket.getaddrinfo(
+                    self.host,
+                    self.port,
+                    socket.AF_UNSPEC,
+                    socket.SOCK_STREAM,
+                    0,
+                    socket.AI_PASSIVE
+                )
+            except socket.gaierror:
+                raise OSError('Hostname unknown. Cannot connect to {}'.format(self.bind_addr[0]))
 
-        self.sock.connect(self.bind_addr)
+            for family, socktype, proto, canonname, sa in addrinfo:
+                sock = socket.socket(family, socktype, proto)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if (
+                    hasattr(socket, 'AF_INET6') and
+                    family == socket.AF_INET6 and
+                    self.host.startswith('::')
+                   ):
+                    try:
+                        sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                    except (AttributeError, socket.error):
+                        pass
+
+                self._is_secure = hasattr(sock, '_ssl') or hasattr(sock, '_sslobj')
+                if self.scheme == "wss":
+                    # default port is now 443; upgrade self.sender to send ssl
+                    sock = ssl.wrap_socket(sock, **self.ssl_options)
+                    self._is_secure = True
+
+                try:
+                    sock.connect(sa)
+                except socket.error:
+                    sock.close()
+                    continue
+
+                self.sa = sa
+                break
+            else:
+                raise OSError('Cannot connect to {}'.format(self.bind_addr[0]))
+
+        self.sock = sock
 
         self._write(self.handshake_request)
 
