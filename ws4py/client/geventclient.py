@@ -10,7 +10,7 @@ from ws4py.client import WebSocketBaseClient
 __all__ = ['WebSocketClient']
 
 class WebSocketClient(WebSocketBaseClient):
-    def __init__(self, url, protocols=None, extensions=None, ssl_options=None, headers=None):
+    def __init__(self, url, protocols=None, extensions=None, heartbeat_freq=None, ssl_options=None, headers=None):
         """
         WebSocket client that executes the
         :meth:`run() <ws4py.websocket.WebSocket.run>` into a gevent greenlet.
@@ -40,7 +40,7 @@ class WebSocketClient(WebSocketBaseClient):
           ]
           gevent.joinall(greenlets)
         """
-        WebSocketBaseClient.__init__(self, url, protocols, extensions,
+        WebSocketBaseClient.__init__(self, url, protocols, extensions, heartbeat_freq,
                                      ssl_options=ssl_options, headers=headers)
         self._th = Greenlet(self.run)
 
