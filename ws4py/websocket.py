@@ -404,9 +404,7 @@ class WebSocket(object):
         good and cleanup resources by unsetting
         the `environ` and `stream` attributes.
         """
-        s = self.stream
-
-        self.client_terminated = self.server_terminated = True
+        s = self.stream       
 
         try:
             if s.closing is None:
@@ -414,6 +412,7 @@ class WebSocket(object):
             else:
                 self.closed(s.closing.code, s.closing.reason)
         finally:
+            self.client_terminated = self.server_terminated = True
             self.close_connection()
 
             # Cleaning up resources
