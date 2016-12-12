@@ -26,5 +26,5 @@ However, since ws4py is referenced in `PyPI <http://pypi.python.org/pypi/ws4py>`
    
 .. note::
 
-   ws4py explicitely will not automatically pull out its dependencies. Please install them
+   ws4py explicitly will not automatically pull out its dependencies. Please install them
    manually depending on which implementation you'll be using.
