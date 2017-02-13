@@ -66,10 +66,13 @@ from hashlib import sha1
 import inspect
 import threading
 
-from cheroot.server import HTTPConnection, HTTPRequest, KnownLengthRFile
 import cherrypy
 from cherrypy import Tool
 from cherrypy.process import plugins
+try:
+    from cherrypy.wsgiserver import HTTPConnection, HTTPRequest, KnownLengthRFile
+except ImportError:
+    from cheroot.server import HTTPConnection, HTTPRequest, KnownLengthRFile
 
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
