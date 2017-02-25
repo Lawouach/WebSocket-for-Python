@@ -98,14 +98,14 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         most clients. If you want a better support for HTTP, please
         use a more reliable HTTP server implemented using asyncio.
         """
-        request_line = yield from self.next_line()
+        request_line = eval('yield from self.next_line()')
         method, uri, req_protocol = request_line.strip().split(SPACE, 2)
         
         # GET required
         if method.upper() != b'GET':
             raise HandshakeError('HTTP method must be a GET')
         
-        headers = yield from self.read_headers()
+        headers = eval('yield from self.read_headers()')
         if req_protocol == b'HTTP/1.1' and 'Host' not in headers:
             raise ValueError("Missing host header")
         
@@ -175,7 +175,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         response.append(b'')
         response.append(b'')
         self.writer.write(CRLF.join(response))
-        yield from self.handle_websocket()
+        eval('yield from self.handle_websocket()')
 
     @asyncio.coroutine
     def handle_websocket(self):
@@ -183,7 +183,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         Starts the websocket process until the
         exchange is completed and terminated.
         """
-        yield from self.ws.run()
+        eval('yield from self.ws.run()')
         
     @asyncio.coroutine
     def read_headers(self):
@@ -193,7 +193,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         """
         headers = b''
         while True:
-            line = yield from self.next_line()
+            line = eval('yield from self.next_line()')
             headers += line
             if line == CRLF:
                 break
@@ -205,7 +205,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         Reads data until \r\n is met and then return all read
         bytes. 
         """
-        line = yield from self.reader.readline()
+        line = eval('yield from self.reader.readline()')
         if not line.endswith(CRLF):
             raise ValueError("Missing mandatory trailing CRLF")
         return line
