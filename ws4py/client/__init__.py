@@ -129,7 +129,8 @@ class WebSocketBaseClient(WebSocket):
         if scheme == "ws":
             if not self.port:
                 self.port = 80
-        elif scheme == "wss":
+        elif scheme in ("wss", "https"):
+            scheme = "wss"
             if not self.port:
                 self.port = 443
         elif scheme in ('ws+unix', 'wss+unix'):
@@ -250,7 +251,10 @@ class WebSocketBaseClient(WebSocket):
         response_line, _, headers = headers.partition(b'\r\n')
 
         try:
-            self.process_response_line(response_line)
+            if self.check_response_line(response_line) == 'redirect':
+                self.handle_redirect(headers)
+                return
+
             self.protocols, self.extensions = self.process_handshake_header(headers)
         except HandshakeError:
             self.close_connection()
@@ -259,6 +263,14 @@ class WebSocketBaseClient(WebSocket):
         self.handshake_ok()
         if body:
             self.process(body)
+
+    def handle_redirect(self, headers):
+        location_header = headers.split(b'\r\n')[-1]
+        location = location_header.split(b': ')[-1]
+        self.url = location.decode('utf-8')
+        self._parse_url()
+        self.sock.close()
+        self.connect()
 
     @property
     def handshake_headers(self):
@@ -308,14 +320,19 @@ class WebSocketBaseClient(WebSocket):
 
         return b'\r\n'.join(request)
 
-    def process_response_line(self, response_line):
+    def check_response_line(self, response_line):
         """
-        Ensure that we received a HTTP `101` status code in
+        Ensure that we received a HTTP valid status code in
         response to our request and if not raises :exc:`HandshakeError`.
         """
         protocol, code, status = response_line.split(b' ', 2)
-        if code != b'101':
+        if code in (b'301', b'302', b'303', b'307', b'308'):
+            return 'redirect'
+
+        elif code != b'101':
             raise HandshakeError("Invalid response status: %s %s" % (code, status))
+
+        return 'ok'
 
     def process_handshake_header(self, headers):
         """

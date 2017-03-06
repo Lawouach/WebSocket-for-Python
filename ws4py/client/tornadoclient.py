@@ -84,7 +84,7 @@ class TornadoWebSocketClient(WebSocketBaseClient):
         self.io.set_close_callback(None)
         try:
             response_line, _, headers = data.partition(b'\r\n')
-            self.process_response_line(response_line)
+            self.check_response_line(response_line)
             protocols, extensions = self.process_handshake_header(headers)
         except HandshakeError:
             self.close_connection()
