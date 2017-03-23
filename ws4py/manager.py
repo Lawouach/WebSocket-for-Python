@@ -294,28 +294,31 @@ class WebSocketManager(threading.Thread):
         """
         self.running = True
         while self.running:
-            with self.lock:
-                polled = self.poller.poll()
+            try:
+                with self.lock:
+                    polled = self.poller.poll()
 
-            if not self.running:
-                break
-
-            for fd in polled:
                 if not self.running:
                     break
-                
-                ws = self.websockets.get(fd)
-                
-                if ws and not ws.terminated:
-                    if not ws.once():
-                        with self.lock:
-                            fd = ws.sock.fileno()
-                            self.websockets.pop(fd, None)
-                            self.poller.unregister(fd)
 
-                        if not ws.terminated:
-                            logger.info("Terminating websocket %s" % format_addresses(ws))
-                            ws.terminate()
+                for fd in polled:
+                    if not self.running:
+                        break
+
+                    ws = self.websockets.get(fd)
+
+                    if ws and not ws.terminated:
+                        if not ws.once():
+                            with self.lock:
+                                fd = ws.sock.fileno()
+                                self.websockets.pop(fd, None)
+                                self.poller.unregister(fd)
+
+                            if not ws.terminated:
+                                logger.info("Terminating websocket %s" % format_addresses(ws))
+                                ws.terminate()
+            except InterruptedError:
+                pass
 
     def close_all(self, code=1001, message='Server is shutting down'):
         """
