@@ -208,6 +208,7 @@ class WebSocketManager(threading.Thread):
         provide your own ``poller``.
         """
         threading.Thread.__init__(self)
+        self.name="WebSocketManager"
         self.lock = threading.Lock()
         self.websockets = {}
         self.running = False
