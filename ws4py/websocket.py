@@ -387,21 +387,24 @@ class WebSocket(object):
             return False
 
         try:
-            b = self.sock.recv(self.reading_buffer_size)
-            # This will only make sense with secure sockets.
             if self._is_secure:
-                b += self._get_from_pending()
+                b = self._get_from_pending()
+            else:
+                b = self.sock.recv(4096)
+            if not b:
+                return False
+            self.buf += b
         except (socket.error, OSError, pyOpenSSLError) as e:
             self.unhandled_error(e)
             return False
         else:
-            while len(self.buf)>=self.reading_buffer_size:
-                #Get the oldest n bytes, and then remove them from the buffer.
-                b = self.buf[:self.reading_buffer_size]
+            # process as much as we can
+            # the process will stop either if there is no buffer left
+            # or if the stream is closed
+            while self.buf:
+                if not self.process(self.buf):
+                    return not self.stream.closing
                 self.buf = self.buf[self.reading_buffer_size:]
-                #Process basically only returns false on errors.
-                if not self.process(b):
-                    return False
 
         return True
 
@@ -416,7 +419,7 @@ class WebSocket(object):
         good and cleanup resources by unsetting
         the `environ` and `stream` attributes.
         """
-        s = self.stream       
+        s = self.stream
 
         try:
             if s.closing is None:
