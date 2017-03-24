@@ -134,7 +134,38 @@ def run_autobahn_server(host="127.0.0.1", port=9003):
 
     reactor.listenTCP(port, factory)
     reactor.run()
-   
+
+
+def run_python_wsgi(host="127.0.0.1", port=9002):
+    """
+    Runs wsgi server on python 2.x"
+    """
+    run_python_wsgi_async(host, port, False)
+
+def run_python_wsgi_async(host="127.0.0.1", port=9010, async=True):
+    """
+    Runs wsgi server on python 2.x with async middleware"
+    """
+
+    from wsgiref.simple_server import make_server
+    from ws4py.websocket import EchoWebSocket
+    from ws4py.server.wsgirefserver import WSGIServer, WebSocketWSGIRequestHandler
+    from ws4py.server.wsgiutils import WebSocketWSGIApplication
+
+    app = WebSocketWSGIApplication(handler_cls=EchoWebSocket)
+    if async:
+        def middleware(app):
+            def later(environ, start_response):
+                for part in app(environ, start_response):
+                    yield part
+            return later
+        app = middleware(app)
+    server = make_server(host, port, server_class=WSGIServer,
+                         handler_class=WebSocketWSGIRequestHandler,
+                         app=app)
+    server.initialize_websockets_manager()
+    server.serve_forever()
+
 if __name__ == '__main__':
     import argparse
     from multiprocessing import Process
@@ -162,6 +193,10 @@ if __name__ == '__main__':
                         help='Run the Autobahn server backend')
     parser.add_argument('--run-asyncio-server', dest='run_asyncio', action='store_true',
                         help='Run the asyncio server backend')
+    parser.add_argument('--run-wsgi-server', dest='run_wsgi', action='store_true',
+                        help='Run the wsgi server backend')
+    parser.add_argument('--run-wsgi-async-server', dest='run_wsgi_async', action='store_true',
+                        help='Run the wsgi server backend with an async middleware')
     args = parser.parse_args()
 
     if args.run_all:
@@ -220,6 +255,18 @@ if __name__ == '__main__':
         p7 = Process(target=run_python3_asyncio)
         p7.daemon = True
         procs.append(p7)
+
+    logger.warning("wsgi server: %s" % args.run_wsgi)
+    if args.run_wsgi:
+        p8 = Process(target=run_python_wsgi)
+        p8.daemon = True
+        procs.append(p8)
+
+    logger.warning("wsgi server async: %s" % args.run_wsgi_async)
+    if args.run_wsgi_async:
+        p9 = Process(target=run_python_wsgi_async)
+        p9.daemon = True
+        procs.append(p9)
 
     for p in procs:
         p.start()
