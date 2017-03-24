@@ -259,25 +259,24 @@ class Stream(object):
                                     break
 
                     elif frame.opcode == OPCODE_CLOSE:
-                        code = 1000
+                        code = 1005
                         reason = ""
                         if frame.payload_length == 0:
-                            self.closing = CloseControlMessage(code=1000)
+                            self.closing = CloseControlMessage(code=1005)
                         elif frame.payload_length == 1:
-                            self.closing = CloseControlMessage(code=1002, reason='Payload has invalid length')
+                            self.closing = CloseControlMessage(code=1005, reason='Payload has invalid length')
                         else:
                             try:
                                 # at this stage, some_bytes have been unmasked
                                 # so actually are held in a bytearray
                                 code = int(unpack("!H", bytes(some_bytes[0:2]))[0])
                             except struct.error:
-                                code = 1002
                                 reason = 'Failed at decoding closing code'
                             else:
                                 # Those codes are reserved or plainly forbidden
                                 if code not in VALID_CLOSING_CODES and not (2999 < code < 5000):
                                     reason = 'Invalid Closing Frame Code: %d' % code
-                                    code = 1002
+                                    code = 1005
                                 elif frame.payload_length > 1:
                                     reason = some_bytes[2:] if frame.masking_key else frame.body[2:]
 
