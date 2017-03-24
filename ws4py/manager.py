@@ -208,7 +208,7 @@ class WebSocketManager(threading.Thread):
         provide your own ``poller``.
         """
         threading.Thread.__init__(self)
-        self.name="WebSocketManager"
+        self.name = "WebSocketManager"
         self.lock = threading.Lock()
         self.websockets = {}
         self.running = False
@@ -315,12 +315,13 @@ class WebSocketManager(threading.Thread):
 
                 ws = self.websockets.get(fd)
                 if ws and not ws.terminated:
-                    #I don't know what kind of errors might spew out of here, but they probably shouldn't crash the entire server.
+                    # I don't know what kind of errors might spew out of here
+                    # but they probably shouldn't crash the entire server.
                     try:
                         x = ws.once()
-                    #Treat the error as if once() had returned None
+                    # Treat the error as if once() had returned None
                     except Exception as e:
-                        x=None
+                        x = None
                         logger.error("Terminating websocket %s due to exception: %s in once method" % (format_addresses(ws), repr(e)) )
                     if not x:
                         with self.lock:
