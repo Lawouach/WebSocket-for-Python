@@ -314,7 +314,7 @@ class WebSocket(object):
                 bytes = chunk
                 first = False
 
-            self._write(message_sender(bytes).fragment(last=True, mask=self.stream.always_mask))
+            self._write(message_sender(bytes).fragment(first=first, last=True, mask=self.stream.always_mask))
 
         else:
             raise ValueError("Unsupported type '%s' passed to send()" % type(payload))
