@@ -87,9 +87,14 @@ class CherryPyTest(unittest.TestCase):
         h.close()
 
         # the poller runs a thread, give it time to get there
-        time.sleep(1)
-        
-        # TODO: Implement a fake poller so that works...
+        # just wait up to 5 seconds.
+        left_iteration = 50
+        while left_iteration:
+            left_iteration -= 1
+            time.sleep(.1)
+            if len(manager) == 0:
+                break
+
         self.assertEqual(len(manager), 0)
 
 if __name__ == '__main__':
