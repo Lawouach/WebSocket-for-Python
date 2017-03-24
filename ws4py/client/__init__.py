@@ -79,6 +79,11 @@ class WebSocketBaseClient(WebSocket):
         self.ssl_options = ssl_options or {}
         self.extra_headers = headers or []
 
+        if self.scheme == "wss":
+            # Prevent check_hostname requires server_hostname (ref #187)
+            if "cert_reqs" not in self.ssl_options:
+                self.ssl_options["cert_reqs"] = ssl.CERT_NONE
+
         self._parse_url()
 
         if self.unix_socket_path:
