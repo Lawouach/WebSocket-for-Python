@@ -92,8 +92,10 @@ class SelectPoller(object):
         if not self._fds:
             time.sleep(self.timeout)
             return []
-
-        r, w, x = select.select(self._fds, [], [], self.timeout)
+        try:
+            r, w, x = select.select(self._fds, [], [], self.timeout)
+        except IOError as e:
+            return []
         return r
 
 class EPollPoller(object):
@@ -135,7 +137,11 @@ class EPollPoller(object):
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        events = self.poller.poll(timeout=self.timeout)
+        try:
+            events = self.poller.poll(timeout=self.timeout)
+        except IOError:
+            events = []
+
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
@@ -179,7 +185,10 @@ class KQueuePoller(object):
         Polls once and yields each ready-to-be-read
         file-descriptor
         """
-        events = self.poller.poll(timeout=self.timeout)
+        try:
+            events = self.poller.poll(timeout=self.timeout)
+        except IOError:
+            events = []
         for fd, event in events:
             if event | select.EPOLLIN | select.EPOLLPRI:
                 yield fd
@@ -199,6 +208,7 @@ class WebSocketManager(threading.Thread):
         provide your own ``poller``.
         """
         threading.Thread.__init__(self)
+        self.name="WebSocketManager"
         self.lock = threading.Lock()
         self.websockets = {}
         self.running = False
@@ -239,7 +249,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket in self:
             return
-        
+
         logger.info("Managing websocket %s" % format_addresses(websocket))
         websocket.opened()
         with self.lock:
@@ -257,7 +267,7 @@ class WebSocketManager(threading.Thread):
         """
         if websocket not in self:
             return
-        
+
         logger.info("Removing websocket %s" % format_addresses(websocket))
         with self.lock:
             fd = websocket.sock.fileno()
@@ -296,18 +306,23 @@ class WebSocketManager(threading.Thread):
         while self.running:
             with self.lock:
                 polled = self.poller.poll()
-
             if not self.running:
                 break
 
             for fd in polled:
                 if not self.running:
                     break
-                
+
                 ws = self.websockets.get(fd)
-                
                 if ws and not ws.terminated:
-                    if not ws.once():
+                    #I don't know what kind of errors might spew out of here, but they probably shouldn't crash the entire server.
+                    try:
+                        x = ws.once()
+                    #Treat the error as if once() had returned None
+                    except Exception as e:
+                        x=None
+                        logger.error("Terminating websocket %s due to exception: %s in once method" % (format_addresses(ws), repr(e)) )
+                    if not x:
                         with self.lock:
                             fd = ws.sock.fileno()
                             self.websockets.pop(fd, None)
@@ -316,6 +331,7 @@ class WebSocketManager(threading.Thread):
                         if not ws.terminated:
                             logger.info("Terminating websocket %s" % format_addresses(ws))
                             ws.terminate()
+
 
     def close_all(self, code=1001, message='Server is shutting down'):
         """

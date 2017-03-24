@@ -137,6 +137,8 @@ class WebSocket(object):
         At which interval the heartbeat will be running.
         Set this to `0` or `None` to disable it entirely.
         """
+        "Internal buffer to get around SSL problems"
+        self.buf = b''
 
         self._local_address = None
         self._peer_address = None
@@ -365,9 +367,14 @@ class WebSocket(object):
         Performs the operation of reading from the underlying
         connection in order to feed the stream of bytes.
 
-        We start with a small size of two bytes to be read
-        from the connection so that we can quickly parse an
-        incoming frame header. Then the stream indicates
+        Because this needs to support SSL sockets, we must always
+        read as much as might be in the socket at any given time,
+        however process expects to have itself called with only a certain
+        number of bytes at a time. That number is found in
+        self.reading_buffer_size, so we read everything into our own buffer,
+        and then from there feed self.process.
+
+        Then the stream indicates
         whatever size must be read from the connection since
         it knows the frame payload length.
 
@@ -388,8 +395,13 @@ class WebSocket(object):
             self.unhandled_error(e)
             return False
         else:
-            if not self.process(b):
-                return False
+            while len(self.buf)>=self.reading_buffer_size:
+                #Get the oldest n bytes, and then remove them from the buffer.
+                b = self.buf[:self.reading_buffer_size]
+                self.buf = self.buf[self.reading_buffer_size:]
+                #Process basically only returns false on errors.
+                if not self.process(b):
+                    return False
 
         return True
 
