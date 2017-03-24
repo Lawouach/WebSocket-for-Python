@@ -1,8 +1,11 @@
 # Change Log
 
-## [Unreleased](https://github.com/Lawouach/WebSocket-for-Python/tree/HEAD)
+## [0.4.0](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.0) (2017-03-24)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.3.5...0.4.0)
 
-[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.3.5...HEAD)
+**Implemented enhancements:**
+
+- exception not catch in websocket.py always [\#70](https://github.com/Lawouach/WebSocket-for-Python/issues/70)
 
 **Fixed bugs:**
 
@@ -11,23 +14,34 @@
 **Closed issues:**
 
 - PyPI latest release 0.3.5 does not include \#205 and therefore breaks with cherrypy [\#209](https://github.com/Lawouach/WebSocket-for-Python/issues/209)
+- Unable to reconnect [\#207](https://github.com/Lawouach/WebSocket-for-Python/issues/207)
 - CherryPy does not use its own wsgiserver anymore, which ws4py depended on [\#205](https://github.com/Lawouach/WebSocket-for-Python/issues/205)
-- help me if my code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! just a login  [\#197](https://github.com/Lawouach/WebSocket-for-Python/issues/197)
-- login form python need help!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! [\#196](https://github.com/Lawouach/WebSocket-for-Python/issues/196)
+- py2exe / python2.7 / syntax error in "yield from" lines [\#202](https://github.com/Lawouach/WebSocket-for-Python/issues/202)
+- Missing 0.3.5 changelog and tag [\#192](https://github.com/Lawouach/WebSocket-for-Python/issues/192)
+- ws4py 0.3.5 doesn't receive all messages over wss [\#191](https://github.com/Lawouach/WebSocket-for-Python/issues/191)
 - SSL: received\_message not getting called [\#183](https://github.com/Lawouach/WebSocket-for-Python/issues/183)
 - Python 2.6 support [\#182](https://github.com/Lawouach/WebSocket-for-Python/issues/182)
 - Overridden close\(\) not called under windows [\#178](https://github.com/Lawouach/WebSocket-for-Python/issues/178)
 - Enabling cpstats causes ws4py to crash [\#177](https://github.com/Lawouach/WebSocket-for-Python/issues/177)
 - Only support Python 3.0+ ? [\#175](https://github.com/Lawouach/WebSocket-for-Python/issues/175)
+- IOError\(interrupted system call\) on dropping privilages [\#172](https://github.com/Lawouach/WebSocket-for-Python/issues/172)
 - error: configure\_logger\(stdout=False, filepath="ws4py.log"\) [\#171](https://github.com/Lawouach/WebSocket-for-Python/issues/171)
+- Python 3.4 and gevent 1.1 [\#170](https://github.com/Lawouach/WebSocket-for-Python/issues/170)
 - Is it possible to extract headers from WebSocketProtocol using asyncio [\#169](https://github.com/Lawouach/WebSocket-for-Python/issues/169)
 - server, opened\(\) is called each time a message is send [\#162](https://github.com/Lawouach/WebSocket-for-Python/issues/162)
 - tlm [\#160](https://github.com/Lawouach/WebSocket-for-Python/issues/160)
 - In opened\(\), closing connection would crash the server [\#159](https://github.com/Lawouach/WebSocket-for-Python/issues/159)
+- Server crashes with broken pipe if client disconnects ungracefully? [\#150](https://github.com/Lawouach/WebSocket-for-Python/issues/150)
+- Client connection hangs when using Cherrypy [\#146](https://github.com/Lawouach/WebSocket-for-Python/issues/146)
 - low priority: wsgiref example doesn't work [\#145](https://github.com/Lawouach/WebSocket-for-Python/issues/145)
+- CherryPy: simple example of an echo server [\#140](https://github.com/Lawouach/WebSocket-for-Python/issues/140)
+- WebSocketClient.closed\(\) always returns code 1006 if reason string empty. [\#137](https://github.com/Lawouach/WebSocket-for-Python/issues/137)
+- Server Side Connection Drops Immediately [\#134](https://github.com/Lawouach/WebSocket-for-Python/issues/134)
 - Calling WebSocketClient.terminate\(\) results in AttributeError [\#131](https://github.com/Lawouach/WebSocket-for-Python/issues/131)
 - ConnectionRefusedError: \[WinError 10061\] No connection could be made because the target machine actively refused it [\#130](https://github.com/Lawouach/WebSocket-for-Python/issues/130)
 - AttributeError: 'NoneType' object has no attribute 'fileno' [\#129](https://github.com/Lawouach/WebSocket-for-Python/issues/129)
+- wss is always one message behind [\#128](https://github.com/Lawouach/WebSocket-for-Python/issues/128)
+- Asyncio Issues [\#125](https://github.com/Lawouach/WebSocket-for-Python/issues/125)
 
 **Merged pull requests:**
 
@@ -36,7 +50,11 @@
 - Don't crash with broken pipe when trying to close a connection [\#198](https://github.com/Lawouach/WebSocket-for-Python/pull/198) ([cristi8](https://github.com/cristi8))
 - adding heartbeat for gevent\_client [\#195](https://github.com/Lawouach/WebSocket-for-Python/pull/195) ([alexmnt](https://github.com/alexmnt))
 - minor - typo [\#193](https://github.com/Lawouach/WebSocket-for-Python/pull/193) ([johnwheeler](https://github.com/johnwheeler))
+- Eliminate a protocol error when first chunk is last too. [\#186](https://github.com/Lawouach/WebSocket-for-Python/pull/186) ([plu9in](https://github.com/plu9in))
+- Allow WebSocketWSGIHandler to work even in presence of a middleware [\#185](https://github.com/Lawouach/WebSocket-for-Python/pull/185) ([bozzzzo](https://github.com/bozzzzo))
+- Give application status code 1005 when no good status code is parsed/received [\#181](https://github.com/Lawouach/WebSocket-for-Python/pull/181) ([isonmad](https://github.com/isonmad))
 - Fix server "Bad file descriptor" error under gevent 1.1, \#170 [\#180](https://github.com/Lawouach/WebSocket-for-Python/pull/180) ([hyt-hz](https://github.com/hyt-hz))
+- Version of example that doesn't need jquery, fix IOError on resume, f… [\#173](https://github.com/Lawouach/WebSocket-for-Python/pull/173) ([EternityForest](https://github.com/EternityForest))
 - Fix typo [\#161](https://github.com/Lawouach/WebSocket-for-Python/pull/161) ([hexchain](https://github.com/hexchain))
 - added a word [\#157](https://github.com/Lawouach/WebSocket-for-Python/pull/157) ([Mrmaxmeier](https://github.com/Mrmaxmeier))
 - Removed unnecessary try/except and cleaned for some PEP8 [\#155](https://github.com/Lawouach/WebSocket-for-Python/pull/155) ([warvariuc](https://github.com/warvariuc))
