@@ -395,8 +395,11 @@ class WebSocket(object):
                 return False
             self.buf += b
         except (socket.error, OSError, pyOpenSSLError) as e:
-            self.unhandled_error(e)
-            return False
+            if hasattr(e, "errno") and e.errno == errno.EINTR:
+                pass
+            else:
+                self.unhandled_error(e)
+                return False
         else:
             # process as much as we can
             # the process will stop either if there is no buffer left
