@@ -5,7 +5,7 @@ import gevent
 from ws4py.client.geventclient import WebSocketClient
 
 if __name__ == '__main__':
-    ws = WebSocketClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
+    ws = WebSocketClient('ws://127.0.0.1:9000/ws', protocols=['http-only', 'chat'])
     ws.connect()
 
     ws.send("Hello world")
