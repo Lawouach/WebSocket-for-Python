@@ -18,6 +18,7 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
+        self.assertEqual(s.closing.code, 1005)
 
     def test_missing_masking_key_when_expected(self):
         f = Frame(opcode=OPCODE_TEXT, body=b'hello', fin=1, masking_key=None).build()
@@ -148,7 +149,7 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
-        self.assertEqual(s.closing.code, 1002)
+        self.assertEqual(s.closing.code, 1005)
 
     def test_close_message_of_size_one_are_invalid(self):
         payload = b'*'
@@ -159,7 +160,7 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
-        self.assertEqual(s.closing.code, 1002)
+        self.assertEqual(s.closing.code, 1005)
 
     def test_invalid_close_message_type(self):
         payload = struct.pack("!H", 1500) + b'hello'
@@ -170,7 +171,7 @@ class WSStreamTest(unittest.TestCase):
         self.assertEqual(s.closing, None)
         s.parser.send(f)
         self.assertEqual(type(s.closing), CloseControlMessage)
-        self.assertEqual(s.closing.code, 1002)
+        self.assertEqual(s.closing.code, 1005)
 
     def test_invalid_close_message_reason_encoding(self):
         payload = struct.pack("!H", 1000) + b'h\xc3llo'
