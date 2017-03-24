@@ -2,6 +2,7 @@
 import os, os.path
 from glob import iglob
 import sys
+import re
 try:
     from setuptools import setup
 except ImportError:
@@ -27,9 +28,17 @@ class buildfor2or3(build_py):
                     continue
             amended_modules.append((package_, module, module_file))
         return amended_modules
-  
+
+
+# extract version
+_version_re = re.compile(r"__version__\s+=\s+\"(.*)\"")
+with open("ws4py/__init__.py", "rb") as f:
+    version = str(_version_re.search(
+        f.read().decode('utf-8')).group(1))
+
+
 setup(name = "ws4py",
-      version = '0.3.5',
+      version = version,
       description = "WebSocket client and server library for Python 2 and 3 as well as PyPy",
       maintainer = "Sylvain Hellegouarch",
       maintainer_email = "sh@defuze.org",
