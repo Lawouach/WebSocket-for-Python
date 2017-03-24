@@ -27,6 +27,8 @@ workflow.
 """
 import logging
 import sys
+import itertools
+import operator
 from wsgiref.handlers import SimpleHandler
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer as _WSGIServer
 from wsgiref import util
@@ -63,6 +65,12 @@ class WebSocketWSGIHandler(SimpleHandler):
         - Attach the returned websocket, if any, to the WSGI server
           using its ``link_websocket_to_server`` method.
         """
+        # force execution of the result iterator until first actual content
+        rest = iter(self.result)
+        first = list(itertools.islice(rest, 1))
+        self.result = itertools.chain(first, rest)
+
+        # now it's safe to look if environ was modified
         ws = None
         if self.environ:
             self.environ.pop('ws4py.socket', None)
@@ -79,6 +87,7 @@ class WebSocketWSGIHandler(SimpleHandler):
                 self.request_handler.server.link_websocket_to_server(ws)
 
 class WebSocketWSGIRequestHandler(WSGIRequestHandler):
+    WebSocketWSGIHandler = WebSocketWSGIHandler
     def handle(self):
         """
         Unfortunately the base class forces us
@@ -89,7 +98,7 @@ class WebSocketWSGIRequestHandler(WSGIRequestHandler):
             return
 
         # next line is where we'd have expect a configuration key somehow
-        handler = WebSocketWSGIHandler(
+        handler = self.WebSocketWSGIHandler(
             self.rfile, self.wfile, self.get_stderr(), self.get_environ()
         )
         handler.request_handler = self      # backpointer for logging
