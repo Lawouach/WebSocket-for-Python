@@ -386,12 +386,11 @@ class WebSocket(object):
         if self.terminated:
             logger.debug("WebSocket is already terminated")
             return False
-
         try:
             if self._is_secure:
                 b = self._get_from_pending()
             else:
-                b = self.sock.recv(4096)
+                b = self.sock.recv(self.reading_buffer_size)
             if not b:
                 return False
             self.buf += b
@@ -405,10 +404,9 @@ class WebSocket(object):
             # process as much as we can
             # the process will stop either if there is no buffer left
             # or if the stream is closed
-            while self.buf:
-                if not self.process(self.buf):
-                    return not self.stream.closing
-                self.buf = self.buf[self.reading_buffer_size:]
+            if not self.process(self.buf):
+                return False
+            self.buf = b""
 
         return True
 
