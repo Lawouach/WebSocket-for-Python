@@ -5,6 +5,7 @@ import ssl
 import time
 import threading
 import types
+import errno
 
 try:
     from OpenSSL.SSL import Error as pyOpenSSLError
