@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.4.1](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.1) (2017-03-26)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.0...0.4.1)
+
+**Merged pull requests:**
+
+- fixes parsed hostname [\#210](https://github.com/Lawouach/WebSocket-for-Python/pull/210) ([isubas](https://github.com/isubas))
+
 ## [0.4.0](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.0) (2017-03-24)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.3.5...0.4.0)
 
