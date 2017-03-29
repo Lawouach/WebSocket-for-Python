@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.4.2](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.2) (2017-03-29)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.1...0.4.2)
+
+**Merged pull requests:**
+
+- Block on receiving from SSL socket [\#212](https://github.com/Lawouach/WebSocket-for-Python/pull/212) ([awelkie](https://github.com/awelkie))
+
 ## [0.4.1](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.1) (2017-03-26)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.0...0.4.1)
 
