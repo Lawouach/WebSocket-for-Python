@@ -218,11 +218,13 @@ class ThreadedClientTest(unittest.TestCase):
     @patch('ws4py.client.socket')
     def test_thread_is_started_once_connected(self, sock):
         s = MagicMock(spec=socket.socket)
+        s.pending = lambda: False
         sock.socket.return_value = s
         sock.getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "",
                                           ("127.0.0.1", 80, 0, 0))]
  
         c = WebSocketClient(url="ws://127.0.0.1/")
+        c._is_secure = True
 
         def exchange1(*args, **kwargs):
             yield b"\r\n".join([
