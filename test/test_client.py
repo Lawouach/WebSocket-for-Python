@@ -215,48 +215,69 @@ class BasicClientTest(unittest.TestCase):
             sock.reset_mock()
         
 class ThreadedClientTest(unittest.TestCase):
+
     @patch('ws4py.client.socket')
-    def test_thread_is_started_once_connected(self, sock):
-        s = MagicMock(spec=socket.socket)
-        sock.socket.return_value = s
+    def setUp(self, sock):
+        self.sock = MagicMock(spec=socket.socket)
+        sock.socket.return_value = self.sock
         sock.getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "",
                                           ("127.0.0.1", 80, 0, 0))]
- 
-        c = WebSocketClient(url="ws://127.0.0.1/")
 
-        def exchange1(*args, **kwargs):
-            yield b"\r\n".join([
-                    b"HTTP/1.1 101 Switching Protocols",
-                    b"Connection: Upgrade",
-                    b"Sec-Websocket-Version: 13",
-                    b"Content-Type: text/plain;charset=utf-8",
-                    b"Sec-Websocket-Accept: " + b64encode(sha1(c.key + WS_KEY).digest()),
-                    b"Upgrade: websocket",
-                    b"Date: Sun, 26 Jul 2015 12:32:55 GMT",
-                    b"Server: ws4py/test",
-                    b"\r\n"
-                ])
+        self.client = WebSocketClient(url="ws://127.0.0.1/")
 
-            for i in range(100):
-                time.sleep(0.1)
-                yield Frame(opcode=OPCODE_TEXT, body=b'hello',
-                            fin=1).build()
+    def _exchange1(self, *args, **kwargs):
+        yield b"\r\n".join([
+            b"HTTP/1.1 101 Switching Protocols",
+            b"Connection: Upgrade",
+            b"Sec-Websocket-Version: 13",
+            b"Content-Type: text/plain;charset=utf-8",
+            b"Sec-Websocket-Accept: " + b64encode(sha1(self.client.key + WS_KEY).digest()),
+            b"Upgrade: websocket",
+            b"Date: Sun, 26 Jul 2015 12:32:55 GMT",
+            b"Server: ws4py/test",
+            b"\r\n"
+        ])
 
-        s.recv.side_effect = exchange1()
-        self.assertFalse(c._th.is_alive())
-        
-        c.connect()
-        time.sleep(0.5)
-        self.assertTrue(c._th.is_alive())
-
-        def exchange2(*args, **kwargs):
-            yield Frame(opcode=OPCODE_CLOSE, body=b'',
+        for i in range(100):
+            time.sleep(0.1)
+            yield Frame(opcode=OPCODE_TEXT, body=b'hello',
                         fin=1).build()
-        s.recv.side_effect = exchange2()
+
+    def _exchange2(self, *args, **kwargs):
+        yield Frame(opcode=OPCODE_CLOSE, body=b'',
+                    fin=1).build()
+
+    def test_thread_is_started_once_connected(self):
+        self.sock.recv.side_effect = self._exchange1()
+        self.assertFalse(self.client._th.is_alive())
+
+        self.client.connect()
         time.sleep(0.5)
-        self.assertFalse(c._th.is_alive())
-        
-    
+        self.assertTrue(self.client._th.is_alive())
+
+        self.sock.recv.side_effect = self._exchange2()
+        time.sleep(0.5)
+        self.assertFalse(self.client._th.is_alive())
+
+    def test_thread_is_started_once_connected_secure(self):
+        """ Same as the above test, but with SSL socket """
+        # pretend the socket is an SSL socket
+        self.sock.pending = lambda: False
+        self.client._is_secure = True
+
+        self.sock.recv.side_effect = self._exchange1()
+        self.assertFalse(self.client._th.is_alive())
+
+        self.client.connect()
+        time.sleep(0.5)
+        self.assertTrue(self.client._th.is_alive())
+
+        self.sock.recv.side_effect = self._exchange2()
+        time.sleep(0.5)
+        self.assertFalse(self.client._th.is_alive())
+
+
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
