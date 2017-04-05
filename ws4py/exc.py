@@ -20,8 +20,11 @@ class InvalidBytesError(WebSocketException): pass
 class StreamClosed(Exception): pass
 
 class HandshakeError(WebSocketException):
-    def __init__(self, msg):
+    def __init__(self, msg, code=None, status=None, headers=None):
         self.msg = msg
+        self.code = code
+        self.status = status
+        self.headers = headers
 
     def __str__(self):
         return self.msg
