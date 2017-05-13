@@ -14,7 +14,7 @@ __all__ = ['WebSocketBaseClient']
 
 class WebSocketBaseClient(WebSocket):
     def __init__(self, url, protocols=None, extensions=None,
-                 heartbeat_freq=None, ssl_options=None, headers=None):
+                 heartbeat_freq=None, ssl_options=None, headers=None, exclude_headers=None):
         """
         A websocket client that implements :rfc:`6455` and provides a simple
         interface to communicate with a websocket server.
@@ -78,6 +78,8 @@ class WebSocketBaseClient(WebSocket):
         self.resource = None
         self.ssl_options = ssl_options or {}
         self.extra_headers = headers or []
+        self.exclude_headers = exclude_headers or []
+        self.exclude_headers = [x.lower() for x in self.exclude_headers]
 
         if self.scheme == "wss":
             # Prevent check_hostname requires server_hostname (ref #187)
@@ -211,7 +213,7 @@ class WebSocketBaseClient(WebSocket):
             # default port is now 443; upgrade self.sender to send ssl
             self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
             self._is_secure = True
-            
+
         self.sock.connect(self.bind_addr)
 
         self._write(self.handshake_request)
@@ -257,14 +259,15 @@ class WebSocketBaseClient(WebSocket):
             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
             ('Sec-WebSocket-Version', str(max(WS_VERSION)))
             ]
-        
+
         if self.protocols:
             headers.append(('Sec-WebSocket-Protocol', ','.join(self.protocols)))
 
         if self.extra_headers:
             headers.extend(self.extra_headers)
 
-        if not any(x for x in headers if x[0].lower() == 'origin'):
+        if not any(x for x in headers if x[0].lower() == 'origin') and \
+           'origin' not in self.exclude_headers:
 
             scheme, url = self.url.split(":", 1)
             parsed = urlsplit(url, scheme="http")
@@ -276,6 +279,8 @@ class WebSocketBaseClient(WebSocket):
             if parsed.port:
                 origin = origin + ':' + str(parsed.port)
             headers.append(('Origin', origin))
+
+        headers = [x for x in headers if x[0].lower() not in self.exclude_headers]
 
         return headers
 
