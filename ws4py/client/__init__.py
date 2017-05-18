@@ -235,12 +235,14 @@ class WebSocketBaseClient(WebSocket):
         headers, _, body = response.partition(doubleCLRF)
         response_line, _, headers = headers.partition(b'\r\n')
 
-        try:
-            self.process_response_line(response_line)
-            self.protocols, self.extensions = self.process_handshake_header(headers)
-        except HandshakeError:
+        code, status = self.process_response_line(response_line)
+        self.protocols, self.extensions, extra = self.process_handshake_header(code, headers)
+        if code != b'101':
             self.close_connection()
-            raise
+            raise HandshakeError(
+                "Invalid response status: %s %s" % (code, status),
+                code=code, status=status, headers=extra
+            )
 
         self.handshake_ok()
         if body:
@@ -299,20 +301,20 @@ class WebSocketBaseClient(WebSocket):
 
     def process_response_line(self, response_line):
         """
-        Ensure that we received a HTTP `101` status code in
-        response to our request and if not raises :exc:`HandshakeError`.
+        Parse the code and status from the response line.
         """
-        protocol, code, status = response_line.split(b' ', 2)
-        if code != b'101':
-            raise HandshakeError("Invalid response status: %s %s" % (code, status))
+        _, code, status = response_line.split(b' ', 2)
+        return code, status
 
-    def process_handshake_header(self, headers):
+    def process_handshake_header(self, code, headers):
         """
         Read the upgrade handshake's response headers and
-        validate them against :rfc:`6455`.
+        validate them against :rfc:`6455`. Gather additional
+        headers in case of handshake upgrade failure.
         """
         protocols = []
         extensions = []
+        extra = {}
 
         headers = headers.strip()
 
@@ -320,6 +322,14 @@ class WebSocketBaseClient(WebSocket):
             header, value = header_line.split(b':', 1)
             header = header.strip().lower()
             value = value.strip().lower()
+
+            if header not in [b'upgrade', b'connection', b'sec-websocket-accept',
+                              b'sec-websocket-protocol', b'sec-websocket-extensions']:
+                extra[header] = value
+                continue
+
+            if code != b'101':
+                continue
 
             if header == b'upgrade' and value != b'websocket':
                 raise HandshakeError("Invalid Upgrade header: %s" % value)
@@ -338,7 +348,7 @@ class WebSocketBaseClient(WebSocket):
             elif header == b'sec-websocket-extensions':
                 extensions = ','.join(value)
 
-        return protocols, extensions
+        return protocols, extensions, extra
 
     def handshake_ok(self):
         self.opened()
