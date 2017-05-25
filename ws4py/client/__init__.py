@@ -36,7 +36,7 @@ class WebSocketBaseClient(WebSocket):
 
         .. code-block:: python
 
-           >>> from websocket.client import WebSocketBaseClient
+           >>> from ws4py.client import WebSocketBaseClient
            >>> ws = WebSocketBaseClient('ws://localhost/ws')
 
 
@@ -44,7 +44,7 @@ class WebSocketBaseClient(WebSocket):
 
         .. code-block:: python
 
-           >>> from websocket.client import WebSocketBaseClient
+           >>> from ws4py.client import WebSocketBaseClient
            >>> ws = WebSocketBaseClient('wss://localhost/ws')
 
 
@@ -52,7 +52,7 @@ class WebSocketBaseClient(WebSocket):
 
         .. code-block:: python
 
-           >>> from websocket.client import WebSocketBaseClient
+           >>> from ws4py.client import WebSocketBaseClient
            >>> ws = WebSocketBaseClient('ws+unix:///tmp/my.sock')
 
         Note that in this case, the initial Upgrade request
@@ -61,7 +61,7 @@ class WebSocketBaseClient(WebSocket):
 
         .. code-block:: python
 
-           >>> from websocket.client import WebSocketBaseClient
+           >>> from ws4py.client import WebSocketBaseClient
            >>> ws = WebSocketBaseClient('ws+unix:///tmp/my.sock')
            >>> ws.resource = '/ws'
            >>> ws.connect()
