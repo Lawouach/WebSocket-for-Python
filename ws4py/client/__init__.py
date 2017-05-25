@@ -333,10 +333,10 @@ class WebSocketBaseClient(WebSocket):
                     raise HandshakeError("Invalid challenge response: %s" % value)
 
             elif header == b'sec-websocket-protocol':
-                protocols = ','.join(value)
+                protocols.extend([x.strip() for x in value.split(b',')])
 
             elif header == b'sec-websocket-extensions':
-                extensions = ','.join(value)
+                extensions.extend([x.strip() for x in value.split(b',')])
 
         return protocols, extensions
 

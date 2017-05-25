@@ -120,6 +120,9 @@ class BasicClientTest(unittest.TestCase):
             b"Sec-Websocket-Version: 13",
             b"Content-Type: text/plain;charset=utf-8",
             b"Sec-Websocket-Accept: " + b64encode(sha1(c.key + WS_KEY).digest()),
+            b"Sec-WebSocket-Protocol: proto1, proto2",
+            b"Sec-WebSocket-Extensions: ext1, ext2",
+            b"Sec-WebSocket-Extensions: ext3",
             b"Upgrade: websocket",
             b"Date: Sun, 26 Jul 2015 12:32:55 GMT",
             b"Server: ws4py/test",
@@ -128,6 +131,8 @@ class BasicClientTest(unittest.TestCase):
 
         c.connect()
         s.connect.assert_called_once_with(("127.0.0.1", 80))
+        self.assertEqual(c.protocols, [b'proto1', b'proto2'])
+        self.assertEqual(c.extensions, [b'ext1', b'ext2', b'ext3'])
 
         s.reset_mock()
         c.close(code=1006, reason="boom")
@@ -271,7 +276,6 @@ class ThreadedClientTest(unittest.TestCase):
         self.sock.recv.side_effect = self._exchange2()
         time.sleep(0.5)
         self.assertFalse(self.client._th.is_alive())
-
 
 
 if __name__ == '__main__':
