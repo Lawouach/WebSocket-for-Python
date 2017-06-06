@@ -177,6 +177,26 @@ class WSWebSocketTest(unittest.TestCase):
         ws.ping("hello")
         m.sendall.assert_called_once_with(tm)
 
+    def test_spill_frame(self):
+        s = MagicMock()
+        m = MagicMock()
+        c = MagicMock()
+        recv = lambda size: b'a' * size
+
+        with patch.multiple(m, recv=recv):
+            ws = WebSocket(sock=m)
+            sz = 20
+            spill = 10
+            proc = MagicMock(return_value=('a' * sz))
+            pend = lambda: b'a' * spill
+
+            with patch.multiple(ws, close=c, process=proc, _get_from_pending=pend):
+                ws.stream = s
+                ws.reading_buffer_size = sz
+                ws.once()
+                proc.assert_called_once_with(b'a' * sz)
+                self.assertEqual(len(ws.buf), spill)
+
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
