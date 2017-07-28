@@ -400,12 +400,12 @@ class WebSocket(object):
                 self.unhandled_error(e)
                 return False
         else:
-            # process as much as we can
-            # the process will stop either if there is no buffer left
-            # or if the stream is closed
-            if not self.process(self.buf):
-                return False
-            self.buf = b""
+            # process buffer in reading_buffer_size chunks
+            while len(self.buf) > 0 and self.reading_buffer_size > 0:
+                b = self.buf[:self.reading_buffer_size]
+                self.buf = self.buf[self.reading_buffer_size:]
+                if not self.process(b):
+                    return False
 
         return True
 
