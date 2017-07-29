@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 import os
+import ssl
 import socket
 import struct
 
@@ -135,7 +136,58 @@ class WSWebSocketTest(unittest.TestCase):
         ws = WebSocket(sock=m)
         ws.send(tm)
         m.sendall.assert_called_once_with(tm.single())
-        
+
+    def message_parsing_test(self, messages, use_ssl=False):
+        to_send = [
+            b"".join(TextMessage(msg).single(mask=True) for msg in messages)
+        ]
+
+        def recv(max_bytes):
+            data = to_send[0][:max_bytes]
+            to_send[0] = to_send[0][max_bytes:]
+            return data
+
+        recv_mock = MagicMock(side_effect=recv)
+
+        if use_ssl:
+            pending_mock = MagicMock(side_effect=lambda: len(to_send[0]))
+            socket_mock = MagicMock(spec=ssl.SSLSocket)
+            socket_patch = patch.multiple(socket_mock, recv=recv_mock,
+                                          pending=pending_mock)
+        else:
+            socket_mock = MagicMock(spec=socket.socket)
+            socket_patch = patch.multiple(socket_mock, recv=recv_mock)
+
+        index = [0]
+
+        def received_message(msg):
+            self.assertEqual(msg.data, messages[index[0]])
+            index[0] += 1
+
+        received_message_mock = MagicMock(side_effect=received_message)
+
+        websocket = WebSocket(sock=socket_mock)
+        websocket._is_secure = use_ssl
+        websocket_patch = \
+            patch.multiple(websocket, received_message=received_message_mock)
+        with socket_patch, websocket_patch:
+            while websocket.once():
+                pass
+
+        self.assertEqual(index[0], len(messages))
+
+    def test_message_parsing(self):
+        self.message_parsing_test([b'hello'], False)
+
+    def test_message_parsing_ssl(self):
+        self.message_parsing_test([b'hello'], True)
+
+    def test_messages_parsing(self):
+        self.message_parsing_test([b'hello', b'world'], False)
+
+    def test_messages_parsing_ssl(self):
+        self.message_parsing_test([b'hello', b'world'], True)
+
     def test_send_generator_without_masking(self):
         tm0 = b'hello'
         tm1 = b'world'
