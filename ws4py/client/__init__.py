@@ -109,7 +109,7 @@ class WebSocketBaseClient(WebSocket):
                 canonname = ""
                 sa = (self.host, self.port, 0, 0)
                 
-                addrinfo = [(2, 1, 0, '', ('localhost', 9000, 0, 0))]
+                addrinfo = [(family, socktype, proto, canonname, sa)]
                 
             for family, socktype, proto, canonname, sa in addrinfo:
 
@@ -130,6 +130,7 @@ class WebSocketBaseClient(WebSocket):
                 
                 try:
                     sock.connect(self.bind_addr)
+                    break
                 except socket.error as err:
                     sock = None
                     continue
