@@ -78,7 +78,7 @@ class GEventWebSocketPool(Pool):
 
     def clear(self):
         logger.info("Terminating server and all connected websockets")
-        for greenlet in self:
+        for greenlet in list(self):
             try:
                 websocket = greenlet._run.im_self
                 if websocket:
