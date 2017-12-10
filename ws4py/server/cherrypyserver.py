@@ -272,14 +272,14 @@ class WebSocketTool(Tool):
                 break
             _locals = current.f_locals
             if 'self' in _locals:
-               if isinstance(_locals['self'], HTTPRequest):
-                   _locals['self'].close_connection = True
-               if isinstance(_locals['self'], HTTPConnection):
-                   _locals['self'].linger = True
-                   # HTTPConnection is more inner than
-                   # HTTPRequest so we can leave once
-                   # we're done here
-                   return
+                if isinstance(_locals['self'], HTTPRequest):
+                    _locals['self'].close_connection = True
+                if isinstance(_locals['self'], HTTPConnection):
+                    _locals['self'].linger = True
+                    # HTTPConnection is more inner than
+                    # HTTPRequest so we can leave once
+                    # we're done here
+                    return
             _locals = None
             current = current.f_back
 
