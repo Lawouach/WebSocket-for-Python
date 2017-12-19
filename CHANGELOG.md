@@ -1,5 +1,12 @@
 # Change Log
 
+## Unreleased
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.2...master)
+
+**Merged pull requests:**
+
+- change from type() to isinstance() [\#236](https://github.com/Lawouach/WebSocket-for-Python/pull/236) ([awelkie](https://github.com/noam-graetz))
+
 ## [0.4.2](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.2) (2017-03-29)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.1...0.4.2)
 
