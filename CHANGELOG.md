@@ -3,9 +3,19 @@
 ## Unreleased
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.2...master)
 
+## [0.4.3](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.3) (2017-12-19)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.3...0.4.3)
 **Merged pull requests:**
 
-- change from type() to isinstance() [\#236](https://github.com/Lawouach/WebSocket-for-Python/pull/236) ([awelkie](https://github.com/noam-graetz))
+- Change threaded client test to test ssl socket [\#213](https://github.com/Lawouach/WebSocket-for-Python/pull/213) ([awelkie](https://github.com/awelkie))
+- Create MANIFEST.in with LICENSE [\#215](https://github.com/Lawouach/WebSocket-for-Python/pull/215) ([pmlandwehr](https://github.com/pmlandwehr ))
+- exclude certain headers when requested [\#217](https://github.com/Lawouach/WebSocket-for-Python/pull/217) ([klattimer](https://github.com/klattimer))
+- change from type() to isinstance() [\#236](https://github.com/Lawouach/WebSocket-for-Python/pull/236) ([noam-graetz](https://github.com/noam-graetz))
+
+**Changes:**
+
+- Various test cleanups
+- Disable build for Python 3.4 as running into https://github.com/pypa/setuptools/issues/951 (Thinking of dropping official support for it too)
 
 ## [0.4.2](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.2) (2017-03-29)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.1...0.4.2)
