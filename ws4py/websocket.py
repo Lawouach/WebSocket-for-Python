@@ -387,10 +387,11 @@ class WebSocket(object):
             logger.debug("WebSocket is already terminated")
             return False
         try:
-            b = self.sock.recv(self.reading_buffer_size)
             if self._is_secure:
-                b += self._get_from_pending()
-            if not b:
+                b = self._get_from_pending()
+            if not b and not self.buf:
+                b = self.sock.recv(self.reading_buffer_size)
+            if not b and not self.buf:
                 return False
             self.buf += b
         except (socket.error, OSError, pyOpenSSLError) as e:
@@ -403,9 +404,11 @@ class WebSocket(object):
             # process as much as we can
             # the process will stop either if there is no buffer left
             # or if the stream is closed
-            if not self.process(self.buf):
+            # only pass the requested number of bytes, leave the rest in the buffer
+            requested = self.reading_buffer_size
+            if not self.process(self.buf[:requested]):
                 return False
-            self.buf = b""
+            self.buf = self.buf[requested:]
 
         return True
 
