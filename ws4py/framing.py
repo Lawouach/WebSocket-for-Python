@@ -252,7 +252,7 @@ class Frame(object):
                 some_bytes = buf[:self.payload_length]
 
         self.body = some_bytes
-        yield len(some_bytes)-len(buf)
+        yield min(0,len(some_bytes)-len(buf))
 
     def mask(self, data):
         """
