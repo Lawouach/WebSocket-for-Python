@@ -387,6 +387,7 @@ class WebSocket(object):
             logger.debug("WebSocket is already terminated")
             return False
         try:
+            b = b''
             if self._is_secure:
                 b = self._get_from_pending()
             if not b and not self.buf:
