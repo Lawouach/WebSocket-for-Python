@@ -455,39 +455,45 @@ class WebSocket(object):
         if not bytes and self.reading_buffer_size > 0:
             return False
 
-        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
+        while bytes:
+            self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
 
-        if s.closing is not None:
-            logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
-            if not self.server_terminated:
-                self.close(s.closing.code, s.closing.reason)
+            if self.reading_buffer_size < 0:
+                bytes = bytes[self.reading_buffer_size:]
             else:
-                self.client_terminated = True
-            return False
+                bytes = b''
 
-        if s.errors:
-            for error in s.errors:
-                logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
-                self.close(error.code, error.reason)
-            s.errors = []
-            return False
+            if s.closing is not None:
+                logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
+                if not self.server_terminated:
+                    self.close(s.closing.code, s.closing.reason)
+                else:
+                    self.client_terminated = True
+                return False
 
-        if s.has_message:
-            self.received_message(s.message)
-            if s.message is not None:
-                s.message.data = None
-                s.message = None
-            return True
+            if s.errors:
+                for error in s.errors:
+                    logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
+                    self.close(error.code, error.reason)
+                s.errors = []
+                return False
 
-        if s.pings:
-            for ping in s.pings:
-                self._write(s.pong(ping.data))
-            s.pings = []
+            if s.has_message:
+                self.received_message(s.message)
+                if s.message is not None:
+                    s.message.data = None
+                    s.message = None
+                continue
 
-        if s.pongs:
-            for pong in s.pongs:
-                self.ponged(pong)
-            s.pongs = []
+            if s.pings:
+                for ping in s.pings:
+                    self._write(s.pong(ping.data))
+                s.pings = []
+
+            if s.pongs:
+                for pong in s.pongs:
+                    self.ponged(pong)
+                s.pongs = []
 
         return True
 

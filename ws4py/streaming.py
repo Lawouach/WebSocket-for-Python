@@ -177,12 +177,20 @@ class Stream(object):
         utf8validator = Utf8Validator()
         running = True
         frame = None
+        remaining = 0
         while running:
             frame = Frame()
             while 1:
                 try:
-                    some_bytes = (yield next(frame.parser))
-                    frame.parser.send(some_bytes)
+                    if remaining<0:
+                        #another message left in the pipeline 
+                        some_bytes = (yield remaining)
+                    else:
+                        some_bytes = (yield next(frame.parser))
+                    remaining = frame.parser.send(some_bytes)
+                    if remaining < 0:
+                        #another message is waiting, but we can finish this one
+                        next(frame.parser)
                 except GeneratorExit:
                     running = False
                     break

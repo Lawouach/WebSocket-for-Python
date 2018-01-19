@@ -165,6 +165,7 @@ class WSWebSocketTest(unittest.TestCase):
         ws = WebSocket(sock=m)
         with patch.multiple(ws, close=c):
             ws.stream = s
+            s.parser.send = lambda p:1
             ws.stream.closing = CloseControlMessage(code=1000, reason='test closing')
             ws.process(b'unused for this test')
             c.assert_called_once_with(1000, b'test closing')
