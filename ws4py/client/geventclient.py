@@ -75,18 +75,22 @@ class WebSocketClient(WebSocketBaseClient):
         # to wait for
         self.messages.put(StopIteration)
 
-    def receive(self):
+    def receive(self, block=True):
         """
         Returns messages that were stored into the
         `messages` queue and returns `None` when the
         websocket is terminated or closed.
+        `block` is passed though the gevent queue `.get()` method, which if 
+        True will block until an item in the queue is available. Set this to 
+        False if you just want to check the queue, which will raise an 
+        Empty exception you need to handle if there is no message to return.
         """
         # If the websocket was terminated and there are no messages
         # left in the queue, return None immediately otherwise the client
         # will block forever
         if self.terminated and self.messages.empty():
             return None
-        message = self.messages.get()
+        message = self.messages.get(block=block)
         if message is StopIteration:
             return None
         return message
