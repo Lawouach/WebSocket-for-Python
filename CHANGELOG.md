@@ -3,12 +3,24 @@
 ## Unreleased
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.2...master)
 
+## [0.5.0](https://github.com/Lawouach/WebSocket-for-Python/tree/0.5.0) (2018-02-27)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.3...0.5.0)
+**Merged pull requests:**
+
+- proper fix for #230: on secure, only pass the requested number of bytes to the parsers [\#239](https://github.com/Lawouach/WebSocket-for-Python/pull/239) ([jmichiel](https://github.com/jmichiel))
+- fixed runtime error: Set changed size during iteration [\#233](https://github.com/Lawouach/WebSocket-for-Python/pull/233) ([kamwoh](https://github.com/kamwoh))
+- Adds argument to set block value on gevent get command in WebSocketClient.receive() [\#221](https://github.com/Lawouach/WebSocket-for-Python/pull/221) ([thaffenden](https://github.com/thaffenden))
+
+**Changes:**
+
+- Clarifies this project is on hiatus in README
+
 ## [0.4.3](https://github.com/Lawouach/WebSocket-for-Python/tree/0.4.3) (2017-12-19)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.3...0.4.3)
 **Merged pull requests:**
 
 - Change threaded client test to test ssl socket [\#213](https://github.com/Lawouach/WebSocket-for-Python/pull/213) ([awelkie](https://github.com/awelkie))
-- Create MANIFEST.in with LICENSE [\#215](https://github.com/Lawouach/WebSocket-for-Python/pull/215) ([pmlandwehr](https://github.com/pmlandwehr ))
+- Create MANIFEST.in with LICENSE [\#215](https://github.com/Lawouach/WebSocket-for-Python/pull/215) ([pmlandwehr](https://github.com/pmlandwehr))
 - exclude certain headers when requested [\#217](https://github.com/Lawouach/WebSocket-for-Python/pull/217) ([klattimer](https://github.com/klattimer))
 - change from type() to isinstance() [\#236](https://github.com/Lawouach/WebSocket-for-Python/pull/236) ([noam-graetz](https://github.com/noam-graetz))
 
