@@ -30,7 +30,7 @@ import logging
 import logging.handlers as handlers
 
 __author__ = "Sylvain Hellegouarch"
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __all__ = ['WS_KEY', 'WS_VERSION', 'configure_logger', 'format_addresses']
 
 WS_KEY = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

@@ -1,7 +1,13 @@
 # Change Log
 
 ## Unreleased
-[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.2...master)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.5.1...master)
+
+## [0.5.1](https://github.com/Lawouach/WebSocket-for-Python/tree/0.5.1) (2018-02-28)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.5.0...0.5.1)
+**Merged pull requests:**
+
+- Rudimentary fix and testcase for Issue #179 [\#219](https://github.com/Lawouach/WebSocket-for-Python/pull/219) ([medington](https://github.com/medington))
 
 ## [0.5.0](https://github.com/Lawouach/WebSocket-for-Python/tree/0.5.0) (2018-02-27)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.4.3...0.5.0)
