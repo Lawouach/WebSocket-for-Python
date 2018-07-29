@@ -1,5 +1,11 @@
 # -*- coding:utf-8 -*-
 from mako import runtime, filters, cache
+
+try:
+    unicode        # Python 2
+except NameError:
+    unicode = str  # Python 3
+
 UNDEFINED = runtime.UNDEFINED
 __M_dict_builtin = dict
 __M_locals_builtin = locals
@@ -29,5 +35,3 @@ def render_body(context,**pageargs):
         return ''
     finally:
         context.caller_stack._pop_frame()
-
-
