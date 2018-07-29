@@ -1,9 +1,16 @@
+group: travis_latest
+
 language: python
 
-python:
-  - 2.7
-  - 3.3
-  - 3.5
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.4
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+      dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
+      sudo: required  # required for Python 3.7 (travis-ci/travis-ci#9069)
 
 before_install:
   - sudo apt-get install python-dev libevent-dev
@@ -12,8 +19,14 @@ before_install:
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install -r requirements/py2kreqs.txt; fi 
   - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install -r requirements/py3kreqs.txt; fi
+  - pip install flake8
   - python setup.py install
 
+before_script:
+  # stop the build if there are Python syntax errors or undefined names
+  - flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
+  # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
+  - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
 script: 
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then py.test -v; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then py.test -v; fi
+  - py.test -v
