@@ -186,6 +186,9 @@ class WebSocketTool(Tool):
             location.append("?%s" % request.query_string)
         ws_location = ''.join(location)
 
+        accept_value = base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())
+        if py3k: accept_value = accept_value.decode('utf-8')
+
         response = cherrypy.serving.response
         response.stream = True
         response.status = '101 Switching Protocols'
@@ -193,7 +196,7 @@ class WebSocketTool(Tool):
         response.headers['Upgrade'] = 'websocket'
         response.headers['Connection'] = 'Upgrade'
         response.headers['Sec-WebSocket-Version'] = str(version)
-        response.headers['Sec-WebSocket-Accept'] = base64.b64encode(sha1(key.encode('utf-8') + WS_KEY).digest())
+        response.headers['Sec-WebSocket-Accept'] = accept_value
         if ws_protocols:
             response.headers['Sec-WebSocket-Protocol'] = ', '.join(ws_protocols)
         if ws_extensions:
