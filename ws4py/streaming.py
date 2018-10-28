@@ -179,7 +179,7 @@ class Stream(object):
         frame = None
         while running:
             frame = Frame()
-            while 1:
+            while True:
                 try:
                     some_bytes = (yield next(frame.parser))
                     frame.parser.send(some_bytes)

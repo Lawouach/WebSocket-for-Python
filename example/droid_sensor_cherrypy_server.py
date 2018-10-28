@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import os.path
 import cherrypy
 
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         'tools.staticdir.root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
         }
     )
-    print os.path.abspath(os.path.join(__file__, 'static'))
+    print(os.path.abspath(os.path.join(__file__, 'static')))
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 

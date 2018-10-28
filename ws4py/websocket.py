@@ -306,7 +306,7 @@ class WebSocket(object):
             data = payload.single(mask=self.stream.always_mask)
             self._write(data)
 
-        elif type(payload) == types.GeneratorType:
+        elif isinstance(payload, types.GeneratorType):
             bytes = next(payload)
             first = True
             for chunk in payload:
