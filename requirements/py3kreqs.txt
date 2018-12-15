@@ -1,5 +1,5 @@
 CherryPy>=5.5.0
-tornado>=4.2.3
+tornado>=4.2.3,<5.0.0
 mock>=2.0.0
 asyncio>=3.4.3
 Cython>=0.22.1
