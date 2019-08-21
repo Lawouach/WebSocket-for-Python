@@ -4,6 +4,11 @@ import os
 import socket
 import struct
 
+try:
+    from io import BytesIO
+except ImportError:
+    from StringIO import StringIO as BytesIO
+
 from mock import MagicMock, call, patch
 
 from ws4py.framing import Frame, \
@@ -176,6 +181,25 @@ class WSWebSocketTest(unittest.TestCase):
         ws = WebSocket(sock=m)
         ws.ping("hello")
         m.sendall.assert_called_once_with(tm)
+
+    def test_spill_frame(self):
+        data = b"hello"
+        buf = BytesIO(data + b"spillover")
+
+        sock = MagicMock()
+        sock._ssl = object()  # for WebSocket._is_secure logic
+        sock.recv.side_effect = buf.read
+        sock.pending.side_effect = lambda: buf.tell() < len(buf.getvalue())
+
+        ws = WebSocket(sock=sock)
+        ws.stream = MagicMock()
+
+        self.assertTrue(ws._is_secure)
+
+        ws.reading_buffer_size = len(data)
+        ws.once()
+
+        ws.stream.parser.send.assert_called_once_with(data)
 
 
 if __name__ == '__main__':
