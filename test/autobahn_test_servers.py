@@ -142,7 +142,7 @@ def run_python_wsgi(host="127.0.0.1", port=9002):
     """
     run_python_wsgi_async(host, port, False)
 
-def run_python_wsgi_async(host="127.0.0.1", port=9010, async=True):
+def run_python_wsgi_async(host="127.0.0.1", port=9010, _async=True):
     """
     Runs wsgi server on python 2.x with async middleware"
     """
@@ -153,7 +153,7 @@ def run_python_wsgi_async(host="127.0.0.1", port=9010, async=True):
     from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
     app = WebSocketWSGIApplication(handler_cls=EchoWebSocket)
-    if async:
+    if _async:
         def middleware(app):
             def later(environ, start_response):
                 for part in app(environ, start_response):
