@@ -19,7 +19,7 @@ Polling
 -------
 
 The manager uses a polling mechanism to dispatch on socket incoming events.
-Two pollers are implemented, one using the traditionnal :py:mod:`select` 
+Two pollers are implemented, one using the traditional :py:mod:`select` 
 and another one based on `select.epoll <http://docs.python.org/2.7/library/select.html#epoll-objects>`_ 
 which is used only if available on the system.
 
