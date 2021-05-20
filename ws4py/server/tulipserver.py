@@ -9,6 +9,7 @@ import asyncio
 from ws4py import WS_KEY, WS_VERSION
 from ws4py.exc import HandshakeError
 from ws4py.websocket import WebSocket
+from ws4py import _asyncio_compat
 
 LF = b'\n'
 CRLF = b'\r\n'
@@ -25,7 +26,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
 
     def _pseudo_connected(self, reader, writer):
         pass
-        
+
     def connection_made(self, transport):
         """
         A peer is now connected and we receive an instance
@@ -40,17 +41,17 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         #self.stream.set_transport(transport)
         asyncio.StreamReaderProtocol.connection_made(self, transport)
         # Let make it concurrent for others to tag along
-        f = asyncio.async(self.handle_initial_handshake())
+        f = _asyncio_compat.ensure_future(self.handle_initial_handshake())
         f.add_done_callback(self.terminated)
 
     @property
     def writer(self):
         return self._stream_writer
-        
+
     @property
     def reader(self):
         return self._stream_reader
-        
+
     def terminated(self, f):
         if f.done() and not f.cancelled():
             ex = f.exception()
@@ -70,12 +71,12 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         transport.
         """
         self.ws.close()
-        
+
     def timeout(self):
         self.ws.close_connection()
         if self.ws.started:
             self.ws.closed(1002, "Peer connection timed-out")
-        
+
     def connection_lost(self, exc):
         """
         The peer connection is now, the closing
@@ -88,7 +89,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
             self.ws.close_connection()
             if self.ws.started:
                 self.ws.closed(1002, "Peer connection was lost")
-            
+
     @asyncio.coroutine
     def handle_initial_handshake(self):
         """
@@ -100,15 +101,15 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         """
         request_line = yield from self.next_line()
         method, uri, req_protocol = request_line.strip().split(SPACE, 2)
-        
+
         # GET required
         if method.upper() != b'GET':
             raise HandshakeError('HTTP method must be a GET')
-        
+
         headers = yield from self.read_headers()
         if req_protocol == b'HTTP/1.1' and 'Host' not in headers:
             raise ValueError("Missing host header")
-        
+
         for key, expected_value in [('Upgrade', 'websocket'),
                                      ('Connection', 'upgrade')]:
             actual_value = headers.get(key, '').lower()
@@ -160,7 +161,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         self.ws.protocols = ws_protocols
         self.ws.extensions = ws_extensions
         self.ws.headers = headers
-                    
+
         response = [req_protocol + b' 101 Switching Protocols']
         response.append(b'Upgrade: websocket')
         response.append(b'Content-Type: text/plain')
@@ -184,7 +185,7 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
         exchange is completed and terminated.
         """
         yield from self.ws.run()
-        
+
     @asyncio.coroutine
     def read_headers(self):
         """
@@ -198,21 +199,21 @@ class WebSocketProtocol(asyncio.StreamReaderProtocol):
             if line == CRLF:
                 break
         return BytesHeaderParser().parsebytes(headers)
-        
+
     @asyncio.coroutine
     def next_line(self):
         """
         Reads data until \r\n is met and then return all read
-        bytes. 
+        bytes.
         """
         line = yield from self.reader.readline()
         if not line.endswith(CRLF):
             raise ValueError("Missing mandatory trailing CRLF")
         return line
-        
+
 if __name__ == '__main__':
     from ws4py.async_websocket import EchoWebSocket
-    
+
     loop = asyncio.get_event_loop()
 
     def start_server():

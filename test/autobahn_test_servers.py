@@ -85,7 +85,7 @@ def run_python3_asyncio(host="127.0.0.1", port=9009):
     wsaccel.patch_ws4py()
     from ws4py.async_websocket import EchoWebSocket
     from ws4py.server.tulipserver import WebSocketProtocol
-    
+
     loop = asyncio.get_event_loop()
 
     def start_server():
@@ -121,14 +121,14 @@ def run_autobahn_server(host="127.0.0.1", port=9003):
     from twisted.internet import reactor
     from autobahn.twisted.websocket import WebSocketServerProtocol, \
         WebSocketServerFactory
-        
+
     class MyServerProtocol(WebSocketServerProtocol):
         def onMessage(self, payload, isBinary):
             self.sendMessage(payload, isBinary)
 
     logger = logging.getLogger('autobahn_testsuite')
     logger.warning("Serving Autobahn server on %s:%s" % (host, port))
-    
+
     factory = WebSocketServerFactory("ws://%s:%d" % (host, port))
     factory.protocol = MyServerProtocol
 
@@ -142,7 +142,7 @@ def run_python_wsgi(host="127.0.0.1", port=9002):
     """
     run_python_wsgi_async(host, port, False)
 
-def run_python_wsgi_async(host="127.0.0.1", port=9010, async=True):
+def run_python_wsgi_async(host="127.0.0.1", port=9010, async_=True):
     """
     Runs wsgi server on python 2.x with async middleware"
     """
@@ -153,7 +153,7 @@ def run_python_wsgi_async(host="127.0.0.1", port=9010, async=True):
     from ws4py.server.wsgiutils import WebSocketWSGIApplication
 
     app = WebSocketWSGIApplication(handler_cls=EchoWebSocket)
-    if async:
+    if async_:
         def middleware(app):
             def later(environ, start_response):
                 for part in app(environ, start_response):

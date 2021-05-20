@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging 
+import logging
 import logging.handlers as handlers
 import os, os.path
 import unittest
@@ -15,27 +15,31 @@ def clean_logger():
         except KeyError:
             pass
         logger.removeHandler(handler)
-            
+
 class WSTestLogger(unittest.TestCase):
+    LOG_FILE = './my.log'
+
     def tearDown(self):
         clean_logger()
-        
+        if os.path.exists(self.LOG_FILE):
+            os.remove(self.LOG_FILE)
+
     def test_named_logger(self):
-        logger = configure_logger(stdout=False, filepath='./my.log')
+        logger = configure_logger(stdout=False, filepath=self.LOG_FILE)
 
         logger = logging.getLogger('ws4py')
         self.assertEqual(logger.getEffectiveLevel(), logging.INFO)
-        
+
     def test_level(self):
-        logger = configure_logger(stdout=True, filepath='./my.log',
+        logger = configure_logger(stdout=True, filepath=self.LOG_FILE,
                                   level=logging.DEBUG)
 
         self.assertEqual(logger.getEffectiveLevel(), logging.DEBUG)
         for handler in logger.handlers:
             self.assertEqual(handler.level, logging.DEBUG)
-        
+
     def test_file_logger(self):
-        filepath = os.path.abspath('./my.log')
+        filepath = os.path.abspath(self.LOG_FILE)
         logger = configure_logger(stdout=False, filepath=filepath)
         for handler in logger.handlers:
             if isinstance(handler, handlers.RotatingFileHandler):
