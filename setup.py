@@ -7,7 +7,10 @@ try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
-from distutils.command.build_py import build_py
+try:
+    from setuptools.command.build_py import build_py
+except ImportError:
+    from distutils.command.build_py import build_py
 
 class buildfor2or3(build_py):
     def find_package_modules(self, package, package_dir):
