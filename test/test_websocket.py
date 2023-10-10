@@ -178,6 +178,29 @@ class WSWebSocketTest(unittest.TestCase):
         m.sendall.assert_called_once_with(tm)
 
 
+    @patch("ws4py.websocket.Heartbeat")
+    def test_run(self, mocker):
+        mocked_sock = MagicMock()
+        mocked_opened = MagicMock()
+        mocked_once = MagicMock(return_value=False) # False to break the loop
+        mocked_terminate = MagicMock()
+
+        ws = WebSocket(sock=mocked_sock)
+        assert ws.sock_timeout is None
+
+        with patch.multiple(ws,
+                            opened=mocked_opened,
+                            once=mocked_once,
+                            terminate=mocked_terminate,
+                            stream=MagicMock(),
+                            ):
+            ws.run()
+            mocked_sock.settimeout.assert_called_with(None)
+            mocked_opened.assert_called()
+            mocked_once.assert_called()
+            mocked_terminate.assert_called()
+
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
