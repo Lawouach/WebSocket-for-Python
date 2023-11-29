@@ -211,7 +211,8 @@ class WebSocketBaseClient(WebSocket):
                 context.load_cert_chain(self.ssl_options.get('certfile'), self.ssl_options.get('keyfile'))
             # Prevent check_hostname requires server_hostname (ref #187)
             if "cert_reqs" not in self.ssl_options:
-                context.check_hostname = False         
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
 
             self.sock = context.wrap_socket(self.sock)
             self._is_secure = True
