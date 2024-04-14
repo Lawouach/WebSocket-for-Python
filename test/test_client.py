@@ -5,7 +5,10 @@ import socket
 import time
 import unittest
 
-from mock import MagicMock, patch
+try:
+    from unittest.mock import MagicMock, patch
+except ImportError:
+    from mock import MagicMock, patch
 
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError
