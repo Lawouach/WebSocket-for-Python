@@ -4,7 +4,10 @@ import os
 import socket
 import struct
 
-from mock import MagicMock, call, patch
+try:
+    from unittest.mock import MagicMock, call, patch
+except ImportError:
+    from mock import MagicMock, call, patch
 
 from ws4py.framing import Frame, \
      OPCODE_CONTINUATION, OPCODE_TEXT, \
