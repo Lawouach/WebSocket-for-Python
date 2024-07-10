@@ -4,7 +4,6 @@ from hashlib import sha1
 import socket
 import time
 import unittest
-
 try:
     from unittest.mock import MagicMock, patch
 except ImportError:
