@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+try:
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
+
 from ws4py import format_addresses
 from ws4py.websocket import WebSocket
-from mock import MagicMock
+
 
 class WSUtilities(unittest.TestCase):
     def test_format_address(self):
@@ -14,7 +19,7 @@ class WSUtilities(unittest.TestCase):
 
         log = format_addresses(ws)
         self.assertEqual(log, "[Local => 127.0.0.1:52300 | Remote => 127.0.0.1:4800]")
-        
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()

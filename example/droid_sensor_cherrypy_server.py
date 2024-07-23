@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import os.path
 import cherrypy
 
@@ -8,7 +10,7 @@ from ws4py.websocket import WebSocket
 class BroadcastWebSocketHandler(WebSocket):
     def received_message(self, m):
         cherrypy.engine.publish('websocket-broadcast', str(m))
-        
+
 class Root(object):
     @cherrypy.expose
     def display(self):
@@ -61,7 +63,7 @@ class Root(object):
     </body>
     </html>
     """
-        
+
 if __name__ == '__main__':
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
@@ -69,7 +71,7 @@ if __name__ == '__main__':
         'tools.staticdir.root': os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
         }
     )
-    print os.path.abspath(os.path.join(__file__, 'static'))
+    print(os.path.abspath(os.path.join(__file__, 'static')))
     WebSocketPlugin(cherrypy.engine).subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 

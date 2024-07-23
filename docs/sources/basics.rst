@@ -34,7 +34,7 @@ necessarily need a connected socket, in fact, you don't even need a socket at al
     >>> def data_source():
     >>>     yield TextMessage(u'hello world')
 
-    >>> from mock import MagicMock
+    >>> from unittest.mock import MagicMock
     >>> source = MagicMock(side_effect=data_source)
     >>> ws = EchoWebSocket(sock=source)
     >>> ws.send(u'hello there')
