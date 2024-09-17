@@ -81,11 +81,6 @@ class WebSocketBaseClient(WebSocket):
         self.exclude_headers = exclude_headers or []
         self.exclude_headers = [x.lower() for x in self.exclude_headers]
 
-        if self.scheme == "wss":
-            # Prevent check_hostname requires server_hostname (ref #187)
-            if "cert_reqs" not in self.ssl_options:
-                self.ssl_options["cert_reqs"] = ssl.CERT_NONE
-
         self._parse_url()
 
         if self.unix_socket_path:
@@ -211,7 +206,20 @@ class WebSocketBaseClient(WebSocket):
         """
         if self.scheme == "wss":
             # default port is now 443; upgrade self.sender to send ssl
-            self.sock = ssl.wrap_socket(self.sock, **self.ssl_options)
+            protocol = getattr(ssl, 'PROTOCOL_TLS_CLIENT', ssl.PROTOCOL_TLSv1_2)  # PROTOCOL_TLS_CLIENT is correct for newer Python but doesn't exist on older Pythons
+            context = ssl.SSLContext(protocol)
+            if self.ssl_options.get('certfile', None):
+                context.load_cert_chain(self.ssl_options.get('certfile'), self.ssl_options.get('keyfile'))
+
+            if self.ssl_options.get('ca_certs'):
+                context.load_verify_locations(self.ssl_options['ca_certs'])
+
+            # Prevent check_hostname requires server_hostname (ref #187)
+            if "cert_reqs" not in self.ssl_options:
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+
+            self.sock = context.wrap_socket(self.sock, server_hostname=self.host)
             self._is_secure = True
 
         self.sock.connect(self.bind_addr)

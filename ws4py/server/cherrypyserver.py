@@ -379,4 +379,4 @@ if __name__ == '__main__':
             cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
 
     cherrypy.quickstart(Root(), '/', config={'/': {'tools.websocket.on': True,
-                                                   'tools.websocket.handler_cls': EchoWebSocketHandler}})
+                                                   'tools.websocket.handler_cls': EchoWebSocketHandler}})  # noqa: F821

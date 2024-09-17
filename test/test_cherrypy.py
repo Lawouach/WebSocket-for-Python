@@ -4,7 +4,10 @@ import socket
 import time
 import unittest
 
-from mock import MagicMock, call
+try:
+    from unittest.mock import MagicMock, call
+except ImportError:
+    from mock import MagicMock, call
 
 import cherrypy
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool

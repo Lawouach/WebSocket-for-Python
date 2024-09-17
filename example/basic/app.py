@@ -24,7 +24,7 @@ from ws4py.messaging import TextMessage
 
 cur_dir = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
 index_path = os.path.join(cur_dir, 'index.html')
-index_page = file(index_path, 'r').read()
+index_page = open(index_path, 'r').read()
 
 class ChatWebSocketHandler(WebSocket):
     def received_message(self, m):
