@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
 __doc__ = """
 WebSocket client that pushes Android sensor metrics to the
 websocket server it is connected to.
@@ -64,7 +66,7 @@ class AirPongSensor(object):
                     continue
                 
                 c = lambda rad: rad * 360.0 / math.pi
-                print c(azimuth), c(pitch), c(roll), x, y, z
+                print(c(azimuth), c(pitch), c(roll), x, y, z)
 
                 if self.client.terminated:
                     break
