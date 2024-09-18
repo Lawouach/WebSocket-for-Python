@@ -141,6 +141,17 @@ class WebSocket(object):
         "Internal buffer to get around SSL problems"
         self.buf = b''
 
+        self.sock_timeout = None
+        """
+        Used to set socket.settimeout(value):
+        From: https://docs.python.org/3.11/library/socket.html#socket.socket.settimeout
+        The value argument can be a nonnegative floating point number expressing seconds, or None.
+        If a non-zero value is given, subsequent socket operations will raise a timeout exception
+        if the timeout period value has elapsed before the operation has completed.
+        If zero is given, the socket is put in non-blocking mode.
+        If None is given, the socket is put in blocking mode.
+        """
+
         self._local_address = None
         self._peer_address = None
 
@@ -515,10 +526,12 @@ class WebSocket(object):
           we initiate the closing of the connection with the
           appropiate error code.
 
-        This method is blocking and should likely be run
-        in a thread.
+        The self.sock_timeout determines whether this method
+        is blocking, or can timeout on reads. If a timeout
+        occurs, the unhandled_error function will be called
+        It should likely be run in a thread.
         """
-        self.sock.setblocking(True)
+        self.sock.settimeout(self.sock_timeout)
         with Heartbeat(self, frequency=self.heartbeat_freq):
             s = self.stream
 
