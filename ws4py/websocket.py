@@ -529,7 +529,6 @@ class WebSocket(object):
         The self.sock_timeout determines whether this method
         is blocking, or can timeout on reads. If a timeout
         occurs, the unhandled_error function will be called
-
         It should likely be run in a thread.
         """
         self.sock.settimeout(self.sock_timeout)
