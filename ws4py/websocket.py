@@ -440,7 +440,7 @@ class WebSocket(object):
             self.stream = None
             self.environ = None
 
-    def process(self, bytes):
+    def process(self, data):
         """ Takes some bytes and process them through the
         internal stream's parser. If a message of any kind is
         found, performs one of these actions:
@@ -456,10 +456,10 @@ class WebSocket(object):
         """
         s = self.stream
 
-        if not bytes and self.reading_buffer_size > 0:
+        if not data and self.reading_buffer_size > 0:
             return False
 
-        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
+        self.reading_buffer_size = s.parser.send(data) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
             logger.debug("Closing message received (%d): %s" % (s.closing.code, s.closing.reason.decode() if isinstance(s.closing.reason, bytes) else s.closing.reason))
