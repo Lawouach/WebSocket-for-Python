@@ -30,7 +30,7 @@ class DataSource(object):
         current_bytes = self.remaining_bytes[:size]
         self.remaining_bytes = self.remaining_bytes[size:]
 
-        if self.remaining_bytes == b'':
+        if self.remaining_bytes is b'':
             self.frame = None
             self.remaining_bytes = None
 
