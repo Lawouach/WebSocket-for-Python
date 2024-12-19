@@ -3,10 +3,14 @@
 ## Unreleased
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.5.1...master)
 
+## [0.6.0](https://github.com/Lawouach/WebSocket-for-Python/tree/0.6.0) (2024-12-19)
+[Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.5.1...0.6.0)
 **Changes:**
 
- * Upgrade Python support to include 3.6, 3.7, 3.8 and 3.9
+ * Upgrade Python support to include 3.6, 3.7, 3.8,  3.9, 3.10, 3.11 and 3.12
  * Drop support for Python 3.* < 3.6 (Python 2.7 remains)
+ * Fix tox and github action so they work nicely together
+ * Add a release workflow to Pypi which uses trusted publisher
 
 ## [0.5.1](https://github.com/Lawouach/WebSocket-for-Python/tree/0.5.1) (2018-02-28)
 [Full Changelog](https://github.com/Lawouach/WebSocket-for-Python/compare/0.5.0...0.5.1)
