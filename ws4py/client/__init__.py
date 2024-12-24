@@ -269,6 +269,7 @@ class WebSocketBaseClient(WebSocket):
            'host' not in self.exclude_headers:
             headers.append(('Host', '%s:%s' % (self.host, self.port)))
 
+
         if not any(x for x in headers if x[0].lower() == 'origin') and \
            'origin' not in self.exclude_headers:
 
