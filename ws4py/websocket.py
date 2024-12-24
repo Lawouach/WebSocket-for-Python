@@ -230,6 +230,7 @@ class WebSocket(object):
             except:
                 pass
             self.sock = None
+            
 
     def ping(self, message):
         """
