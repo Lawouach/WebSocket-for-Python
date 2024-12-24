@@ -200,7 +200,6 @@ class WSWebSocketTest(unittest.TestCase):
             mocked_once.assert_called()
             mocked_terminate.assert_called()
 
-
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
