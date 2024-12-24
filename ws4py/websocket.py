@@ -234,11 +234,14 @@ class WebSocket(object):
         if self.sock:
             try:
                 self.sock.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
                 self.sock.close()
             except:
                 pass
-            finally:
-                self.sock = None
+            self.sock = None
+            
 
     def ping(self, message):
         """
