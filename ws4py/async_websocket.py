@@ -19,6 +19,7 @@ import asyncio
 import types
 
 from ws4py.websocket import WebSocket as _WebSocket
+from ws4py import _asyncio_compat
 from ws4py.messaging import Message
 
 __all__ = ['WebSocket', 'EchoWebSocket']
@@ -84,7 +85,7 @@ class WebSocket(_WebSocket):
         def closeit():
             yield from self.proto.writer.drain()
             self.proto.writer.close()
-        asyncio.async(closeit())
+        _asyncio_compat.ensure_future(closeit())
 
     def _write(self, data):
         """
@@ -94,7 +95,7 @@ class WebSocket(_WebSocket):
         def sendit(data):
             self.proto.writer.write(data)
             yield from self.proto.writer.drain()
-        asyncio.async(sendit(data))
+        _asyncio_compat.ensure_future(sendit(data))
 
     @asyncio.coroutine
     def run(self):

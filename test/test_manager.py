@@ -8,7 +8,10 @@ try:
 except ImportError:
     from itertools import zip_longest
 
-from mock import MagicMock, call, patch
+try:
+    from unittest.mock import MagicMock, call, patch
+except ImportError:
+    from mock import MagicMock, call, patch
 
 from ws4py.manager import WebSocketManager, SelectPoller,\
      EPollPoller

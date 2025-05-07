@@ -141,6 +141,17 @@ class WebSocket(object):
         "Internal buffer to get around SSL problems"
         self.buf = b''
 
+        self.sock_timeout = None
+        """
+        Used to set socket.settimeout(value):
+        From: https://docs.python.org/3.11/library/socket.html#socket.socket.settimeout
+        The value argument can be a nonnegative floating point number expressing seconds, or None.
+        If a non-zero value is given, subsequent socket operations will raise a timeout exception
+        if the timeout period value has elapsed before the operation has completed.
+        If zero is given, the socket is put in non-blocking mode.
+        If None is given, the socket is put in blocking mode.
+        """
+
         self._local_address = None
         self._peer_address = None
 
@@ -223,11 +234,14 @@ class WebSocket(object):
         if self.sock:
             try:
                 self.sock.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
                 self.sock.close()
             except:
                 pass
-            finally:
-                self.sock = None
+            self.sock = None
+            
 
     def ping(self, message):
         """
@@ -440,7 +454,7 @@ class WebSocket(object):
             self.stream = None
             self.environ = None
 
-    def process(self, bytes):
+    def process(self, data):
         """ Takes some bytes and process them through the
         internal stream's parser. If a message of any kind is
         found, performs one of these actions:
@@ -456,13 +470,13 @@ class WebSocket(object):
         """
         s = self.stream
 
-        if not bytes and self.reading_buffer_size > 0:
+        if not data and self.reading_buffer_size > 0:
             return False
 
-        self.reading_buffer_size = s.parser.send(bytes) or DEFAULT_READING_SIZE
+        self.reading_buffer_size = s.parser.send(data) or DEFAULT_READING_SIZE
 
         if s.closing is not None:
-            logger.debug("Closing message received (%d) '%s'" % (s.closing.code, s.closing.reason))
+            logger.debug("Closing message received (%d): %s" % (s.closing.code, s.closing.reason.decode() if isinstance(s.closing.reason, bytes) else s.closing.reason))
             if not self.server_terminated:
                 self.close(s.closing.code, s.closing.reason)
             else:
@@ -471,7 +485,7 @@ class WebSocket(object):
 
         if s.errors:
             for error in s.errors:
-                logger.debug("Error message received (%d) '%s'" % (error.code, error.reason))
+                logger.debug("Error message received (%d): %s" % (error.code, error.reason.decode() if isinstance(error.reason, bytes) else error.reason))
                 self.close(error.code, error.reason)
             s.errors = []
             return False
@@ -515,10 +529,12 @@ class WebSocket(object):
           we initiate the closing of the connection with the
           appropiate error code.
 
-        This method is blocking and should likely be run
-        in a thread.
+        The self.sock_timeout determines whether this method
+        is blocking, or can timeout on reads. If a timeout
+        occurs, the unhandled_error function will be called
+        It should likely be run in a thread.
         """
-        self.sock.setblocking(True)
+        self.sock.settimeout(self.sock_timeout)
         with Heartbeat(self, frequency=self.heartbeat_freq):
             s = self.stream
 

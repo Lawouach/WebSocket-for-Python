@@ -10,11 +10,6 @@ Read the [documentation](https://ws4py.readthedocs.org/en/latest/) for more info
 
 You can also join the [ws4py mailing-list](http://groups.google.com/group/ws4py) to discuss the library.
 
-**WARNING**: This project is [on hiatus](https://opensource.guide/best-practices/#share-the-workload)
-and [does not receive active maintainance](http://www.defuze.org/archives/409-ws4py-is-eager-for-a-new-maintainer.html).
-Please be aware of this when deciding to rely on it as contributions may be slow
-to make their way to a new release. If you feel like offering help in
-maintaining it, [please let us know](https://groups.google.com/forum/#!forum/ws4py).
 
 ## Installation
 

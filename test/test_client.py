@@ -4,8 +4,10 @@ from hashlib import sha1
 import socket
 import time
 import unittest
-
-from mock import MagicMock, patch
+try:
+    from unittest.mock import MagicMock, patch
+except ImportError:
+    from mock import MagicMock, patch
 
 from ws4py import WS_KEY
 from ws4py.exc import HandshakeError
@@ -103,6 +105,15 @@ class BasicClientTest(unittest.TestCase):
         self.assertEqual(c.port, 443)
         self.assertEqual(c.resource, "/?token=value")
         self.assertEqual(c.bind_addr, ("127.0.0.1", 443))
+
+    def test_overriding_host_from_headers(self):
+        c = WebSocketBaseClient(url="wss://127.0.0.1", headers=[("Host", "example123.com")])
+        self.assertEqual(c.host, "127.0.0.1")
+        self.assertEqual(c.port, 443)
+        self.assertEqual(c.bind_addr, ("127.0.0.1", 443))
+        for h in c.handshake_headers:
+            if h[0].lower() == "host":
+                self.assertEqual(h[1], "example123.com")
 
     @patch('ws4py.client.socket')
     def test_connect_and_close(self, sock):
