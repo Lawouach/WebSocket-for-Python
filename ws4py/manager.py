@@ -284,6 +284,22 @@ class WebSocketManager(threading.Thread):
             self.websockets.clear()
             self.poller.release()
 
+    def get_fds_with_pending_data( self ):
+        """
+        Returns a list of file descriptors that have pending data.
+
+        This is a workaround for a bug where polling returns no file descriptor,
+        even though we have sockets with pending data.
+        """
+        fds = []
+        with self.lock:
+            for ws in ( ws for ws in self.websockets.values() if ws._is_secure ):
+                if hasattr( ws.sock, 'pending' ) and ws.sock.pending():
+                    fds.append( ws.sock.fileno() )
+                    # set special handling flag
+                    ws._force_process_buffer = True
+        return fds
+
     def run(self):
         """
         Manager's mainloop executed from within a thread.
@@ -308,6 +324,10 @@ class WebSocketManager(threading.Thread):
                 polled = self.poller.poll()
             if not self.running:
                 break
+
+            if not polled:
+                # workaround WSS bug
+                polled.extend( self.get_fds_with_pending_data() )
 
             for fd in polled:
                 if not self.running:
