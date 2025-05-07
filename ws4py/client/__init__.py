@@ -261,7 +261,6 @@ class WebSocketBaseClient(WebSocket):
         handshake.
         """
         headers = [
-            ('Host', '%s:%s' % (self.host, self.port)),
             ('Connection', 'Upgrade'),
             ('Upgrade', 'websocket'),
             ('Sec-WebSocket-Key', self.key.decode('utf-8')),
@@ -273,6 +272,12 @@ class WebSocketBaseClient(WebSocket):
 
         if self.extra_headers:
             headers.extend(self.extra_headers)
+
+        # keep old logic if no overriding Host in headers
+        if not any(x for x in headers if x[0].lower() == 'host') and \
+           'host' not in self.exclude_headers:
+            headers.append(('Host', '%s:%s' % (self.host, self.port)))
+
 
         if not any(x for x in headers if x[0].lower() == 'origin') and \
            'origin' not in self.exclude_headers:
