@@ -113,6 +113,11 @@ class WebSocket(object):
         Tell us if the socket is secure or not.
         """
 
+        self._force_process_buffer = False
+        """
+        Indicates special handling of the buffer, only relevant for secure sockets.
+        """
+
         self.client_terminated = False
         """
         Indicates if the client has been marked as terminated.
@@ -241,7 +246,7 @@ class WebSocket(object):
             except:
                 pass
             self.sock = None
-            
+
 
     def ping(self, message):
         """
@@ -424,6 +429,15 @@ class WebSocket(object):
             if not self.process(self.buf[:requested]):
                 return False
             self.buf = self.buf[requested:]
+            if self.buf and self._force_process_buffer:
+                self._force_process_buffer = False
+                # if we are in special handling mode, we need to process
+                # the buffer until it is empty
+                while self.buf:
+                    requested = self.reading_buffer_size
+                    if not self.process(self.buf[:requested]):
+                        return False
+                    self.buf = self.buf[requested:]
 
         return True
 
