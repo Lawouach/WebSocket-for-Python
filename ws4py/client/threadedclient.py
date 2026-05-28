@@ -54,9 +54,19 @@ class WebSocketClient(WebSocketBaseClient):
         """
         Simply blocks the thread until the
         websocket has terminated.
+
+        .. note::
+
+           Signals and threads do not always play well together in Python.
+           Without a timeout, this method cannot be interrupted by a
+           SIGINT (KeyboardInterrupt). The timeout ensures we return to
+           the main thread periodically so pending signals can be
+           processed. A longer timeout reduces CPU usage in idle
+           processes at the cost of slightly slower signal response.
+           Override this method if you need different behaviour.
         """
         while not self.terminated:
-            self._th.join(timeout=0.1)
+            self._th.join(timeout=5.0)
 
     def handshake_ok(self):
         """
