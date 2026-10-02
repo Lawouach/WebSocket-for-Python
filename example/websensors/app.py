@@ -171,7 +171,7 @@ class DrawingBoardWebSocketPlugin(WebSocketPlugin):
         """
         if board_id in self.boards:
             board = self.boards[board_id]
-            if participant_id in self.boards[board_id]:
+            if participant_id in board['handlers']:
                 board['handlers'].pop(participant_id, None)
                 self.bus.log("Unregistering participant %s from board %s" % (participant_id, board_id))
 
