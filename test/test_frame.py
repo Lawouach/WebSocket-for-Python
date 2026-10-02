@@ -95,6 +95,18 @@ class WSFrameBuilderTest(unittest.TestCase):
         f.payload_length = 1 << 63
         self.assertRaises(FrameTooLargeException, f.build)
 
+    def test_control_frame_payload_limit(self):
+        for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            self.assertEqual(len(Frame(opcode=opcode, body=b'*' * 125, fin=1).build()), 127)
+            self.assertRaises(
+                FrameTooLargeException,
+                Frame(opcode=opcode, body=b'*' * 126, fin=1).build,
+            )
+
+    def test_control_frames_cannot_be_fragmented(self):
+        for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            self.assertRaises(ValueError, Frame(opcode=opcode, body=b'', fin=0).build)
+
     def test_passing_encoded_string(self):
         # once encoded the u'\xe9' character will be of length 2
         f = Frame(opcode=OPCODE_TEXT, body=u'\xe9trange'.encode('utf-8'), fin=1)
