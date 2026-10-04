@@ -128,8 +128,9 @@ class WSStreamTest(unittest.TestCase):
 
     def test_too_large_close_message(self):
         payload = struct.pack("!H", 1000) + b'*' * 330
-        f = Frame(opcode=OPCODE_CLOSE, body=payload,
-                  fin=1, masking_key=os.urandom(4)).build()
+        # A zero masking key leaves the malformed peer payload unchanged.
+        # Do not ask the validating sender to build this oversized control frame.
+        f = b'\x88\xfe' + struct.pack('!H', len(payload)) + b'\x00' * 4 + payload
         s = Stream()
         self.assertEqual(len(s.errors), 0)
         self.assertEqual(s.closing, None)

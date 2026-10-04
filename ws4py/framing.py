@@ -75,6 +75,12 @@ class Frame(object):
         if 0x3 <= self.opcode <= 0x7 or 0xB <= self.opcode:
             raise ValueError('Opcode cannot be a reserved opcode')
 
+        if self.opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            if self.fin != 1:
+                raise ValueError('Control frames cannot be fragmented')
+            if self.payload_length > 125:
+                raise FrameTooLargeException()
+
         ## +-+-+-+-+-------+
         ## |F|R|R|R| opcode|
         ## |I|S|S|S|  (4)  |
