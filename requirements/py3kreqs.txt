@@ -1,4 +1,5 @@
 CherryPy>=5.5.0
+Mako
 tornado>=4.2.3
 mock>=2.0.0
 asyncio>=3.4.3
