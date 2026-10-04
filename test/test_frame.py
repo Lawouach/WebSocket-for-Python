@@ -95,7 +95,7 @@ class WSFrameBuilderTest(unittest.TestCase):
         f.payload_length = 1 << 63
         self.assertRaises(FrameTooLargeException, f.build)
 
-    def test_control_frames_cannot_be_fragmented(self):
+    def test_fragmented_control_frames_with_payload_are_rejected(self):
         for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
             f = Frame(opcode=opcode, body=b'control', fin=0)
             self.assertRaises(ValueError, f.build)
