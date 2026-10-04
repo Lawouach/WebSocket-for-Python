@@ -95,6 +95,31 @@ class WSFrameBuilderTest(unittest.TestCase):
         f.payload_length = 1 << 63
         self.assertRaises(FrameTooLargeException, f.build)
 
+    def test_control_frames_cannot_be_fragmented(self):
+        for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            f = Frame(opcode=opcode, body=b'control', fin=0)
+            self.assertRaises(ValueError, f.build)
+
+    def test_control_frames_cannot_exceed_125_bytes(self):
+        for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            for mask in (None, b'1234'):
+                f = Frame(opcode=opcode, body=b'*' * 126,
+                          masking_key=mask, fin=1)
+                self.assertRaises(FrameTooLargeException, f.build)
+
+    def test_control_frames_accept_empty_and_125_byte_payloads(self):
+        for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
+            for mask in (None, b'1234'):
+                for body in (b'', b'*' * 125):
+                    data = Frame(opcode=opcode, body=body,
+                                 masking_key=mask, fin=1).build()
+                    parsed = Frame()
+                    parsed.parser.send(data)
+                    self.assertEqual(parsed.opcode, opcode)
+                    self.assertEqual(parsed.payload_length, len(body))
+                    decoded = parsed.unmask(parsed.body) if mask else parsed.body
+                    self.assertEqual(decoded, body)
+
     def test_control_frame_payload_limit(self):
         for opcode in (OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG):
             self.assertEqual(len(Frame(opcode=opcode, body=b'*' * 125, fin=1).build()), 127)
@@ -199,7 +224,8 @@ class WSFrameParserTest(unittest.TestCase):
         self.assertRaises(ProtocolException, f.parser.send, b'0x9')
 
     def test_fragmented_control_frame_is_too_large(self):
-        bytes = Frame(opcode=OPCODE_PING, body=b'*'*65536, fin=1).build()
+        # Construct malformed peer input without the validating sender.
+        bytes = b'\x89\x7f' + pack('!Q', 65536) + b'*' * 65536
         f = Frame()
         self.assertRaises(FrameTooLargeException, f.parser.send, bytes)
 
