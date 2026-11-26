@@ -326,30 +326,37 @@ class WebSocketBaseClient(WebSocket):
         """
         protocols = []
         extensions = []
+        required = set([b'upgrade', b'connection', b'sec-websocket-accept'])
 
         headers = headers.strip()
 
         for header_line in headers.split(b'\r\n'):
             header, value = header_line.split(b':', 1)
             header = header.strip().lower()
-            value = value.strip().lower()
+            raw_value = value.strip()
+            value = raw_value.lower()
+            required.discard(header)
 
             if header == b'upgrade' and value != b'websocket':
                 raise HandshakeError("Invalid Upgrade header: %s" % value)
 
-            elif header == b'connection' and value != b'upgrade':
+            elif header == b'connection' and \
+                    b'upgrade' not in [x.strip() for x in value.split(b',')]:
                 raise HandshakeError("Invalid Connection header: %s" % value)
 
             elif header == b'sec-websocket-accept':
                 match = b64encode(sha1(self.key + WS_KEY).digest())
-                if value != match.lower():
-                    raise HandshakeError("Invalid challenge response: %s" % value)
+                if raw_value != match:
+                    raise HandshakeError("Invalid challenge response: %s" % raw_value)
 
             elif header == b'sec-websocket-protocol':
                 protocols.extend([x.strip() for x in value.split(b',')])
 
             elif header == b'sec-websocket-extensions':
                 extensions.extend([x.strip() for x in value.split(b',')])
+
+        if required:
+            raise HandshakeError("Missing headers: %s" % b', '.join(sorted(required)))
 
         return protocols, extensions
 
