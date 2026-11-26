@@ -226,6 +226,57 @@ class BasicClientTest(unittest.TestCase):
             s.close.assert_called_once_with()
             sock.reset_mock()
 
+    def _handshake(self, sock, headers):
+        s = MagicMock()
+        sock.socket.return_value = s
+        sock.getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 0, "",
+                                          ("127.0.0.1", 80, 0, 0))]
+        c = WebSocketBaseClient(url="ws://127.0.0.1/?token=value")
+        accept = b64encode(sha1(c.key + WS_KEY).digest())
+        lines = [h.replace(b"<accept>", accept).replace(b"<swapcase>", accept.swapcase())
+                 for h in headers]
+        s.recv.return_value = b"\r\n".join(
+            [b"HTTP/1.1 101 Switching Protocols"] + lines + [b"\r\n"])
+        return c, s
+
+    @patch('ws4py.client.socket')
+    def test_missing_required_response_headers(self, sock):
+        headers = [b"Upgrade: websocket",
+                   b"Connection: Upgrade",
+                   b"Sec-WebSocket-Accept: <accept>"]
+        for i in range(len(headers)):
+            c, s = self._handshake(sock, headers[:i] + headers[i + 1:])
+            self.assertRaises(HandshakeError, c.connect)
+            s.shutdown.assert_called_once_with(socket.SHUT_RDWR)
+            s.close.assert_called_once_with()
+            sock.reset_mock()
+
+    @patch('ws4py.client.socket')
+    def test_invalid_accept_header(self, sock):
+        for bad in (b"Sec-WebSocket-Accept: aW52YWxpZA==",
+                    b"Sec-WebSocket-Accept: <accept>x",
+                    b"Sec-WebSocket-Accept: "):
+            c, s = self._handshake(sock, [b"Upgrade: websocket",
+                                          b"Connection: Upgrade",
+                                          bad])
+            self.assertRaises(HandshakeError, c.connect)
+            sock.reset_mock()
+
+    @patch('ws4py.client.socket')
+    def test_accept_header_is_case_sensitive(self, sock):
+        c, s = self._handshake(sock, [b"Upgrade: websocket",
+                                      b"Connection: Upgrade",
+                                      b"Sec-WebSocket-Accept: <swapcase>"])
+        self.assertRaises(HandshakeError, c.connect)
+
+    @patch('ws4py.client.socket')
+    def test_valid_response_headers_any_case(self, sock):
+        c, s = self._handshake(sock, [b"upgrade: WebSocket",
+                                      b"CONNECTION: keep-alive, UPGRADE",
+                                      b"sec-websocket-accept: <accept>"])
+        c.connect()
+        self.assertFalse(s.shutdown.called)
+
 class ThreadedClientTest(unittest.TestCase):
 
     @patch('ws4py.client.socket')
